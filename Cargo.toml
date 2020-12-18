@@ -1,0 +1,10 @@
+[package]
+name = "druid-widget-nursery"
+version = "0.1.0"
+authors = ["Richard Dodd <richard.o.dodd@gmail.com>"]
+edition = "2018"
+license = "MIT OR Apache-2.0"
+
+[dependencies.druid]
+git = "https://github.com/linebender/druid"
+rev = "f0910af" # update this when upgrading to newer druid
