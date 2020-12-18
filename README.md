@@ -18,7 +18,7 @@ So, in summary, the default assumption for PRs to this repo will be to merge, bu
 
 # Links to widget crates
 
-Maybe you have made your own collection of widgets that aren't general enough to go into `druid` proper, but will still be useful to other `druid` users.
+Maybe you have made your own collection of widgets that aren't general enough to go into `druid` proper, but will still be useful to other `druid` users. Submit a PR to add them here!
 
  - [`druid-graphs`]: An alpha quality library for drawing graphs as widgets, taking inspiration from [`matplotlib`]. Currently only supports a few graph types, collaboration welcome! Works well with [`druid-lens-compose`].
 
