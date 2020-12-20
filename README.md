@@ -8,13 +8,18 @@ So, in summary, the default assumption for PRs to this repo will be to merge, bu
 
 # Widgets
 
+If you add a new widget, please add its name and a short summary here.
+
  - none yet. be the first!
 
 # Widget Requests
 
+If you need a certain widget, and you think it might be useful to others, feel free to make a PR adding it to this list.
+
  - A really good, general widget for laying out collections of items.
    - There are different approaches we could use (`flexbox` or `grid` from the HTML world).
    - This might be multiple widgets serving different use cases in the end.
+ - A widget that works like `druid::widget::Scroll` but also supports zooming its content.
 
 # Links to widget crates
 
