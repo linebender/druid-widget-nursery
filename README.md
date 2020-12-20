@@ -20,6 +20,7 @@ If you need a certain widget, and you think it might be useful to others, feel f
    - There are different approaches we could use (`flexbox` or `grid` from the HTML world).
    - This might be multiple widgets serving different use cases in the end.
  - A widget that works like `druid::widget::Scroll` but also supports zooming its content.
+ - A color picker
 
 # Links to widget crates
 
