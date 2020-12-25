@@ -10,7 +10,7 @@ So, in summary, the default assumption for PRs to this repo will be to merge, bu
 
 If you add a new widget, please add its name and a short summary here.
 
- - none yet. be the first!
+ - A tree widget
 
 # Widget Requests
 
