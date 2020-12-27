@@ -148,6 +148,8 @@ impl Widget<(bool, bool)> for Wedge {
     }
 }
 
+type WidgetFactoryCallback<T> = Arc<Box<dyn Fn(&T) -> Box<dyn Widget<T>>>>;
+
 /// An internal widget used to display a single node and its children
 /// This is used recursively to build the tree.
 struct TreeNodeWidget<T>
@@ -169,18 +171,18 @@ where
     children: BTreeMap<usize, WidgetPod<T, Self>>,
 
     /// A factory closure for building widgets for the children nodes
-    make_widget: Arc<Box<dyn Fn(&T) -> Box<dyn Widget<T>>>>,
+    make_widget: WidgetFactoryCallback<T>,
 }
 
 impl<T: TreeNode + Data + Default> TreeNodeWidget<T> {
     /// Create an empty default tree node widget
-    fn default(make_widget: Arc<Box<dyn Fn(&T) -> Box<dyn Widget<T>>>>) -> Self {
+    fn default(make_widget: WidgetFactoryCallback<T>) -> Self {
         let default_node = T::default();
         Self::from_node(&default_node, make_widget)
     }
 
     /// Create a TreeNodeWidget from a TreeNode.
-    fn from_node(node: &T, make_widget: Arc<Box<dyn Fn(&T) -> Box<dyn Widget<T>>>>) -> Self {
+    fn from_node(node: &T, make_widget: WidgetFactoryCallback<T>) -> Self {
         TreeNodeWidget {
             wedge: WidgetPod::new(Wedge::new()),
             widget: WidgetPod::new(Box::new((make_widget)(node))),
