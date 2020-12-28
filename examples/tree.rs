@@ -15,15 +15,13 @@
 //! Demos basic tree widget and tree manipulations.
 use std::vec::Vec;
 
-//use druid::im::{vector, Vector};
-//use druid::lens::{self, LensExt};
-use druid::widget::{LabelText, Scroll};
+use druid::widget::{Label, Scroll};
 use druid::{AppLauncher, Data, Lens, LocalizedString, Widget, WindowDesc};
 use druid_widget_nursery::{Tree, TreeNode};
 
 #[derive(Clone, Lens)]
 struct Taxonomy {
-    name: &'static str,
+    name: String,
     children: Vec<Taxonomy>,
 }
 
@@ -31,7 +29,7 @@ struct Taxonomy {
 impl Taxonomy {
     fn new(name: &'static str) -> Self {
         Taxonomy {
-            name,
+            name: name.to_string(),
             children: Vec::new(),
         }
     }
@@ -39,6 +37,15 @@ impl Taxonomy {
     fn add_child(mut self, child: Self) -> Self {
         self.children.push(child);
         self
+    }
+}
+
+impl Default for Taxonomy {
+    fn default() -> Self {
+        Taxonomy {
+            name: "Life".to_string(),
+            children: Vec::new(),
+        }
     }
 }
 
@@ -55,10 +62,6 @@ impl Data for Taxonomy {
 }
 
 impl TreeNode for Taxonomy {
-    fn label_text(&self) -> LabelText<()> {
-        LabelText::from(self.name)
-    }
-
     fn children_count(&self) -> usize {
         self.children.len()
     }
@@ -160,5 +163,12 @@ pub fn main() {
 }
 
 fn ui_builder() -> impl Widget<Taxonomy> {
-    Scroll::new(Tree::new())
+    Scroll::new(Tree::new(|t: &Taxonomy| Label::new(t.name.as_str())))
 }
+
+//fn ui_builder_2() -> impl Widget<Taxonomy> {
+//    let mut flex = Flex::row().cross_axis_alignment(CrossAxisAlignment::Start);
+//    flex.add_child(Scroll::new(Tree::new(|_| TextBox::new().lens(Taxonomy::name))).padding(8.0));
+//    flex.add_child(Scroll::new(Tree::new(|t: &Taxonomy| Label::new(t.name.as_str()))).padding(8.0));
+//    flex
+//}
