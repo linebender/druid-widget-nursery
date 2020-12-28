@@ -14,18 +14,18 @@
 
 //! A tree widget.
 
+use std::collections::BTreeMap;
 use std::fmt::Display;
 use std::sync::Arc;
-use std::collections::BTreeMap;
 
 use druid::kurbo::{BezPath, Size};
 use druid::piet::{LineCap, LineJoin, RenderContext, StrokeStyle};
 use druid::theme;
+use druid::widget::Label;
 use druid::{
     BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx,
     Point, UpdateCtx, Widget, WidgetPod,
 };
-use druid::widget::Label;
 
 /// A tree widget for a collection of items organized in a hierachical way.
 pub struct Tree<T>
@@ -203,7 +203,10 @@ impl<T: TreeNode + Data + Default> TreeNodeWidget<T> {
                 new_children |= !self.children.contains_key(&index);
                 let make_widget = self.make_widget.clone();
                 self.children.entry(index).or_insert_with(|| {
-                    WidgetPod::new(TreeNodeWidget::from_node(data.get_child(index), make_widget))
+                    WidgetPod::new(TreeNodeWidget::from_node(
+                        data.get_child(index),
+                        make_widget,
+                    ))
                 });
             }
         }
@@ -347,9 +350,8 @@ impl<T: TreeNode + Data + Default> Widget<T> for TreeNodeWidget<T> {
 impl<T: TreeNode + Data + Default> Tree<T> {
     /// Create a new Tree widget
     pub fn new<W: Widget<T> + 'static>(make_widget: impl Fn(&T) -> W + 'static) -> Self {
-		let boxed_closure : WidgetFactoryCallback<T> = Arc::new(Box::new(move |n: &T|
-			Box::new(make_widget(n)))
-		);
+        let boxed_closure: WidgetFactoryCallback<T> =
+            Arc::new(Box::new(move |n: &T| Box::new(make_widget(n))));
         Tree {
             root_node: TreeNodeWidget::default(boxed_closure),
         }
@@ -358,14 +360,14 @@ impl<T: TreeNode + Data + Default> Tree<T> {
 
 /// Default tree implementation, supplying Label if the nodes implement the Display trait
 impl<T: TreeNode + Data + Default + Display> Default for Tree<T> {
-	fn default() -> Self {
-		let boxed_closure : WidgetFactoryCallback<T> = Arc::new(Box::new(move |n: &T| {
-			Box::new(Label::new(format!("{}",n)))
-		}));
-		Tree {
-			root_node: TreeNodeWidget::default(boxed_closure),
-		}
-	}
+    fn default() -> Self {
+        let boxed_closure: WidgetFactoryCallback<T> = Arc::new(Box::new(move |n: &T| {
+            Box::new(Label::new(format!("{}", n)))
+        }));
+        Tree {
+            root_node: TreeNodeWidget::default(boxed_closure),
+        }
+    }
 }
 
 // Implement the Widget trait for Tree

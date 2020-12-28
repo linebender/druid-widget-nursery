@@ -78,7 +78,7 @@ impl TreeNode for Taxonomy {
 
 impl fmt::Display for Taxonomy {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		f.write_str(&self.name)
+        f.write_str(&self.name)
     }
 }
 
