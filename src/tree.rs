@@ -14,6 +14,7 @@
 
 //! A tree widget.
 
+use std::fmt::Display;
 use std::sync::Arc;
 use std::collections::BTreeMap;
 
@@ -24,6 +25,7 @@ use druid::{
     BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx,
     Point, UpdateCtx, Widget, WidgetPod,
 };
+use druid::widget::Label;
 
 /// A tree widget for a collection of items organized in a hierachical way.
 pub struct Tree<T>
@@ -345,10 +347,25 @@ impl<T: TreeNode + Data + Default> Widget<T> for TreeNodeWidget<T> {
 impl<T: TreeNode + Data + Default> Tree<T> {
     /// Create a new Tree widget
     pub fn new<W: Widget<T> + 'static>(make_widget: impl Fn(&T) -> W + 'static) -> Self {
+		let boxed_closure : WidgetFactoryCallback<T> = Arc::new(Box::new(move |n: &T|
+			Box::new(make_widget(n)))
+		);
         Tree {
-            root_node: TreeNodeWidget::default(Arc::new(Box::new(move |n: &T| Box::new(make_widget(n))))), //<W: Widget<T> + 'static> // Box::new(make_widget)
+            root_node: TreeNodeWidget::default(boxed_closure),
         }
     }
+}
+
+/// Default tree implementation, supplying Label if the nodes implement the Display trait
+impl<T: TreeNode + Data + Default + Display> Default for Tree<T> {
+	fn default() -> Self {
+		let boxed_closure : WidgetFactoryCallback<T> = Arc::new(Box::new(move |n: &T| {
+			Box::new(Label::new(format!("{}",n)))
+		}));
+		Tree {
+			root_node: TreeNodeWidget::default(boxed_closure),
+		}
+	}
 }
 
 // Implement the Widget trait for Tree

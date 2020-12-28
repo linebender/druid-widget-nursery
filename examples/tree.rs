@@ -13,6 +13,7 @@
 // limitations under the License.
 
 //! Demos basic tree widget and tree manipulations.
+use std::fmt;
 use std::vec::Vec;
 
 use druid::widget::{Label, Scroll};
@@ -72,6 +73,12 @@ impl TreeNode for Taxonomy {
 
     fn get_child_mut(&mut self, index: usize) -> &mut Taxonomy {
         &mut self.children[index]
+    }
+}
+
+impl fmt::Display for Taxonomy {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		f.write_str(&self.name)
     }
 }
 
@@ -168,6 +175,7 @@ fn ui_builder() -> impl Widget<Taxonomy> {
 
 //fn ui_builder_2() -> impl Widget<Taxonomy> {
 //    let mut flex = Flex::row().cross_axis_alignment(CrossAxisAlignment::Start);
+//    flex.add_child(Scroll::new(Tree::default().padding(8.0)));
 //    flex.add_child(Scroll::new(Tree::new(|_| TextBox::new().lens(Taxonomy::name))).padding(8.0));
 //    flex.add_child(Scroll::new(Tree::new(|t: &Taxonomy| Label::new(t.name.as_str()))).padding(8.0));
 //    flex
