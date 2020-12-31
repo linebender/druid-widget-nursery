@@ -14,6 +14,8 @@
 
 //! A collection of widgets for the druid GUI framework
 
+mod canvas;
 mod tree;
 
+pub use canvas::{Canvas, CanvasLayout, CanvasWrap};
 pub use tree::{Tree, TreeNode};
