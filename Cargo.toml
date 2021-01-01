@@ -5,6 +5,9 @@ authors = ["Richard Dodd <richard.o.dodd@gmail.com>"]
 edition = "2018"
 license = "MIT OR Apache-2.0"
 
+[features]
+async = ["tokio", "futures", "flume"]
+
 [dependencies.druid]
 git = "https://github.com/linebender/druid"
 rev = "f0910af" # update this when upgrading to newer druid
@@ -12,3 +15,10 @@ rev = "f0910af" # update this when upgrading to newer druid
 
 [dependencies]
 log = "0.4.11"
+tokio = { version = "1.0" ,features = ["rt"], optional = true }
+futures = { version = "0.3", optional = true }
+flume = { version = "0.10", optional = true }
+
+[[example]]
+name = "async"
+required-features = ["async", "tokio/time"]

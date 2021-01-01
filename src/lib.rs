@@ -17,5 +17,11 @@
 mod canvas;
 mod tree;
 
+#[cfg(feature = "async")]
+mod future_widget;
+
 pub use canvas::{Canvas, CanvasLayout, CanvasWrap};
 pub use tree::{Tree, TreeNode};
+
+#[cfg(feature = "async")]
+pub use future_widget::{FutureWidget, Delegate as AsyncDelegate};
