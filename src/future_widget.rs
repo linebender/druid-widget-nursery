@@ -19,7 +19,9 @@
 use std::{any::Any, future::Future, pin::Pin, thread};
 
 use druid::widget::prelude::*;
-use druid::{AppDelegate, AppLauncher, WidgetPod, Data, ExtEventSink, Handled, Selector, SingleUse, Target};
+use druid::{
+    AppDelegate, AppLauncher, Data, ExtEventSink, Handled, Selector, SingleUse, Target, WidgetPod,
+};
 use flume::{Receiver, Sender};
 use futures::future::{self, BoxFuture};
 use futures::prelude::*;
