@@ -96,7 +96,7 @@ impl AnimationDirection {
 
 /// The name of an animation event
 #[derive(Eq, PartialEq, Hash, Debug)]
-pub struct AnimationEventName(&'static str);
+pub struct AnimationEventName(pub &'static str);
 
 /// An event in the animator.
 /// This can be used as a trigger to set off other animations.
@@ -106,6 +106,12 @@ pub enum AnimationEvent {
     Named(AnimationEventName),
     /// An animation has finished.
     Ended(AnimationId),
+}
+
+impl From<AnimationEventName> for AnimationEvent {
+    fn from(name: AnimationEventName) -> Self {
+        AnimationEvent::Named(name)
+    }
 }
 
 pub(in crate::animation) fn clamp_fraction(f: f64) -> f64 {

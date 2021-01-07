@@ -10,7 +10,7 @@ pub struct AnimationId {
 }
 
 impl AnimationId {
-    pub(in crate::animation) fn new(offset: ASOffset, version: NonZeroU32) -> Self {
+    pub fn new(offset: ASOffset, version: NonZeroU32) -> Self {
         AnimationId { offset, version }
     }
 }
