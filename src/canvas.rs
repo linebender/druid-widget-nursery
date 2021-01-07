@@ -31,6 +31,12 @@ pub struct Canvas<T: Data> {
     children: Vec<(Rect, Box<dyn CanvasLayout<T>>)>,
 }
 
+impl<T: Data> Default for Canvas<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T: Data> Canvas<T> {
     pub fn new() -> Self {
         Self { children: vec![] }

@@ -12,9 +12,9 @@ async = ["tokio", "futures", "flume"]
 git = "https://github.com/linebender/druid"
 rev = "f0910af" # update this when upgrading to newer druid
 
-
 [dependencies]
 log = "0.4.11"
+
 tokio = { version = "1.0" ,features = ["rt"], optional = true }
 futures = { version = "0.3", optional = true }
 flume = { version = "0.10", optional = true }
@@ -22,3 +22,6 @@ flume = { version = "0.10", optional = true }
 [[example]]
 name = "async"
 required-features = ["async", "tokio/time"]
+
+[[example]]
+name = "animator"

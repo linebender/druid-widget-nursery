@@ -33,7 +33,7 @@ fn canvas_panel() -> impl Widget<AppData> {
     canvas
 }
 fn sidebar() -> impl Widget<AppData> {
-    let flex = Flex::column()
+    Flex::column()
         .with_child(Label::new("Label text:").padding(4.0))
         .with_child(
             TextBox::new()
@@ -49,9 +49,7 @@ fn sidebar() -> impl Widget<AppData> {
         .with_child(
             Label::dynamic(|data: &AppData, _env| data.btn_click_count.to_string()).padding(4.),
         )
-        .with_child(position_cluster("Button position:").lens(AppData::button_pos));
-
-    flex
+        .with_child(position_cluster("Button position:").lens(AppData::button_pos))
 }
 
 fn position_cluster(text: impl Into<LabelText<Point>>) -> impl Widget<Point> {

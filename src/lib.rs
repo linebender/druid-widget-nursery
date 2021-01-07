@@ -14,6 +14,7 @@
 
 //! A collection of widgets for the druid GUI framework
 
+pub mod animation;
 mod canvas;
 mod tree;
 
@@ -24,4 +25,4 @@ pub use canvas::{Canvas, CanvasLayout, CanvasWrap};
 pub use tree::{Tree, TreeNode};
 
 #[cfg(feature = "async")]
-pub use future_widget::{FutureWidget, Delegate as AsyncDelegate};
+pub use future_widget::{Delegate as AsyncDelegate, FutureWidget};
