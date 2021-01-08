@@ -16,6 +16,7 @@
 
 pub mod animation;
 mod canvas;
+pub mod theme_loader;
 mod tree;
 
 #[cfg(feature = "async")]
