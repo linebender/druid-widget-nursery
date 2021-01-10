@@ -77,6 +77,10 @@ impl Seperator {
     pub fn set_orientation(&mut self, orientation: Orientation) {
         self.orientation = orientation;
     }
+
+    pub fn set_stroke_style(&mut self, stroke_style: StrokeStyle) {
+        self.stroke_style = stroke_style;
+    }
 }
 
 impl<T> Widget<T> for Seperator {
