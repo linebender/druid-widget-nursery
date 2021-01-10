@@ -10,7 +10,7 @@ async = ["tokio", "futures", "flume"]
 
 [dependencies.druid]
 git = "https://github.com/linebender/druid"
-rev = "5642731" # update this when upgrading to newer druid
+rev = "75d5096" # update this when upgrading to newer druid
 
 [dependencies]
 log = "0.4.11"
