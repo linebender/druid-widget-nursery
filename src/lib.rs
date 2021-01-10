@@ -16,6 +16,7 @@
 
 pub mod animation;
 mod canvas;
+mod seperator;
 pub mod theme_loader;
 mod tree;
 
@@ -23,6 +24,7 @@ mod tree;
 mod future_widget;
 
 pub use canvas::{Canvas, CanvasLayout, CanvasWrap};
+pub use seperator::{Orientation, Seperator};
 pub use tree::{Tree, TreeNode};
 
 #[cfg(feature = "async")]
