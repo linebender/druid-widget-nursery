@@ -23,6 +23,9 @@ mod tree;
 #[cfg(feature = "async")]
 mod future_widget;
 
+#[cfg(feature = "hot-reload")]
+pub mod hot_reload;
+
 pub use canvas::{Canvas, CanvasLayout, CanvasWrap};
 pub use seperator::{Orientation, Seperator};
 pub use tree::{Tree, TreeNode};

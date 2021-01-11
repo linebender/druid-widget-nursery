@@ -1,0 +1,12 @@
+[package]
+name = "hot-reload"
+version = "0.1.0"
+authors = ["Manmeet Maan <manmeetmann2003@gmail.com>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+druid-widget-nursery = { path = "../..", features = ["hot-reload"] }
+druid = { git = "https://github.com/linebender/druid", rev = "75d5096" }
