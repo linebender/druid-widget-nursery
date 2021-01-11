@@ -7,18 +7,29 @@ license = "MIT OR Apache-2.0"
 
 [features]
 async = ["tokio", "futures", "flume"]
+hot-reload = ["libloading", "notify5", "rand"]
 
 [dependencies.druid]
 git = "https://github.com/linebender/druid"
-rev = "75d5096" # update this when upgrading to newer druid
+rev = "75d5096" # update this when upgrading to newer druid 
+# and update examples/hot_reload/Cargo.toml as well
 
 [dependencies]
 log = "0.4.11"
 
-notify = {version = "4.0.12", optional = true }
-tokio = { version = "1.0" ,features = ["rt"], optional = true }
+# theme loader
+# TODO: update this to 5.0
+notify = { version = "4.0.12", optional = true }
+
+# async
+tokio = { version = "1.0", features = ["rt"], optional = true }
 futures = { version = "0.3", optional = true }
 flume = { version = "0.10", optional = true }
+
+# hot reload
+notify5 = { version = "5.0.0-pre.4", optional = true, package = "notify" }
+libloading = { version = "0.6.6", optional = true }
+rand = { version = "0.8.1", optional = true }
 
 [[example]]
 name = "async"
