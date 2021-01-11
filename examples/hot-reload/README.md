@@ -7,7 +7,7 @@ cargo watch -s "cargo build --lib"
 
 in second terminal:
 ```
-cagro run
+cargo run
 ```
 
 NOTE: you will get a segfault if you change the `AppData`
