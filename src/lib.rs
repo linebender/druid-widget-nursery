@@ -20,6 +20,7 @@ mod seperator;
 pub mod theme_loader;
 mod tree;
 
+mod dropdown;
 #[cfg(feature = "async")]
 mod future_widget;
 
@@ -27,6 +28,7 @@ mod future_widget;
 pub mod hot_reload;
 
 pub use canvas::{Canvas, CanvasLayout, CanvasWrap};
+pub use dropdown::{Dropdown, DROP};
 pub use seperator::{Orientation, Seperator};
 pub use tree::{Tree, TreeNode};
 
