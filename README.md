@@ -11,6 +11,7 @@ So, in summary, the default assumption for PRs to this repo will be to merge, bu
 If you add a new widget, please add its name and a short summary here.
 
  - A tree widget
+ - A Navigator widget that can display different child widgets/views.
 
 # Widget Requests
 
