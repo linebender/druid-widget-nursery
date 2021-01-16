@@ -16,6 +16,7 @@
 
 pub mod animation;
 mod canvas;
+pub mod navigator;
 mod seperator;
 pub mod theme_loader;
 mod tree;
