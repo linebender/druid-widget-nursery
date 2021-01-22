@@ -16,6 +16,7 @@
 
 pub mod animation;
 mod canvas;
+mod dynamic_sized_box;
 pub mod navigator;
 mod seperator;
 pub mod theme_loader;
@@ -30,6 +31,7 @@ pub mod hot_reload;
 
 pub use canvas::{Canvas, CanvasLayout, CanvasWrap};
 pub use dropdown::{Dropdown, DROP};
+pub use dynamic_sized_box::DynamicSizedBox;
 pub use seperator::{Orientation, Seperator};
 pub use tree::{Tree, TreeNode};
 
