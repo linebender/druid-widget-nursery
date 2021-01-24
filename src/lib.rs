@@ -16,14 +16,14 @@
 
 pub mod animation;
 mod canvas;
+mod dropdown;
+mod dropdown_select;
 mod dynamic_sized_box;
+mod list_select;
 pub mod navigator;
 mod seperator;
 pub mod theme_loader;
 mod tree;
-mod dropdown;
-mod list_select;
-mod dropdown_select;
 
 #[cfg(feature = "async")]
 mod future_widget;
@@ -33,11 +33,11 @@ pub mod hot_reload;
 
 pub use canvas::{Canvas, CanvasLayout, CanvasWrap};
 pub use dropdown::{Dropdown, DROP};
+pub use dropdown_select::DropdownSelect;
 pub use dynamic_sized_box::DynamicSizedBox;
+pub use list_select::ListSelect;
 pub use seperator::{Orientation, Seperator};
 pub use tree::{Tree, TreeNode, Wedge};
-pub use list_select::ListSelect;
-pub use dropdown_select::DropdownSelect;
 
 #[cfg(feature = "async")]
 pub use future_widget::{Delegate as AsyncDelegate, FutureWidget};
