@@ -54,10 +54,11 @@ pub trait TreeNode {
 }
 
 /// Wedge is an arbitrary name for the arrow-like icon marking whether a node is expanded or collapsed.
-struct Wedge {}
+pub struct Wedge;
 
+// Is "Chevron" a better name?
 impl Wedge {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Wedge {}
     }
 }

@@ -21,8 +21,10 @@ pub mod navigator;
 mod seperator;
 pub mod theme_loader;
 mod tree;
-
 mod dropdown;
+mod list_select;
+mod dropdown_select;
+
 #[cfg(feature = "async")]
 mod future_widget;
 
@@ -33,7 +35,9 @@ pub use canvas::{Canvas, CanvasLayout, CanvasWrap};
 pub use dropdown::{Dropdown, DROP};
 pub use dynamic_sized_box::DynamicSizedBox;
 pub use seperator::{Orientation, Seperator};
-pub use tree::{Tree, TreeNode};
+pub use tree::{Tree, TreeNode, Wedge};
+pub use list_select::ListSelect;
+pub use dropdown_select::DropdownSelect;
 
 #[cfg(feature = "async")]
 pub use future_widget::{Delegate as AsyncDelegate, FutureWidget};
