@@ -129,7 +129,6 @@ impl<T: Data + PartialEq> Controller<DropdownState<T>, Container<DropdownState<T
 #[derive(Clone, Data, Lens)]
 struct DropdownState<T> {
     data: T,
-    has_children: bool,
     expanded: bool,
 }
 
@@ -137,7 +136,6 @@ impl<T> DropdownState<T> {
     fn new(data: T) -> Self {
         DropdownState {
             data,
-            has_children: true,
             expanded: false,
         }
     }
@@ -145,7 +143,7 @@ impl<T> DropdownState<T> {
 
 /// A button with a left or down arrow, changing shape when opened.
 struct DropdownButton<T> {
-    wedge: WidgetPod<(bool, bool), Wedge>,
+    wedge: WidgetPod<bool, Wedge>,
     label: Label<T>,
     label_size: Size,
 }
@@ -204,8 +202,7 @@ impl<T: Data> Widget<DropdownState<T>> for DropdownButton<T> {
         if let LifeCycle::HotChanged(_) = event {
             ctx.request_paint();
         }
-        self.wedge
-            .lifecycle(ctx, event, &(data.has_children, data.expanded), env);
+        self.wedge.lifecycle(ctx, event, &data.expanded, env);
         self.label.lifecycle(ctx, event, &data.data, env)
     }
 
@@ -219,8 +216,7 @@ impl<T: Data> Widget<DropdownState<T>> for DropdownButton<T> {
         if old_data.expanded != data.expanded {
             ctx.request_paint();
         }
-        self.wedge
-            .update(ctx, &(data.has_children, data.expanded), env);
+        self.wedge.update(ctx, &data.expanded, env);
         self.label.update(ctx, &old_data.data, &data.data, env)
     }
 
@@ -244,10 +240,8 @@ impl<T: Data> Widget<DropdownState<T>> for DropdownButton<T> {
         let basic_width = env.get(theme::BASIC_WIDGET_HEIGHT);
         let wedge_bc = BoxConstraints::tight(Size::new(basic_width, basic_width));
         let wedge_pos = Point::new(0.0, (height - basic_width) / 2.0);
-        self.wedge
-            .layout(ctx, &wedge_bc, &(data.has_children, data.expanded), env);
-        self.wedge
-            .set_origin(ctx, &(data.has_children, data.expanded), env, wedge_pos);
+        self.wedge.layout(ctx, &wedge_bc, &data.expanded, env);
+        self.wedge.set_origin(ctx, &data.expanded, env, wedge_pos);
 
         bc.constrain(Size::new(
             self.label_size.width + padding.width + basic_width,
@@ -307,8 +301,7 @@ impl<T: Data> Widget<DropdownState<T>> for DropdownButton<T> {
             self.label.paint(ctx, &data.data, env);
         });
 
-        self.wedge
-            .paint(ctx, &(data.has_children, data.expanded), env);
+        self.wedge.paint(ctx, &data.expanded, env);
     }
 }
 

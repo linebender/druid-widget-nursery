@@ -64,10 +64,9 @@ impl Wedge {
 }
 
 /// Implementing Widget for the wedge.
-/// Since this type is internal, we're using a tuple (has_children, expanded) for the data,
-/// in order to avoid defining a new struct type.
-impl Widget<(bool, bool)> for Wedge {
-    fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut (bool, bool), _env: &Env) {
+/// This widget's data is simply a boolean telling whether is is expanded or collapsed.
+impl Widget<bool> for Wedge {
+    fn event(&mut self, ctx: &mut EventCtx, event: &Event, expanded: &mut bool, _env: &Env) {
         match event {
             Event::MouseDown(_) => {
                 ctx.set_active(true);
@@ -76,7 +75,6 @@ impl Widget<(bool, bool)> for Wedge {
             Event::MouseUp(_) => {
                 if ctx.is_active() {
                     ctx.set_active(false);
-                    let (_, ref mut expanded) = *data;
                     if ctx.is_hot() {
                         *expanded = !*expanded;
                     }
@@ -87,43 +85,23 @@ impl Widget<(bool, bool)> for Wedge {
         }
     }
 
-    fn lifecycle(
-        &mut self,
-        _ctx: &mut LifeCycleCtx,
-        _event: &LifeCycle,
-        _data: &(bool, bool),
-        _env: &Env,
-    ) {
+    fn lifecycle(&mut self, _ctx: &mut LifeCycleCtx, _event: &LifeCycle, _data: &bool, _env: &Env) {
     }
 
-    fn update(
-        &mut self,
-        _ctx: &mut UpdateCtx,
-        _old_data: &(bool, bool),
-        _data: &(bool, bool),
-        _env: &Env,
-    ) {
-    }
+    fn update(&mut self, _ctx: &mut UpdateCtx, _old_data: &bool, _data: &bool, _env: &Env) {}
 
     fn layout(
         &mut self,
         _ctx: &mut LayoutCtx,
         bc: &BoxConstraints,
-        _data: &(bool, bool),
+        _data: &bool,
         env: &Env,
     ) -> Size {
         let size = env.get(theme::BASIC_WIDGET_HEIGHT);
         bc.constrain(Size::new(size, size))
     }
 
-    fn paint(&mut self, ctx: &mut PaintCtx, data: &(bool, bool), env: &Env) {
-        let (has_children, expanded) = *data;
-
-        // if there are no children, skip drawing
-        if !has_children {
-            return;
-        }
-
+    fn paint(&mut self, ctx: &mut PaintCtx, expanded: &bool, env: &Env) {
         let stroke_color = if ctx.is_hot() {
             env.get(theme::FOREGROUND_LIGHT)
         } else {
@@ -132,7 +110,7 @@ impl Widget<(bool, bool)> for Wedge {
 
         // Paint the wedge
         let mut path = BezPath::new();
-        if expanded {
+        if *expanded {
             // expanded: 'V' shape
             path.move_to((5.0, 7.0));
             path.line_to((9.0, 13.0));
@@ -160,7 +138,7 @@ where
     T: TreeNode + Data + Default,
 {
     // The "wedge" widget,
-    wedge: WidgetPod<(bool, bool), Wedge>,
+    wedge: WidgetPod<bool, Wedge>,
 
     /// The label for this node
     widget: WidgetPod<T, Box<dyn Widget<T>>>,
@@ -232,18 +210,17 @@ impl<T: TreeNode + Data + Default> Widget<T> for TreeNodeWidget<T> {
         }
 
         // Propagate the event to the wedge
-        let has_children = data.children_count() > 0;
-        let mut wedge_data = (has_children, self.expanded);
-        self.wedge.event(ctx, event, &mut wedge_data, env);
+        let mut wegde_expanded = self.expanded;
+        self.wedge.event(ctx, event, &mut wegde_expanded, env);
 
         // Handle possible creation of new children nodes
         if let Event::MouseUp(_) = event {
-            if wedge_data.1 != self.expanded {
+            if wegde_expanded != self.expanded {
                 // The wedge widget has decided to change the expanded/collapsed state of the node,
                 // handle it by expanding/collapsing children nodes as required.
                 ctx.request_layout();
-                self.expanded = wedge_data.1;
-                if self.expand(data, wedge_data.1) {
+                self.expanded = wegde_expanded;
+                if self.expand(data, wegde_expanded) {
                     // New children were created, inform the context.
                     ctx.children_changed();
                 }
@@ -252,9 +229,7 @@ impl<T: TreeNode + Data + Default> Widget<T> for TreeNodeWidget<T> {
     }
 
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
-        let has_children = data.children_count() > 0;
-        self.wedge
-            .lifecycle(ctx, event, &(has_children, self.expanded), env);
+        self.wedge.lifecycle(ctx, event, &self.expanded, env);
         self.widget.lifecycle(ctx, event, data, env);
         for (index, child_widget_node) in self.children.iter_mut() {
             let child_tree_node = data.get_child(*index);
@@ -271,15 +246,14 @@ impl<T: TreeNode + Data + Default> Widget<T> for TreeNodeWidget<T> {
         let mut max_width = bc.max().width;
 
         // Top left, the wedge
-        let has_children = data.children_count() > 0;
         self.wedge.layout(
             ctx,
             &BoxConstraints::tight(Size::new(basic_size, basic_size)),
-            &(has_children, self.expanded),
+            &self.expanded,
             env,
         );
         self.wedge
-            .set_origin(ctx, &(has_children, self.expanded), env, Point::ORIGIN);
+            .set_origin(ctx, &self.expanded, env, Point::ORIGIN);
 
         // Immediately on the right, the node widget
         let widget_size = self.widget.layout(
@@ -335,8 +309,10 @@ impl<T: TreeNode + Data + Default> Widget<T> for TreeNodeWidget<T> {
     }
 
     fn paint(&mut self, ctx: &mut PaintCtx, data: &T, env: &Env) {
-        let has_children = data.children_count() > 0;
-        self.wedge.paint(ctx, &(has_children, self.expanded), env);
+        if data.children_count() > 0 {
+            // we paint the wedge only if there are children to expand
+            self.wedge.paint(ctx, &self.expanded, env);
+        }
         self.widget.paint(ctx, data, env);
         if self.expanded {
             for (index, child_widget_node) in self.children.iter_mut() {
