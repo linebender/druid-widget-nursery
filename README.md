@@ -12,6 +12,8 @@ If you add a new widget, please add its name and a short summary here.
 
  - A tree widget
  - A Navigator widget that can display different child widgets/views.
+ - Dropdown : a basic dropdown widget using the recently added sub-windows
+ - Animator : a helper for running multiple animations with different curves/timing/dependencies
 
 # Widget Requests
 
@@ -28,9 +30,12 @@ If you need a certain widget, and you think it might be useful to others, feel f
 Maybe you have made your own collection of widgets that aren't general enough to go into `druid` proper, but will still be useful to other `druid` users. Submit a PR to add them here!
 
  - [`druid-graphs`]: An alpha quality library for drawing graphs as widgets, taking inspiration from [`matplotlib`]. Currently only supports a few graph types, collaboration welcome! Works well with [`druid-lens-compose`].
+ - [`druid_table`] : A table/datagrid widget (also has some interpolation/visualisation stuff currently). Uses [`druid_bindings`]
 
 [optimistic merging]: http://hintjens.com/blog:106
 [xi zulip]: https://xi.zulipchat.com/
 [`druid-graphs`]: https://github.com/derekdreery/druid-graphs
 [`matplotlib`]: https://matplotlib.org/
 [`druid-lens-compose`]: https://github.com/derekdreery/druid-lens-compose
+[`druid_table`]: https://github.com/rjwittams/druid_table/
+[`druid_bindings`]: https://github.com/rjwittams/druid_bindings
