@@ -49,10 +49,7 @@ impl<T: Data + PartialEq> DropdownSelect<T> {
         // A `Scope` is used here to add internal data shared within the children widgets,
         // namely whether or not the dropdown is expanded. See `DropdownState`.
         Scope::new(
-            DefaultScopePolicy::from_lens(
-                move |d: T| DropdownState::new(d),
-                druid::lens!(DropdownState<T>, data),
-            ),
+            DefaultScopePolicy::from_lens(DropdownState::new, druid::lens!(DropdownState<T>, data)),
             Dropdown::new(
                 // TODO : Make it same width as the dropdown?
                 DropdownButton::new(move |t: &T, _: &Env| {

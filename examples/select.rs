@@ -54,7 +54,7 @@ fn main_widget() -> impl Widget<AppData> {
     );
     row.add_default_spacer();
     row.add_flex_child(
-        DropdownSelect::new(vec![
+        DropdownSelect::build_widget(vec![
             ("by car", Transportation::Car),
             ("by train", Transportation::Train),
             ("by plane", Transportation::Plane),

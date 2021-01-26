@@ -46,7 +46,7 @@ impl<T: Data + PartialEq> ListSelect<T> {
     }
 }
 
-// A Controller to handle arrow key in the list selection widget. 
+// A Controller to handle arrow key in the list selection widget.
 struct ListSelectController<T> {
     variants: Vec<T>,
 }
