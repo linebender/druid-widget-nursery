@@ -30,7 +30,7 @@ use std::marker::PhantomData;
 const LABEL_INSETS: Insets = Insets::uniform_xy(8., 2.);
 const COLLAPSE: Selector<()> = Selector::new("druid-widget-nursery.dropdown.collapse");
 
-/// A list selection widget, showed as a button, for which the different possible values appear as a dropdown.
+/// Builds a list selection widget, showed as a button, for which the different possible values appear as a dropdown.
 pub struct DropdownSelect<T> {
     _t: PhantomData<T>,
 }
@@ -39,7 +39,7 @@ impl<T: Data + PartialEq> DropdownSelect<T> {
     /// Given a vector of `(label_text, enum_variant)` tuples, create a dropdown select widget
     /// This is exactly the same interface as `Radio` so that both can be used interchangably,
     /// with dropdown taking less space in the UI.
-    pub fn new(
+    pub fn build_widget(
         values: impl IntoIterator<Item = (impl Into<LabelText<T>> + 'static, T)> + Clone + 'static,
     ) -> impl Widget<T> {
         let mut variants = Vec::new();
@@ -49,10 +49,7 @@ impl<T: Data + PartialEq> DropdownSelect<T> {
         // A `Scope` is used here to add internal data shared within the children widgets,
         // namely whether or not the dropdown is expanded. See `DropdownState`.
         Scope::new(
-            DefaultScopePolicy::from_lens(
-                move |d: T| DropdownState::new(d),
-                druid::lens!(DropdownState<T>, data),
-            ),
+            DefaultScopePolicy::from_lens(DropdownState::new, druid::lens!(DropdownState<T>, data)),
             Dropdown::new(
                 // TODO : Make it same width as the dropdown?
                 DropdownButton::new(move |t: &T, _: &Env| {
@@ -68,10 +65,10 @@ impl<T: Data + PartialEq> DropdownSelect<T> {
                 }),
                 move |_t: &DropdownState<T>, env: &Env| {
                     ControllerHost::new(
-                        ListSelect::new(values.clone())
+                        ListSelect::build_widget(values.clone())
                             .lens(DropdownState::<T>::data)
                             .border(env.get(theme::BORDER_DARK), 1.0),
-                        DropdownSelect { _t: PhantomData },
+                        DropdownSelectController { _t: PhantomData },
                     )
                 },
             ),
@@ -81,8 +78,12 @@ impl<T: Data + PartialEq> DropdownSelect<T> {
 
 // This controller will send itself "COLLAPSE" events whenever the dropdown is removed, and
 // reacts to it by updating its expanded state
+struct DropdownSelectController<T> {
+    _t: PhantomData<T>,
+}
+
 impl<T: Data + PartialEq> Controller<DropdownState<T>, Container<DropdownState<T>>>
-    for DropdownSelect<T>
+    for DropdownSelectController<T>
 {
     fn event(
         &mut self,

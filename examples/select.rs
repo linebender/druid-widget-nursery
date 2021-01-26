@@ -42,7 +42,7 @@ struct AppData {
 fn main_widget() -> impl Widget<AppData> {
     let mut row = Flex::row().cross_axis_alignment(CrossAxisAlignment::Start);
     row.add_flex_child(
-        Scroll::new(ListSelect::new(vec![
+        Scroll::new(ListSelect::build_widget(vec![
             ("to Sydney", Destination::Sydney),
             ("to Petaluma", Destination::Petaluma),
             ("to Tokyo", Destination::Tokyo),
@@ -54,7 +54,7 @@ fn main_widget() -> impl Widget<AppData> {
     );
     row.add_default_spacer();
     row.add_flex_child(
-        DropdownSelect::new(vec![
+        DropdownSelect::build_widget(vec![
             ("by car", Transportation::Car),
             ("by train", Transportation::Train),
             ("by plane", Transportation::Plane),

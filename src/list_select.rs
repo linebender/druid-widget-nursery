@@ -14,6 +14,7 @@
 
 //! A simple list selection widget, for selecting a single value out of a list.
 
+use core::marker::PhantomData;
 use druid::keyboard_types::Key;
 use druid::widget::{Controller, ControllerHost, CrossAxisAlignment, Flex, Label, LabelText};
 use druid::{
@@ -24,14 +25,14 @@ use druid::{
 // added padding between the edges of the widget and the text.
 const LABEL_X_PADDING: f64 = 8.0;
 
-/// A simple list selection widget, for selecting a single value out of a list.
+/// Builds a simple list selection widget, for selecting a single value out of a list.
 pub struct ListSelect<T> {
-    variants: Vec<T>,
+    _t: PhantomData<T>,
 }
 
 impl<T: Data + PartialEq> ListSelect<T> {
     /// Given a vector of `(label_text, enum_variant)` tuples, create a list of items to select from
-    pub fn new(
+    pub fn build_widget(
         values: impl IntoIterator<Item = (impl Into<LabelText<T>> + 'static, T)>,
     ) -> impl Widget<T> {
         let mut col = Flex::column().cross_axis_alignment(CrossAxisAlignment::Start);
@@ -40,10 +41,17 @@ impl<T: Data + PartialEq> ListSelect<T> {
             variants.insert(index, variant.clone());
             col.add_child(ListItem::new(label, variant));
         }
-        let controller = ListSelect { variants };
+        let controller = ListSelectController { variants };
         ControllerHost::new(col, controller)
     }
+}
 
+// A Controller to handle arrow key in the list selection widget.
+struct ListSelectController<T> {
+    variants: Vec<T>,
+}
+
+impl<T: Data + PartialEq> ListSelectController<T> {
     fn change_index(&self, data: &mut T, next_else_previous: bool) {
         if let Some(mut index) = self.variants.iter().position(|variant| variant == data) {
             if next_else_previous {
@@ -58,7 +66,7 @@ impl<T: Data + PartialEq> ListSelect<T> {
     }
 }
 
-impl<T: Data + PartialEq> Controller<T, Flex<T>> for ListSelect<T> {
+impl<T: Data + PartialEq> Controller<T, Flex<T>> for ListSelectController<T> {
     fn event(
         &mut self,
         child: &mut Flex<T>,

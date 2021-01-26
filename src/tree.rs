@@ -63,6 +63,12 @@ impl Wedge {
     }
 }
 
+impl Default for Wedge {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Implementing Widget for the wedge.
 /// This widget's data is simply a boolean telling whether is is expanded or collapsed.
 impl Widget<bool> for Wedge {
