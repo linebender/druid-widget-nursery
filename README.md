@@ -11,9 +11,12 @@ So, in summary, the default assumption for PRs to this repo will be to merge, bu
 If you add a new widget, please add its name and a short summary here.
 
  - A tree widget
+
+   ![Tree example](tree-example.gif)
  - A Navigator widget that can display different child widgets/views.
  - Dropdown : a basic dropdown widget using the recently added sub-windows
  - Dropdown Select : a basic widget for selecting one item out of a dropdown list
+
    ![Select example](select-example.gif)
  - List Select : a basic widget to select one item out of a list
  - Animator : a helper for running multiple animations with different curves/timing/dependencies
