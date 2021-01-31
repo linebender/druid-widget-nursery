@@ -21,6 +21,7 @@ mod dropdown_select;
 mod dynamic_sized_box;
 mod list_select;
 pub mod navigator;
+pub mod partial;
 mod seperator;
 pub mod theme_loader;
 mod tree;
