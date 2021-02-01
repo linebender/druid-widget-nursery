@@ -165,6 +165,28 @@ pub trait Prism<T, U> {
     fn put(&self, data: &mut T, inner: U);
 }
 
+#[macro_export]
+macro_rules! prism{
+    //Empty variant
+    ($name:ident: $base:ty => $variant:tt ) => {//$($el:ty),+
+        pub struct $name;
+
+        impl Prism<$base, ()> for $name{
+            fn get(&self, data: &$base) -> ::std::option::Option<()> {
+                if let <$base>::$variant = data.clone() {
+                    ::std::option::Option::Some(())
+                } else {
+                    ::std::option::Option::None
+                }
+            }
+            fn put(&self, data: &mut $base, _: ()) {
+                *data = <$base>::$variant;
+            }
+        }
+    }
+
+}
+
 pub struct OptionSome;
 
 impl<T: Data> Prism<Option<T>, T> for OptionSome {
@@ -177,7 +199,9 @@ impl<T: Data> Prism<Option<T>, T> for OptionSome {
     }
 }
 
-pub struct OptionNone;
+prism!(OptionNone: Option<String> => None);
+
+/*pub struct OptionNone;
 
 impl<T> Prism<Option<T>, ()> for OptionNone {
     fn get(&self, data: &Option<T>) -> Option<()> {
@@ -191,7 +215,7 @@ impl<T> Prism<Option<T>, ()> for OptionNone {
     fn put(&self, data: &mut Option<T>, _: ()) {
         *data = None;
     }
-}
+}*/
 
 pub struct ResultOk;
 
