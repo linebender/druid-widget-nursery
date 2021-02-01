@@ -20,6 +20,9 @@ If you add a new widget, please add its name and a short summary here.
    ![Select example](select-example.gif)
  - List Select : a basic widget to select one item out of a list
  - Animator : a helper for running multiple animations with different curves/timing/dependencies
+ - PartialWidget : a widget that shows a widget if its data is present
+ - MultiRadio : a Radio that represents multiple values through an inner widget
+ - MultiCheckbox : a Checkbox that represents multiple values through an inner widget
 
 # Widget Requests
 
