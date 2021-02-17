@@ -5,7 +5,7 @@ use druid::{
 use druid_widget_nursery::DynamicSizedBox;
 
 fn main() {
-    let window = WindowDesc::new(ui);
+    let window = WindowDesc::new(ui());
     let dyn_message = "Hello there, this is a dynamically sized box and you will see it change based on the size of its parent.";
     let fixed_message =
         "Hello there, this is a fixed size box and it will not change no matter what.";

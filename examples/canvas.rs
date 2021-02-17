@@ -7,7 +7,7 @@ use std::rc::Rc;
 use std::str::FromStr;
 
 fn main() {
-    let main_window = WindowDesc::new(ui_builder).window_size(Size::new(600., 400.));
+    let main_window = WindowDesc::new(ui_builder()).window_size(Size::new(600., 400.));
 
     let data = AppData::new();
 

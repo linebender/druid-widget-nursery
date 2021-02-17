@@ -77,7 +77,7 @@ fn main_widget() -> impl Widget<AppData> {
 }
 
 fn main() {
-    let main_window = WindowDesc::new(main_widget)
+    let main_window = WindowDesc::new(main_widget())
         .title("Select")
         .window_size((250., 300.));
 

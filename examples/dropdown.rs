@@ -93,7 +93,7 @@ fn main_widget() -> impl Widget<DropDownState> {
 }
 
 pub fn main() {
-    let main_window = WindowDesc::new(main_widget)
+    let main_window = WindowDesc::new(main_widget())
         .title("Dropdown")
         .window_size((250., 300.));
 

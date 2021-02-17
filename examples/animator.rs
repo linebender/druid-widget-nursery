@@ -86,7 +86,7 @@ fn main_widget() -> impl Widget<AnimState> {
 }
 
 fn main() {
-    let main_window = WindowDesc::new(main_widget)
+    let main_window = WindowDesc::new(main_widget())
         .title("Animation")
         .window_size((800.0, 600.0));
 

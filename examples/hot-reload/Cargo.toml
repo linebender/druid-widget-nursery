@@ -5,8 +5,11 @@ authors = ["Manmeet Maan <manmeetmann2003@gmail.com>"]
 edition = "2018"
 
 [lib]
-crate-type = ["cdylib", "rlib"]
+crate-type = ["dylib"]
 
 [dependencies]
 druid-widget-nursery = { path = "../..", features = ["hot-reload"] }
-druid = { git = "https://github.com/linebender/druid", rev = "75d5096" }
+
+[dependencies.druid]
+git = "https://github.com/linebender/druid"
+rev = "d846cc2" # update this when upgrading to newer druid
