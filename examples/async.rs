@@ -20,7 +20,7 @@ use druid_widget_nursery::{AsyncDelegate, FutureWidget};
 use tokio::time;
 
 fn main() {
-    let window = WindowDesc::new(build_root_widget);
+    let window = WindowDesc::new(build_root_widget());
     AsyncDelegate::new(AppLauncher::with_window(window))
         .use_simple_logger()
         .launch(())
