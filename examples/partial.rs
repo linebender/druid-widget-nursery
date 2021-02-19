@@ -1,6 +1,6 @@
 use druid::{WindowDesc, AppLauncher, Data, Widget, WidgetExt, UnitPoint};
 use druid::widget::{Flex, Radio, TextBox};
-use druid_widget_nursery::PartialWidget;
+use druid_widget_nursery::partial::PartialWidget;
 
 #[derive(Data, Clone, PartialEq)]
 enum TestData {
@@ -39,7 +39,7 @@ fn main_widget() -> impl Widget<TestData> {
 }
 
 fn main() {
-    let main_window = WindowDesc::new(main_widget)
+    let main_window = WindowDesc::new(main_widget())
         .title("Select")
         .window_size((250., 300.));
 
