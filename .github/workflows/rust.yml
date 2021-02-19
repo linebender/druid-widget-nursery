@@ -17,6 +17,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
+
     - name: Install deps
       run: |
         sudo apt-get update
@@ -29,6 +30,14 @@ jobs:
         components: clippy
         profile: minimal
         override: true
+
+    - name: Versions
+      run: |
+        uname -a
+        rustc --version --verbose
+        cargo --version --verbose
+        cargo clippy --version
+        rustfmt --version
 
     - name: Build
       run: cargo build --verbose
