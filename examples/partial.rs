@@ -1,5 +1,5 @@
-use druid::{WindowDesc, AppLauncher, Data, Widget, WidgetExt, UnitPoint};
 use druid::widget::{Flex, Radio, TextBox};
+use druid::{AppLauncher, Data, UnitPoint, Widget, WidgetExt, WindowDesc};
 use druid_widget_nursery::partial::PartialWidget;
 
 #[derive(Data, Clone, PartialEq)]
@@ -18,14 +18,14 @@ fn main_widget() -> impl Widget<TestData> {
     let partial = PartialWidget::with_closures(
         TextBox::new(),
         String::new(),
-        |outer: &TestData|{
+        |outer: &TestData| {
             if let TestData::B(str) = outer {
                 Some(str.clone())
             } else {
                 None
             }
         },
-        TestData::B
+        TestData::B,
     );
 
     Flex::column()
@@ -34,8 +34,6 @@ fn main_widget() -> impl Widget<TestData> {
         .with_child(partial)
         .padding(5.0)
         .align_horizontal(UnitPoint::CENTER)
-
-
 }
 
 fn main() {
