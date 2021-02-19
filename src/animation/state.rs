@@ -12,10 +12,12 @@ pub(in crate::animation) enum AnimationStatusInternal {
 
 impl AnimationStatusInternal {
     fn is_active(&self) -> bool {
-        matches!(self,
-        AnimationStatusInternal::Enlisting(_)
-        | AnimationStatusInternal::Running(_)
-        | AnimationStatusInternal::Retiring )
+        matches!(
+            self,
+            AnimationStatusInternal::Enlisting(_)
+                | AnimationStatusInternal::Running(_)
+                | AnimationStatusInternal::Retiring
+        )
     }
 
     pub(crate) fn add_delay(&self, cur_nanos: f64, delay_nanos: f64, duration: f64) -> Self {

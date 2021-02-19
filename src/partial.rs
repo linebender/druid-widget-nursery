@@ -1,4 +1,7 @@
-use druid::{Widget, Data, LifeCycle, EventCtx, PaintCtx, BoxConstraints, LifeCycleCtx, Size, LayoutCtx, Event, Env, UpdateCtx};
+use druid::{
+    BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Size,
+    UpdateCtx, Widget,
+};
 
 /// A Widget which displays data which is not always present
 /// The main use case are an enum variants
@@ -10,7 +13,8 @@ pub struct PartialWidget<W, U, P> {
     show_when_disabled: bool,
 }
 
-impl<W, U, P> PartialWidget<W, U, P> where
+impl<W, U, P> PartialWidget<W, U, P>
+where
     U: Data,
     W: Widget<U>,
 {
@@ -48,8 +52,9 @@ impl<W, U, P> PartialWidget<W, U, P> where
     ///
     /// You can use this method from a parent widget (Controller or similar) to enable
     /// this widget, since it has no means to do it itself.
-    pub fn enable<T>(&self, data: &mut T) where
-        P: Prism<T, U>
+    pub fn enable<T>(&self, data: &mut T)
+    where
+        P: Prism<T, U>,
     {
         self.prism.put(data, self.current_data.clone());
     }
@@ -69,10 +74,11 @@ impl<W, U, P> PartialWidget<W, U, P> where
     }
 }
 
-impl<W, T, U, P> Widget<T> for PartialWidget<W, U, P> where
+impl<W, T, U, P> Widget<T> for PartialWidget<W, U, P>
+where
     U: Data,
     W: Widget<U>,
-    P: Prism<T, U>
+    P: Prism<T, U>,
 {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
         if self.enabled {
@@ -123,7 +129,6 @@ impl<W, T, U, P> Widget<T> for PartialWidget<W, U, P> where
                 //Widget was hidden and will be visible
                 ctx.request_layout();
             }
-
         } else {
             self.enabled = false;
 
@@ -214,9 +219,10 @@ impl<T: Data, E: Data> Prism<Result<T, E>, E> for ResultErr {
 
 pub struct Closures<F, G>(pub F, pub G);
 
-impl<F, G, T, U> Prism<T, U> for Closures<F, G> where
+impl<F, G, T, U> Prism<T, U> for Closures<F, G>
+where
     F: Fn(&T) -> Option<U>,
-    G: Fn(&mut T, U)
+    G: Fn(&mut T, U),
 {
     fn get(&self, data: &T) -> Option<U> {
         (self.0)(data)
