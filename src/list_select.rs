@@ -32,7 +32,7 @@ pub struct ListSelect<T> {
 
 impl<T: Data + PartialEq> ListSelect<T> {
     /// Given a vector of `(label_text, enum_variant)` tuples, create a list of items to select from
-    pub fn build_widget(
+    pub fn new(
         values: impl IntoIterator<Item = (impl Into<LabelText<T>> + 'static, T)>,
     ) -> impl Widget<T> {
         let mut col = Flex::column().cross_axis_alignment(CrossAxisAlignment::Start);
