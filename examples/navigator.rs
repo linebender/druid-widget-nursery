@@ -16,12 +16,12 @@ use druid::{Lens, Widget};
 
 use druid_widget_nursery::navigator::{Navigator, View, ViewController};
 fn main() {
-    let window = WindowDesc::new(navigator).title("Navigation");
+    let window = WindowDesc::new(navigator()).title("Navigation");
 
     let contacts = get_data();
 
     AppLauncher::with_window(window)
-        .use_simple_logger()
+        .use_env_tracing()
         .launch(AppState {
             app_name: "This is a paragraph about the Navigator.".to_string(),
             nav_state: Arc::new(vec![UiView::new("contacts".to_string())]),
