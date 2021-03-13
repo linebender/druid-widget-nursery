@@ -34,7 +34,6 @@ use tracing::instrument;
 /// A progress bar, displaying a numeric progress value.
 ///
 /// This type impls `Widget<f64>`, expecting a float in the range `0.0..1.0`.
-/// TODO: I removed the Default trait derive, but should add it back
 #[derive(Debug, Clone)]
 pub struct ProgressBar {
     bar_brush: Option<PaintBrush>,
@@ -161,8 +160,12 @@ impl Widget<f64> for ProgressBar {
         env: &Env,
     ) -> Size {
         bc.debug_check("ProgressBar");
+        // bc.constrain(Size::new(
+        //     bc.max().width,
+        //     env.get(theme::BASIC_WIDGET_HEIGHT),
+        // ))
         bc.constrain(Size::new(
-            bc.max().width,
+            env.get(theme::WIDE_WIDGET_WIDTH),
             env.get(theme::BASIC_WIDGET_HEIGHT),
         ))
     }
