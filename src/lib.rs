@@ -23,6 +23,7 @@ mod list_select;
 mod multi_value;
 pub mod navigator;
 pub mod partial;
+mod progress_bar;
 mod seperator;
 pub mod theme_loader;
 mod tree;
@@ -39,6 +40,7 @@ pub use dropdown_select::DropdownSelect;
 pub use dynamic_sized_box::DynamicSizedBox;
 pub use list_select::ListSelect;
 pub use multi_value::{MultiCheckbox, MultiRadio};
+pub use progress_bar::ProgressBar;
 pub use seperator::{Orientation, Seperator};
 pub use tree::{Tree, TreeNode, Wedge};
 
