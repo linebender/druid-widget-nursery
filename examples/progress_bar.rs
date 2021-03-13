@@ -127,6 +127,11 @@ fn build_ui() -> impl Widget<AppState> {
             ),
     );
     flex.add_spacer(10.0);
+    flex.add_child(
+        Flex::column()
+            .with_child(Label::new("Theme Configured Progress Bar"))
+            .with_child(ProgressBar::new().lens(AppState::leaping_progress)),
+    );
 
     flex
 }
