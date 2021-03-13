@@ -26,6 +26,15 @@ If you add a new widget, please add its name and a short summary here.
  - MultiRadio : a Radio that represents multiple values through an inner widget
  - MultiCheckbox : a Checkbox that represents multiple values through an inner widget
 
+## ProgressBar Improvements
+- Building on the existing progress bar in druid.
+- Making styling options more configurable, using theme values as defaults, with options in the widget to override.
+- Removed constraint on widget width, the widget will now expand to fit its container.
+- Future Idea: Add optional configuration for text that would go over the progress bar.
+- Future Idea: Draw the entire rounded rectangle for the progress bar and then truncate it, so gradients don't size to the current progress, but always to what would be a full progress bar. At least as an option.
+- TODO: Should width and height be completely configurable, both sized to expand into their container?
+- TODO: review theme values more generally, concerned that they might not be getting used consistently.
+
 # Widget Requests
 
 If you need a certain widget, and you think it might be useful to others, feel free to make a PR adding it to this list.
