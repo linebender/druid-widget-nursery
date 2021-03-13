@@ -50,6 +50,7 @@ impl ProgressBar {
         Self::default()
     }
 
+    //'with' functions returning self.
     pub fn with_bar_brush(mut self, cl: PaintBrush) -> Self {
         self.bar_brush = Some(cl);
         self
@@ -69,6 +70,22 @@ impl ProgressBar {
     pub fn with_border_colour(mut self, cl: Color) -> Self {
         self.border_colour = KeyOrValue::Concrete(cl);
         self
+    }
+    //Set functions, returning
+    pub fn set_bar_brush(mut self, cl: PaintBrush) {
+        self.bar_brush = Some(cl);
+    }
+    pub fn set_back_brush(mut self, cl: PaintBrush) {
+        self.background_brush = Some(cl);
+    }
+    pub fn set_corner_radius(mut self, c_rad: f64) {
+        self.corner_radius = KeyOrValue::Concrete(c_rad);
+    }
+    pub fn set_border_width(mut self, c_rad: f64) {
+        self.border_width = KeyOrValue::Concrete(c_rad);
+    }
+    pub fn set_border_colour(mut self, cl: Color) {
+        self.border_colour = KeyOrValue::Concrete(cl);
     }
 
     //Internal getters that resolve using theme or control values.
