@@ -141,7 +141,7 @@ impl Widget<f64> for ProgressBar {
     ) -> Size {
         bc.debug_check("ProgressBar");
         bc.constrain(Size::new(
-            env.get(theme::WIDE_WIDGET_WIDTH),
+            bc.max().width,
             env.get(theme::BASIC_WIDGET_HEIGHT),
         ))
     }
