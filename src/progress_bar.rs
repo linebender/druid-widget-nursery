@@ -164,7 +164,6 @@ impl Widget<f64> for ProgressBar {
 
         // Paint the background
         // This has been changed from a gradient from top to bottom because I thought this made more sense visually.
-        //TODO: Perhaps we just want a transparent background?
         ctx.fill(rounded_rect, &self.background_brush(env));
 
         // Paint the bar
