@@ -199,6 +199,17 @@ impl Widget<f64> for ProgressBar {
         .inset((0.0, inset))
         .to_rounded_rect(self.corner_radius.resolve(env));
 
-        ctx.fill(bar_rect, &self.bar_brush(env));
+        //Old method would't apply brush to the full bar.
+        // ctx.fill(bar_rect, &self.bar_brush(env));
+
+        //Renders full bar and clips.
+        ctx.render_ctx
+            .save()
+            .expect("Could not save render context in, ProgressBar Widget.");
+        ctx.render_ctx.clip(bar_rect);
+        ctx.fill(full_rect, &self.bar_brush(env));
+        ctx.render_ctx
+            .restore()
+            .expect("Could not restore render context in, ProgressBar Widget.");
     }
 }
