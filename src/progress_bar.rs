@@ -20,14 +20,13 @@
 //! Making styling options more configurable, using theme values as defaults, with options in the widget to override.
 //! Removed constraint on widget width, the widget will now expand to fit its container.
 //! Future Idea: Add optional configuration for text that would go over the progress bar.
-//! Future Idea: Draw the entire rounded rectangle for the progress bar and then truncate it, so gradients don't size to the current progress, but always to what would be a full progress bar. At least as an option.
 //! TODO: Should width and height be completely configurable, both sized to expand into their container?
 //! TODO: review theme values more generally, concerned that they might not be getting used consistently.
 //! TODO: Use druid::BackgroundBrush instead of druid::piet::PaintBrush, but it ruins all my derives.
 
 use druid::piet::PaintBrush;
 use druid::widget::prelude::*;
-use druid::widget::BackgroundBrush;
+// use druid::widget::BackgroundBrush;
 use druid::{theme, Color, KeyOrValue, LinearGradient, Point, Rect, UnitPoint};
 use tracing::instrument;
 
