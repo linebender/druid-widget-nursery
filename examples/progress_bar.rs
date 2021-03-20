@@ -1,3 +1,4 @@
+use druid::piet::GradientStop;
 use druid::widget::{
     Button, CrossAxisAlignment, EnvScope, Flex, Label, List, MainAxisAlignment, Padding as Pad,
     TextBox, WidgetExt,
@@ -127,6 +128,60 @@ fn build_ui() -> impl Widget<AppState> {
             ),
     );
     flex.add_spacer(10.0);
+    flex.add_child(
+        Flex::column()
+            .with_child(Label::new("Fixed Gradient Progress Bar"))
+            .with_child(
+                ProgressBar::new()
+                    .with_bar_brush(piet::PaintBrush::Linear(druid::LinearGradient::new(
+                        UnitPoint::LEFT,
+                        UnitPoint::RIGHT,
+                        vec![
+                            GradientStop {
+                                pos: 0.0,
+                                color: Color::RED,
+                            },
+                            GradientStop {
+                                pos: 0.3,
+                                color: Color::RED,
+                            },
+                            GradientStop {
+                                pos: 0.3,
+                                color: Color::YELLOW,
+                            },
+                            GradientStop {
+                                pos: 0.5,
+                                color: Color::YELLOW,
+                            },
+                            GradientStop {
+                                pos: 0.5,
+                                color: Color::BLUE,
+                            },
+                            GradientStop {
+                                pos: 0.8,
+                                color: Color::BLUE,
+                            },
+                            GradientStop {
+                                pos: 0.8,
+                                color: Color::GREEN,
+                            },
+                            GradientStop {
+                                pos: 1.0,
+                                color: Color::GREEN,
+                            },
+                        ],
+                    )))
+                    .with_corner_radius(2.0)
+                    .with_border_width(2.0)
+                    .lens(AppState::slow_progress),
+            ),
+    );
+    flex.add_spacer(10.0);
+    flex.add_child(
+        Flex::column()
+            .with_child(Label::new("Theme Configured Progress Bar"))
+            .with_child(ProgressBar::new().lens(AppState::leaping_progress)),
+    );
 
     flex
 }
