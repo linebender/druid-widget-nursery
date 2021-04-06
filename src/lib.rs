@@ -16,6 +16,7 @@
 
 pub mod animation;
 mod canvas;
+mod computed;
 mod dropdown;
 mod dropdown_select;
 mod dynamic_sized_box;
@@ -35,6 +36,7 @@ mod future_widget;
 pub mod hot_reload;
 
 pub use canvas::{Canvas, CanvasLayout, CanvasWrap};
+pub use computed::ComputedWidget;
 pub use dropdown::{Dropdown, DROP};
 pub use dropdown_select::DropdownSelect;
 pub use dynamic_sized_box::DynamicSizedBox;
