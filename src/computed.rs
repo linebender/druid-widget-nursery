@@ -35,8 +35,14 @@ impl<T, U> ComputedWidget<T, U> {
 
 impl<T, U: Data> Widget<T> for ComputedWidget<T, U> {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, _data: &mut T, env: &Env) {
-        self.child
-            .event(ctx, event, self.data.as_mut().unwrap(), env);
+        let old_data = self.data.as_ref().unwrap();
+        let mut data = old_data.clone();
+
+        self.child.event(ctx, event, &mut data, env);
+
+        if !data.same(old_data) {
+            tracing::warn!("Computed data changed inside an event. Computed data cannot be changed and change will be ignored.");
+        }
     }
 
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
