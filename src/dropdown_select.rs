@@ -39,39 +39,56 @@ impl<T: Data + PartialEq> DropdownSelect<T> {
     /// Given a vector of `(label_text, enum_variant)` tuples, create a dropdown select widget
     /// This is exactly the same interface as `Radio` so that both can be used interchangably,
     /// with dropdown taking less space in the UI.
-    pub fn build_widget(
+    pub fn new(
         values: impl IntoIterator<Item = (impl Into<LabelText<T>> + 'static, T)> + Clone + 'static,
+    ) -> impl Widget<T> {
+        Self::new_inner(values, None)
+    }
+
+    pub fn new_sized(
+        values: impl IntoIterator<Item = (impl Into<LabelText<T>> + 'static, T)> + Clone + 'static,
+        size: Size,
+    ) -> impl Widget<T> {
+        Self::new_inner(values, Some(size))
+    }
+
+    fn new_inner(
+        values: impl IntoIterator<Item = (impl Into<LabelText<T>> + 'static, T)> + Clone + 'static,
+        size: Option<Size>,
     ) -> impl Widget<T> {
         let mut variants = Vec::new();
         for (label, variant) in values.clone().into_iter() {
             variants.push((label.into().display_text().to_string(), variant));
         }
+        let header = DropdownButton::new(move |t: &T, _: &Env| {
+            variants
+                .clone()
+                .into_iter()
+                .find_map(|(label, variant)| if *t == variant { Some(label) } else { None })
+                .unwrap()
+        })
+        .on_click(|ctx: &mut EventCtx, t: &mut DropdownState<T>, _| {
+            t.expanded = true;
+            ctx.submit_notification(DROP)
+        });
+
+        let make_drop = move |_t: &DropdownState<T>, env: &Env| {
+            ControllerHost::new(
+                ListSelect::new(values.clone())
+                    .lens(DropdownState::<T>::data)
+                    .border(env.get(theme::BORDER_DARK), 1.0),
+                DropdownSelectController { _t: PhantomData },
+            )
+        };
         // A `Scope` is used here to add internal data shared within the children widgets,
         // namely whether or not the dropdown is expanded. See `DropdownState`.
         Scope::new(
             DefaultScopePolicy::from_lens(DropdownState::new, druid::lens!(DropdownState<T>, data)),
-            Dropdown::new(
-                // TODO : Make it same width as the dropdown?
-                DropdownButton::new(move |t: &T, _: &Env| {
-                    variants
-                        .clone()
-                        .into_iter()
-                        .find_map(|(label, variant)| if *t == variant { Some(label) } else { None })
-                        .unwrap()
-                })
-                .on_click(|ctx: &mut EventCtx, t: &mut DropdownState<T>, _| {
-                    t.expanded = true;
-                    ctx.submit_notification(DROP)
-                }),
-                move |_t: &DropdownState<T>, env: &Env| {
-                    ControllerHost::new(
-                        ListSelect::build_widget(values.clone())
-                            .lens(DropdownState::<T>::data)
-                            .border(env.get(theme::BORDER_DARK), 1.0),
-                        DropdownSelectController { _t: PhantomData },
-                    )
-                },
-            ),
+            if let Some(size) = size {
+                Dropdown::new_sized(header, make_drop, size)
+            } else {
+                Dropdown::new(header, make_drop)
+            },
         )
     }
 }

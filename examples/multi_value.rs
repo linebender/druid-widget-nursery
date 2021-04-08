@@ -1,7 +1,7 @@
-use druid::{WindowDesc, AppLauncher, Data, Widget, WidgetExt, UnitPoint};
-use druid::widget::{Flex, TextBox, Slider, CrossAxisAlignment};
-use druid_widget_nursery::{MultiRadio, MultiCheckbox};
+use druid::widget::{CrossAxisAlignment, Flex, Slider, TextBox};
+use druid::{AppLauncher, Data, UnitPoint, Widget, WidgetExt, WindowDesc};
 use druid_widget_nursery::partial::{Closures, Prism};
+use druid_widget_nursery::{MultiCheckbox, MultiRadio};
 
 #[derive(Data, Clone, PartialEq)]
 enum TestData {
@@ -48,32 +48,24 @@ fn main_widget() -> impl Widget<TestData> {
         Slider::new().with_range(0.0, 10.0),
         0.0,
         Closures(
-            |outer: &TestData|{
+            |outer: &TestData| {
                 if let TestData::A(value) = outer {
                     Some(value.clone())
                 } else {
                     None
                 }
             },
-            |data: &mut TestData, inner|*data = TestData::A(inner)
-        )
-    ).show_when_disabled();
+            |data: &mut TestData, inner| *data = TestData::A(inner),
+        ),
+    )
+    .show_when_disabled();
 
-    let b = MultiRadio::new(
-        "Variant B",
-        TextBox::new(),
-        String::new(),
-        TestDataB,
-    ).show_when_disabled();
+    let b =
+        MultiRadio::new("Variant B", TextBox::new(), String::new(), TestDataB).show_when_disabled();
 
     let c_inner = MultiCheckbox::new("inner value", TextBox::new(), String::from("initial data"));
 
-    let c = MultiRadio::new(
-        "Variant C",
-        c_inner,
-        None,
-        TestDataC
-    ).show_when_disabled();
+    let c = MultiRadio::new("Variant C", c_inner, None, TestDataC).show_when_disabled();
 
     Flex::column()
         .with_child(a)
@@ -85,7 +77,7 @@ fn main_widget() -> impl Widget<TestData> {
 }
 
 fn main() {
-    let main_window = WindowDesc::new(main_widget)
+    let main_window = WindowDesc::new(main_widget())
         .title("Select")
         .window_size((250., 300.));
 
@@ -94,7 +86,7 @@ fn main() {
 
     // start the application
     AppLauncher::with_window(main_window)
-        .use_simple_logger()
+        .use_env_tracing()
         .launch(app_data)
         .expect("Failed to launch application");
 }

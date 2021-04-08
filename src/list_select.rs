@@ -14,7 +14,6 @@
 
 //! A simple list selection widget, for selecting a single value out of a list.
 
-use core::marker::PhantomData;
 use druid::keyboard_types::Key;
 use druid::widget::{Controller, ControllerHost, CrossAxisAlignment, Flex, Label, LabelText};
 use druid::{
@@ -27,28 +26,77 @@ const LABEL_X_PADDING: f64 = 8.0;
 
 /// Builds a simple list selection widget, for selecting a single value out of a list.
 pub struct ListSelect<T> {
-    _t: PhantomData<T>,
+    /// Internal widget data.
+    widget: Flex<T>,
+    /// A controller handling item selection.
+    controller: ListSelectController<T>,
 }
 
 impl<T: Data + PartialEq> ListSelect<T> {
     /// Given a vector of `(label_text, enum_variant)` tuples, create a list of items to select from
-    pub fn build_widget(
+    pub fn new(
         values: impl IntoIterator<Item = (impl Into<LabelText<T>> + 'static, T)>,
-    ) -> impl Widget<T> {
+    ) -> ListSelect<T> {
         let mut col = Flex::column().cross_axis_alignment(CrossAxisAlignment::Start);
         let mut variants = Vec::new();
         for (index, (label, variant)) in values.into_iter().enumerate() {
             variants.insert(index, variant.clone());
             col.add_child(ListItem::new(label, variant));
         }
-        let controller = ListSelectController { variants };
-        ControllerHost::new(col, controller)
+
+        ListSelect {
+            widget: col,
+            controller: ListSelectController {
+                variants,
+                action: None,
+            },
+        }
+    }
+
+    /// Provide a closure to be called when an item is selected.
+    pub fn on_select(self, f: impl Fn(&mut EventCtx, &mut T, &Env) + 'static) -> ListSelect<T> {
+        let widget = self.widget;
+        let ListSelectController { variants, .. } = self.controller;
+
+        ListSelect {
+            widget,
+            controller: ListSelectController {
+                variants,
+                action: Some(Box::new(f)),
+            },
+        }
+    }
+}
+
+impl<T: Data + PartialEq> Widget<T> for ListSelect<T> {
+    fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
+        self.controller
+            .event(&mut self.widget, ctx, event, data, env)
+    }
+
+    fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
+        self.controller
+            .lifecycle(&mut self.widget, ctx, event, data, env)
+    }
+
+    fn update(&mut self, ctx: &mut UpdateCtx, old_data: &T, data: &T, env: &Env) {
+        self.controller
+            .update(&mut self.widget, ctx, old_data, data, env)
+    }
+
+    fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> Size {
+        self.widget.layout(ctx, bc, data, env)
+    }
+
+    fn paint(&mut self, ctx: &mut PaintCtx, data: &T, env: &Env) {
+        self.widget.paint(ctx, data, env)
     }
 }
 
 // A Controller to handle arrow key in the list selection widget.
 struct ListSelectController<T> {
     variants: Vec<T>,
+    action: Option<Box<dyn Fn(&mut EventCtx, &mut T, &Env) + 'static>>,
 }
 
 impl<T: Data + PartialEq> ListSelectController<T> {
@@ -75,16 +123,21 @@ impl<T: Data + PartialEq> Controller<T, Flex<T>> for ListSelectController<T> {
         data: &mut T,
         env: &Env,
     ) {
+        let mut selected = false;
+
         if let Event::MouseDown(_) = event {
+            selected = true;
             ctx.request_focus();
         }
         if let Event::KeyDown(key_event) = event {
             match key_event.key {
                 Key::ArrowUp => {
+                    selected = true;
                     self.change_index(data, false);
                     ctx.request_update();
                 }
                 Key::ArrowDown => {
+                    selected = true;
                     self.change_index(data, true);
                     ctx.request_update();
                 }
@@ -92,6 +145,13 @@ impl<T: Data + PartialEq> Controller<T, Flex<T>> for ListSelectController<T> {
             }
         } else {
             child.event(ctx, event, data, env)
+        }
+
+        // fire the callback if a valid index was selected
+        if selected {
+            if let Some(cb) = &self.action {
+                cb(ctx, data, env);
+            }
         }
     }
 }

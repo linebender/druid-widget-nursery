@@ -42,19 +42,22 @@ struct AppData {
 fn main_widget() -> impl Widget<AppData> {
     let mut row = Flex::row().cross_axis_alignment(CrossAxisAlignment::Start);
     row.add_flex_child(
-        Scroll::new(ListSelect::build_widget(vec![
-            ("to Sydney", Destination::Sydney),
-            ("to Petaluma", Destination::Petaluma),
-            ("to Tokyo", Destination::Tokyo),
-            ("to Paris", Destination::Paris),
-        ]))
+        Scroll::new(
+            ListSelect::new(vec![
+                ("to Sydney", Destination::Sydney),
+                ("to Petaluma", Destination::Petaluma),
+                ("to Tokyo", Destination::Tokyo),
+                ("to Paris", Destination::Paris),
+            ])
+            .on_select(|_, item, _| println!("Selected destination: {:?}", item)),
+        )
         .vertical()
         .lens(AppData::destination),
         1.0,
     );
     row.add_default_spacer();
     row.add_flex_child(
-        DropdownSelect::build_widget(vec![
+        DropdownSelect::new(vec![
             ("by car", Transportation::Car),
             ("by train", Transportation::Train),
             ("by plane", Transportation::Plane),
@@ -77,7 +80,7 @@ fn main_widget() -> impl Widget<AppData> {
 }
 
 fn main() {
-    let main_window = WindowDesc::new(main_widget)
+    let main_window = WindowDesc::new(main_widget())
         .title("Select")
         .window_size((250., 300.));
 
@@ -89,7 +92,7 @@ fn main() {
 
     // start the application
     AppLauncher::with_window(main_window)
-        .use_simple_logger()
+        .use_env_tracing()
         .launch(app_data)
         .expect("Failed to launch application");
 }

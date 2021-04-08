@@ -1,5 +1,7 @@
 # `druid-widget-nursery`
 
+[![Rust](https://github.com/linebender/druid-widget-nursery/actions/workflows/rust.yml/badge.svg)](https://github.com/linebender/druid-widget-nursery/actions/workflows/rust.yml)
+
 This repo contains (or, at the time of writing, will contain) widgets that work with `druid`. The repo follows a policy of [optimistic merging], and the idea is that having a lower barrier to merging PRs hopefully leads to a nice contributor experience, which then encourages more people to become regular collaborators for the whole `druid` family of crates.
 
 We don't insist that all widgets always build when updating to a newer version of `druid`, and so as you'll see the CI is allowed to fail. Fixing these build failures will often be a good opportunity for a first contribution, and people will always be willing to help out with this work either here or [on zulip][xi zulip].
@@ -11,12 +13,28 @@ So, in summary, the default assumption for PRs to this repo will be to merge, bu
 If you add a new widget, please add its name and a short summary here.
 
  - A tree widget
+
+   ![Tree example](tree-example.gif)
  - A Navigator widget that can display different child widgets/views.
  - Dropdown : a basic dropdown widget using the recently added sub-windows
+ - Dropdown Select : a basic widget for selecting one item out of a dropdown list
+
+   ![Select example](select-example.gif)
+ - List Select : a basic widget to select one item out of a list
  - Animator : a helper for running multiple animations with different curves/timing/dependencies
+ - Animated : a helper for simple transitions.
  - PartialWidget : a widget that shows a widget if its data is present
  - MultiRadio : a Radio that represents multiple values through an inner widget
  - MultiCheckbox : a Checkbox that represents multiple values through an inner widget
+
+## ProgressBar Improvements
+- Building on the existing progress bar in druid.
+- Making styling options more configurable, using theme values as defaults, with options in the widget to override.
+- Removed constraint on widget width, the widget will now expand to fit its container.
+- Future Idea: Add optional configuration for text that would go over the progress bar.
+- Future Idea: Draw the entire rounded rectangle for the progress bar and then truncate it, so gradients don't size to the current progress, but always to what would be a full progress bar. At least as an option.
+- TODO: Should width and height be completely configurable, both sized to expand into their container?
+- TODO: review theme values more generally, concerned that they might not be getting used consistently.
 
 # Widget Requests
 

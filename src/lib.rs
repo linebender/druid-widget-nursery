@@ -16,6 +16,7 @@
 
 pub mod animation;
 mod canvas;
+mod computed;
 mod dropdown;
 mod dropdown_select;
 mod dynamic_sized_box;
@@ -23,6 +24,7 @@ mod list_select;
 mod multi_value;
 pub mod navigator;
 pub mod partial;
+mod progress_bar;
 mod seperator;
 pub mod theme_loader;
 mod tree;
@@ -34,11 +36,13 @@ mod future_widget;
 pub mod hot_reload;
 
 pub use canvas::{Canvas, CanvasLayout, CanvasWrap};
+pub use computed::ComputedWidget;
 pub use dropdown::{Dropdown, DROP};
 pub use dropdown_select::DropdownSelect;
 pub use dynamic_sized_box::DynamicSizedBox;
 pub use list_select::ListSelect;
 pub use multi_value::{MultiCheckbox, MultiRadio};
+pub use progress_bar::ProgressBar;
 pub use seperator::{Orientation, Seperator};
 pub use tree::{Tree, TreeNode, Wedge};
 

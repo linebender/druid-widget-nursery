@@ -1,7 +1,10 @@
-use druid::commands::CLOSE_WINDOW;
 use druid::widget::prelude::*;
 use druid::widget::WidgetExt;
 use druid::WindowSizePolicy;
+use druid::{
+    commands::CLOSE_WINDOW,
+    widget::{Scroll, SizedBox},
+};
 use druid::{Point, Selector, WindowConfig};
 use druid::{WindowId, WindowLevel};
 
@@ -21,6 +24,23 @@ impl<T: Data> Dropdown<T> {
         Dropdown {
             header: header.boxed(),
             drop: Box::new(move |d, e| make_drop(d, e).boxed()),
+            window: None,
+        }
+    }
+
+    pub fn new_sized<DW: Widget<T> + 'static>(
+        header: impl Widget<T> + 'static,
+        make_drop: impl Fn(&T, &Env) -> DW + 'static,
+        size: Size,
+    ) -> Dropdown<T> {
+        Dropdown {
+            header: header.boxed(),
+            drop: Box::new(move |d, e| {
+                SizedBox::new(Scroll::new(make_drop(d, e)))
+                    .width(size.width)
+                    .height(size.height)
+                    .boxed()
+            }),
             window: None,
         }
     }

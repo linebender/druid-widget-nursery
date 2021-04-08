@@ -84,7 +84,7 @@ impl fmt::Display for Taxonomy {
 
 pub fn main() {
     // Create the main window
-    let main_window = WindowDesc::new(ui_builder)
+    let main_window = WindowDesc::new(ui_builder())
         .title(LocalizedString::new("tree-demo-window-title").with_placeholder("Tree Demo"));
 
     // Set our initial data.
@@ -164,7 +164,7 @@ pub fn main() {
 
     // start the application
     AppLauncher::with_window(main_window)
-        .use_simple_logger()
+        .use_env_tracing()
         .launch(taxonomy)
         .expect("launch failed");
 }

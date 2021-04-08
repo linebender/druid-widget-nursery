@@ -11,7 +11,7 @@ hot-reload = ["libloading", "notify5", "rand"]
 
 [dependencies.druid]
 git = "https://github.com/linebender/druid"
-rev = "de5f88a" # update this when upgrading to newer druid
+rev = "75e83ae" # update this when upgrading to newer druid
 # and update examples/hot_reload/Cargo.toml as well
 
 [dependencies]
@@ -30,6 +30,7 @@ flume = { version = "0.10", optional = true }
 notify5 = { version = "5.0.0-pre.4", optional = true, package = "notify" }
 libloading = { version = "0.6.6", optional = true }
 rand = { version = "0.8.1", optional = true }
+tracing = { version = "0.1.22" }
 
 [[example]]
 name = "async"

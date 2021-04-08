@@ -1,8 +1,6 @@
 use std::{cmp::Ordering, collections::HashMap, fmt, hash::Hash, unreachable};
 
-use druid::{widget::prelude::*, Point, Selector, WidgetPod};
-
-pub const POP_VIEW: Selector<()> = Selector::new("Pop view");
+use druid::{widget::prelude::*, Point, WidgetPod};
 
 /// This widget navigates through the widgets it stores using the Application Data
 /// to manage which widget is currently in view. This most likely will be the root
@@ -54,11 +52,11 @@ impl<T: Data, H: View> Navigator<T, H> {
     }
 
     /// Removes a view from navigator's state
-    fn pop_view(&mut self) {
+    fn truncate_views(&mut self, new_len: usize) {
         if self.state.len() == 1 {
-            return;
+            log::warn!("The view state should always have at least one child view");
         }
-        self.state.pop().unwrap();
+        self.state.truncate(new_len);
     }
 }
 /// This gives your Application State the behavior necessary to manipulate its views.
@@ -76,7 +74,7 @@ pub trait ViewController<T: Hash + PartialEq + Eq + Clone> {
     ///
     /// Views will probably be backed by some kind of array.
     fn len(&self) -> usize;
-    /// If views is empty then this should be an error.
+    // figure out why I have this here
     fn is_empty(&self) -> bool;
 }
 
@@ -93,19 +91,13 @@ impl<H: View, T: Data + ViewController<H>> Widget<T> for Navigator<T, H> {
         } else {
             self.state.last_mut().unwrap().event(ctx, event, data, env);
         }
-
-        match event {
-            // a convenience command for when a widget might not have access to
-            // the data structure that holds the views for the app state
-            Event::Command(selector) if selector.is(POP_VIEW) => {
-                data.pop_view();
-            }
-            _ => (),
-        }
     }
 
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
         if let LifeCycle::WidgetAdded = event {
+            if data.is_empty() && !self.state.is_empty() {
+                log::warn!("The data backing the Navigator widget is empty. It must not be empty on initialization.");
+            }
             ctx.children_changed();
         }
         if event.should_propagate_to_hidden() {
@@ -127,7 +119,7 @@ impl<H: View, T: Data + ViewController<H>> Widget<T> for Navigator<T, H> {
                 ctx.children_changed();
             }
             Ordering::Less => {
-                self.pop_view();
+                self.truncate_views(data.len());
                 ctx.children_changed();
             }
             Ordering::Equal => {}
@@ -143,7 +135,7 @@ impl<H: View, T: Data + ViewController<H>> Widget<T> for Navigator<T, H> {
         let current_view = self.state.last_mut().unwrap();
         let child_size = current_view.layout(ctx, bc, data, env);
         // I think the origin is (0,0) which should be the top left corner of the parent
-        current_view.set_origin(ctx, data, env, Point::ZERO);
+        current_view.set_origin(ctx, data, env, Point::ORIGIN);
 
         child_size
     }
