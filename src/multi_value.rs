@@ -2,7 +2,7 @@ use crate::partial::{OptionSome, PrismWrap, Prism};
 use druid::widget::{Checkbox, Radio};
 use druid::{BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Point, Size, UpdateCtx, Vec2, Widget, WidgetPod, RenderContext};
 use std::fmt::Debug;
-use crate::animation::{Animated, SimpleCurve, Interpolate};
+use crate::animation::{Animated, SimpleCurve, Interpolate, AnimationCurve};
 use std::time::Duration;
 
 ///A Radio which has further configuration for the value it represents
@@ -67,10 +67,28 @@ where
         self
     }
 
+    /// A Builder-style method to set the duration for the transition
+        /// between shown and hidden.
+    pub fn set_transition_duration(&mut self, duration: Duration) {
+        self.layout.height.set_duration(duration);
+    }
+
     /// Set the duration for the transition between shown and hidden.
-    /// A duration of `0.0`
-    pub fn set_transition_duration(&mut self, transition_duration: Duration) {
-        self.layout.height.set_duration(transition_duration);
+    pub fn with_transition_duration(mut self, duration: Duration) -> Self {
+        self.layout.height.set_duration(duration);
+        self
+    }
+
+    /// A Builder-style method to set the curve for the transition between
+    /// shown and hidden.
+    pub fn set_transition_curve(&mut self, curve: impl Into<AnimationCurve>) {
+        self.layout.height.set_curve(curve.into());
+    }
+
+    /// Set the curve for the transition between shown and hidden.
+    pub fn with_transition_curve(mut self, curve: impl Into<AnimationCurve>) -> Self {
+        self.layout.height.set_curve(curve.into());
+        self
     }
 
     /// Injects the this widgets internal data (the data before this widget got disabled, if it was
@@ -83,6 +101,7 @@ where
     pub fn enable(&self, data: &mut T) {
         self.inner.widget().enable(data);
     }
+
     /// Returns if the current widget is active. This is true if get(data) returned Some() during
     /// the last call of update
     ///
@@ -219,6 +238,30 @@ where
         self
     }
 
+    /// A Builder-style method to set the duration for the transition
+    /// between shown and hidden.
+    pub fn set_transition_duration(&mut self, duration: Duration) {
+        self.layout.height.set_duration(duration);
+    }
+
+    /// Set the duration for the transition between shown and hidden.
+    pub fn with_transition_duration(mut self, duration: Duration) -> Self {
+        self.layout.height.set_duration(duration);
+        self
+    }
+
+    /// A Builder-style method to set the curve for the transition between
+    /// shown and hidden.
+    pub fn set_transition_curve(&mut self, curve: impl Into<AnimationCurve>) {
+        self.layout.height.set_curve(curve.into());
+    }
+
+    /// Set the curve for the transition between shown and hidden.
+    pub fn with_transition_curve(mut self, curve: impl Into<AnimationCurve>) -> Self {
+        self.layout.height.set_curve(curve.into());
+        self
+    }
+
     /// Injects the this widgets internal data (the data before this widget got disabled, if it was
     /// never enabled this is initial data) into data.
     /// If data was this widgets external data, the widget will get enabled
@@ -229,6 +272,7 @@ where
     pub fn enable(&self, data: &mut Option<T>) {
         self.inner.widget().enable(data);
     }
+
     /// Returns if the current widget is active. This is true if get(data) returned Some() during
     /// the last call of update
     ///
