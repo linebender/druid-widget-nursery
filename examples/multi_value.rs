@@ -1,6 +1,6 @@
 use druid::widget::{CrossAxisAlignment, Flex, Slider, TextBox};
 use druid::{AppLauncher, Data, UnitPoint, Widget, WidgetExt, WindowDesc};
-use druid_widget_nursery::partial::{Closures, Prism};
+use druid_widget_nursery::prism::{Closures, Prism};
 use druid_widget_nursery::{MultiCheckbox, MultiRadio};
 
 #[derive(Data, Clone, PartialEq)]

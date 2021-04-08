@@ -1,4 +1,4 @@
-use crate::partial::{OptionSome, PrismWrap, Prism};
+use crate::prism::{OptionSome, PrismWrap, Prism};
 use druid::widget::{Checkbox, Radio};
 use druid::{BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Point, Size, UpdateCtx, Vec2, Widget, WidgetPod, RenderContext};
 use std::fmt::Debug;
