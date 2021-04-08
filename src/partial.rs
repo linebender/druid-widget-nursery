@@ -1,6 +1,4 @@
-use druid::{BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Size, UpdateCtx, Widget, RenderContext, Rect};
-use crate::animation::{Animated, SimpleCurve};
-use std::time::Duration;
+use druid::{BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Size, UpdateCtx, Widget};
 
 /// A Widget which displays data which is not always present
 /// The main use case are an enum variants
@@ -80,7 +78,7 @@ where
         match event {
             LifeCycle::WidgetAdded => {
                 if let Some(data) = self.prism.get(data) {
-                    self.enabled = true;;
+                    self.enabled = true;
                     self.current_data = data;
                 } else {
                     self.enabled = false;
@@ -94,8 +92,6 @@ where
     }
 
     fn update(&mut self, ctx: &mut UpdateCtx, _old_data: &T, data: &T, env: &Env) {
-        let was_enabled = self.enabled;
-
         if let Some(data) = self.prism.get(data) {
             self.enabled = true;
 

@@ -3,7 +3,6 @@ use druid::widget::{Checkbox, Radio};
 use druid::{BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Point, Size, UpdateCtx, Vec2, Widget, WidgetPod, RenderContext};
 use std::fmt::Debug;
 use crate::animation::{Animated, SimpleCurve, Interpolate};
-use druid::text::LayoutMetrics;
 use std::time::Duration;
 
 ///A Radio which has further configuration for the value it represents
