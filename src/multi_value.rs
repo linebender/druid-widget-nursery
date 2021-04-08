@@ -131,7 +131,7 @@ where
             .set_origin(ctx, &self.is_enabled(), env, Point::ZERO);
 
         let inner_origin = Vec2::new(self.indent, radio_size.height + self.space);
-        let inner_bc = bc.shrink(inner_origin);
+        let inner_bc = bc.shrink(inner_origin.to_size());
 
         let inner_size = self.inner.layout(ctx, &inner_bc, data, env);
         self.inner
@@ -287,7 +287,7 @@ where
             .set_origin(ctx, &self.is_enabled(), env, Point::ZERO);
 
         let inner_origin = Vec2::new(self.indent, radio_size.height + self.space);
-        let inner_bc = bc.shrink(inner_origin);
+        let inner_bc = bc.shrink(inner_origin.to_size());
 
         let inner_size = self.inner.layout(ctx, &inner_bc, data, env);
         self.inner
