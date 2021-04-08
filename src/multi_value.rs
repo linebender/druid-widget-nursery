@@ -1,4 +1,4 @@
-use crate::partial::{OptionSome, PartialWidget, Prism};
+use crate::partial::{OptionSome, PrismWrap, Prism};
 use druid::widget::{Checkbox, Radio};
 use druid::{BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Point, Size, UpdateCtx, Vec2, Widget, WidgetPod, RenderContext};
 use std::fmt::Debug;
@@ -7,7 +7,7 @@ use std::time::Duration;
 
 ///A Radio which has further configuration for the value it represents
 pub struct MultiRadio<W, T, U, P> {
-    inner: WidgetPod<T, PartialWidget<W, U, P>>,
+    inner: WidgetPod<T, PrismWrap<W, U, P>>,
     radio: WidgetPod<bool, Radio<bool>>,
     layout: IndentLayout,
 }
@@ -27,7 +27,7 @@ where
     /// instead of U which makes it useful for Enums.
     pub fn new(name: &str, widget: W, initial_data: U, prism: P) -> Self {
         Self {
-            inner: WidgetPod::new(PartialWidget::new(widget, initial_data, prism)),
+            inner: WidgetPod::new(PrismWrap::new(widget, initial_data, prism)),
             radio: WidgetPod::new(Radio::new(name, true)),
             layout: IndentLayout::new(),
         }
@@ -106,6 +106,10 @@ where
     W: Widget<U>,
 {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
+        if let Event::AnimFrame(nanos) = event {
+            self.layout.update(nanos, ctx);
+        }
+
         let mut enabled = self.is_enabled();
         self.radio.event(ctx, event, &mut enabled, env);
 
@@ -114,19 +118,22 @@ where
         }
 
         self.inner.event(ctx, event, data, env);
-
-        self.layout.set_visible(enabled, ctx);
     }
 
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
         self.radio.lifecycle(ctx, event, &self.is_enabled(), env);
         self.inner.lifecycle(ctx, event, data, env);
+        if let LifeCycle::WidgetAdded = event {
+            self.layout.init_visible(self.is_enabled());
+        }
     }
 
     fn update(&mut self, ctx: &mut UpdateCtx, _old_data: &T, data: &T, env: &Env) {
         self.inner.update(ctx, data, env);
         self.radio.update(ctx, &self.is_enabled(), env);
-
+        if self.layout.set_visible(self.is_enabled()) {
+            ctx.request_anim_frame();
+        }
     }
 
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> Size {
@@ -156,7 +163,7 @@ where
 }
 
 pub struct MultiCheckbox<W, T> {
-    inner: WidgetPod<Option<T>, PartialWidget<W, T, OptionSome>>,
+    inner: WidgetPod<Option<T>, PrismWrap<W, T, OptionSome>>,
     check_box: WidgetPod<bool, Checkbox>,
     layout: IndentLayout,
 }
@@ -172,7 +179,7 @@ where
     /// instead of U which makes it useful for Enums.
     pub fn new(name: &str, widget: W, initial_data: T) -> Self {
         Self {
-            inner: WidgetPod::new(PartialWidget::new(widget, initial_data, OptionSome)),
+            inner: WidgetPod::new(PrismWrap::new(widget, initial_data, OptionSome)),
             check_box: WidgetPod::new(Checkbox::new(name)),
             layout: IndentLayout::new(),
         }
@@ -243,6 +250,10 @@ where
     W: Widget<T>,
 {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut Option<T>, env: &Env) {
+        if let Event::AnimFrame(nanos) = event {
+            self.layout.update(nanos, ctx);
+        }
+
         self.inner.event(ctx, event, data, env);
 
         let mut enabled = self.is_enabled();
@@ -254,8 +265,6 @@ where
         if !enabled && self.is_enabled() {
             *data = None;
         }
-
-        self.layout.set_visible(enabled, ctx);
     }
 
     fn lifecycle(
@@ -268,11 +277,17 @@ where
         self.check_box
             .lifecycle(ctx, event, &self.is_enabled(), env);
         self.inner.lifecycle(ctx, event, data, env);
+        if let LifeCycle::WidgetAdded = event {
+            self.layout.init_visible(self.is_enabled());
+        }
     }
 
     fn update(&mut self, ctx: &mut UpdateCtx, _old_data: &Option<T>, data: &Option<T>, env: &Env) {
         self.inner.update(ctx, data, env);
         self.check_box.update(ctx, &self.is_enabled(), env);
+        if self.layout.set_visible(self.is_enabled()) {
+            ctx.request_anim_frame();
+        }
     }
 
     fn layout(
@@ -318,13 +333,13 @@ impl IndentLayout {
     pub fn new() -> Self {
         IndentLayout {
             space: 10.0,
-            indent: 20.0,
-            always_visible: true,
+            indent: 30.0,
+            always_visible: false,
             height: Animated::new(
                 0.0,
-                Default::default(),
+                Duration::from_secs_f64(0.2),
                 SimpleCurve::EaseOut,
-                false,
+                true,
             ),
         }
     }
@@ -333,13 +348,19 @@ impl IndentLayout {
         self.height.update(*nanos, ctx);
     }
 
-    pub fn set_visible(&mut self, visible: bool, ctx: &mut EventCtx) {
+    pub fn set_visible(&mut self, visible: bool) -> bool {
         //TODO: update this when context traits are stabilised
         let new_value = if visible || self.always_visible { 1.0 } else { 0.0 };
-        if new_value != self.height.get() {
-            ctx.request_anim_frame();
+        if new_value != self.height.end() {
             self.height.animate(new_value);
+            true
+        } else {
+            false
         }
+    }
+
+    pub fn init_visible(&mut self, visible: bool) {
+        self.height.jump_to_value(if visible || self.always_visible { 1.0 } else { 0.0 });
     }
 
     pub fn layout<A: Data, B: Data>(

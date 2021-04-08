@@ -2,14 +2,14 @@ use druid::{BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, Li
 
 /// A Widget which displays data which is not always present
 /// The main use case are an enum variants
-pub struct PartialWidget<W, U, P> {
+pub struct PrismWrap<W, U, P> {
     widget: W,
     current_data: U,
     prism: P,
     enabled: bool,
 }
 
-impl<W, U, P> PartialWidget<W, U, P>
+impl<W, U, P> PrismWrap<W, U, P>
 where
     U: Data,
     W: Widget<U>,
@@ -57,7 +57,7 @@ where
     }
 }
 
-impl<W, T, U, P> Widget<T> for PartialWidget<W, U, P>
+impl<W, T, U, P> Widget<T> for PrismWrap<W, U, P>
 where
     U: Data,
     W: Widget<U>,
