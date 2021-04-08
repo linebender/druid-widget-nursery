@@ -1,5 +1,19 @@
 use druid::{BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Size, UpdateCtx, Widget};
 
+//TODO: Maybe write a derive macro
+/// A trait similar to druid::Lens that represents data which is not always present
+///
+/// This is just a simple prototype for me to work with until [``] is merged.
+/// There is also discussion about Prisms in [``].
+///
+///
+pub trait Prism<T, U> {
+    ///Extract the data (if present) from a move general type
+    fn get(&self, data: &T) -> Option<U>;
+    ///Store the data back in the original type
+    fn put(&self, data: &mut T, inner: U);
+}
+
 /// A Widget which displays data which is not always present
 /// The main use case are an enum variants
 pub struct PrismWrap<W, U, P> {
@@ -114,18 +128,64 @@ where
     }
 }
 
-//TODO: Maybe write a derive macro
-/// A trait similar to druid::Lens that represents data which is not always present
 ///
-/// This is just a simple prototype for me to work with until [``] is merged.
-/// There is also discussion about Prisms in [``].
-///
-///
-pub trait Prism<T, U> {
-    ///Extract the data (if present) from a move general type
-    fn get(&self, data: &T) -> Option<U>;
-    ///Store the data back in the original type
-    fn put(&self, data: &mut T, inner: U);
+pub trait PrismWidget<T>: Widget<T> {
+    fn is_active_for(&self, data: &T) -> bool;
+}
+
+pub struct PrismWidgetImpl<W, P, U> {
+    inner: W,
+    prism: P,
+    cached_data: Option<U>,
+}
+
+impl<W, P, U> PrismWidgetImpl<W, P, U> {
+    pub fn new(widget: W, prism: P) -> Self {
+        PrismWidgetImpl {
+            inner: widget,
+            prism,
+            cached_data: None,
+        }
+    }
+}
+
+impl<T, U, P: Prism<T, U>, W: Widget<U>> PrismWidget<T> for PrismWidgetImpl<W, P, U> {
+    fn is_active_for(&self, data: &T) -> bool {
+        self.prism.get(data).is_some()
+    }
+}
+
+impl<T, U, P: Prism<T, U>, W: Widget<U>> Widget<T> for PrismWidgetImpl<W, P, U> {
+    fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
+        if let Some(mut inner_data) = self.prism.get(data) {
+            self.inner.event(ctx, event, &mut inner_data, env);
+            self.prism.put(data, inner_data);
+        }
+    }
+
+    fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
+        if let LifeCycle::WidgetAdded = event {
+            self.cached_data = Some(self.prism.get(data).unwrap());
+        }
+        self.inner.lifecycle(ctx, event, self.cached_data.as_ref().unwrap(), env);
+    }
+
+    fn update(&mut self, ctx: &mut UpdateCtx, old_data: &T, data: &T, env: &Env) {
+        if let Some(data) = self.prism.get(data) {
+            self.inner.update(ctx, self.cached_data.as_ref().unwrap(), &data, env);
+            self.cached_data = Some(data);
+        } else if ctx.env_changed() || ctx.has_requested_update() {
+            self.inner.update(ctx, self.cached_data.as_ref().unwrap(), self.cached_data.as_ref().unwrap(), env);
+        }
+    }
+
+    fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> Size {
+        self.inner.layout(ctx, bc, self.cached_data.as_ref().unwrap(), env)
+    }
+
+    fn paint(&mut self, ctx: &mut PaintCtx, data: &T, env: &Env) {
+        self.inner.paint(ctx, self.cached_data.as_ref().unwrap(), env);
+    }
 }
 
 #[macro_export]

@@ -1,6 +1,6 @@
 use druid::widget::{Flex, Radio, TextBox};
 use druid::{AppLauncher, Data, UnitPoint, Widget, WidgetExt, WindowDesc};
-use druid_widget_nursery::partial::PrismWrap;
+use druid_widget_nursery::prism::PrismWrap;
 
 #[derive(Data, Clone, PartialEq)]
 enum TestData {
