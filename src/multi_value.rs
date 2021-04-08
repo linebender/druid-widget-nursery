@@ -1,17 +1,16 @@
 use crate::partial::{OptionSome, PartialWidget, Prism};
 use druid::widget::{Checkbox, Radio};
-use druid::{
-    BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx,
-    Point, Size, UpdateCtx, Vec2, Widget, WidgetPod,
-};
+use druid::{BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Point, Size, UpdateCtx, Vec2, Widget, WidgetPod, RenderContext};
 use std::fmt::Debug;
+use crate::animation::{Animated, SimpleCurve, Interpolate};
+use druid::text::LayoutMetrics;
+use std::time::Duration;
 
 ///A Radio which has further configuration for the value it represents
 pub struct MultiRadio<W, T, U, P> {
     inner: WidgetPod<T, PartialWidget<W, U, P>>,
     radio: WidgetPod<bool, Radio<bool>>,
-    indent: f64,
-    space: f64,
+    layout: IndentLayout,
 }
 
 impl<W, T, U, P> MultiRadio<W, T, U, P>
@@ -31,45 +30,48 @@ where
         Self {
             inner: WidgetPod::new(PartialWidget::new(widget, initial_data, prism)),
             radio: WidgetPod::new(Radio::new(name, true)),
-            indent: 20.0,
-            space: 10.0,
+            layout: IndentLayout::new(),
         }
-    }
-
-    /// Set show_when_disabled, the default is false.
-    pub fn set_show_when_disabled(&mut self, show_when_disabled: bool) {
-        self.inner
-            .widget_mut()
-            .set_show_when_disabled(show_when_disabled);
-    }
-
-    /// Builder-style method to set show_when_disabled to true.
-    /// The default is false.
-    pub fn show_when_disabled(mut self) -> Self {
-        self.inner.widget_mut().set_show_when_disabled(true);
-        self
     }
 
     /// Set the indent of the inner widget
     pub fn set_indent(&mut self, indent: f64) {
-        self.indent = indent;
+        self.layout.indent = indent;
     }
 
     /// Builder-style method to set the indent of the inner widget
     pub fn with_indent(mut self, indent: f64) -> Self {
-        self.indent = indent;
+        self.layout.indent = indent;
         self
     }
 
     /// Set the indent of the inner widget
     pub fn set_space(&mut self, space: f64) {
-        self.space = space;
+        self.layout.space = space;
     }
 
     /// Builder-style method to set the indent of the inner widget
     pub fn with_space(mut self, space: f64) -> Self {
-        self.space = space;
+        self.layout.space = space;
         self
+    }
+
+    /// Set show_when_disabled, the default is false.
+    pub fn set_show_when_disabled(&mut self, show_when_disabled: bool) {
+        self.layout.always_visible = show_when_disabled;
+    }
+
+    /// Builder-style method to set show_when_disabled to true.
+    /// The default is false.
+    pub fn show_when_disabled(mut self) -> Self {
+        self.layout.always_visible = true;
+        self
+    }
+
+    /// Set the duration for the transition between shown and hidden.
+    /// A duration of `0.0`
+    pub fn set_transition_duration(&mut self, transition_duration: Duration) {
+        self.layout.height.set_duration(transition_duration);
     }
 
     /// Injects the this widgets internal data (the data before this widget got disabled, if it was
@@ -105,59 +107,59 @@ where
     W: Widget<U>,
 {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
-        self.inner.event(ctx, event, data, env);
-
         let mut enabled = self.is_enabled();
         self.radio.event(ctx, event, &mut enabled, env);
 
         if enabled && !self.is_enabled() {
             self.enable(data);
         }
+
+        self.inner.event(ctx, event, data, env);
+
+        self.layout.set_visible(enabled, ctx);
     }
 
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
-        self.inner.lifecycle(ctx, event, data, env);
         self.radio.lifecycle(ctx, event, &self.is_enabled(), env);
+        self.inner.lifecycle(ctx, event, data, env);
     }
 
     fn update(&mut self, ctx: &mut UpdateCtx, _old_data: &T, data: &T, env: &Env) {
         self.inner.update(ctx, data, env);
         self.radio.update(ctx, &self.is_enabled(), env);
+
     }
 
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> Size {
-        let radio_size = self.radio.layout(ctx, bc, &self.is_enabled(), env);
-        self.radio
-            .set_origin(ctx, &self.is_enabled(), env, Point::ZERO);
-
-        let inner_origin = Vec2::new(self.indent, radio_size.height + self.space);
-        let inner_bc = bc.shrink(inner_origin);
-
-        let inner_size = self.inner.layout(ctx, &inner_bc, data, env);
-        self.inner
-            .set_origin(ctx, data, env, inner_origin.to_point());
-
-        if !inner_size.is_empty() {
-            Size::new(
-                radio_size.width.max(inner_size.width + inner_origin.x),
-                inner_origin.y + inner_size.height,
-            )
-        } else {
-            radio_size
-        }
+        let enabled = self.is_enabled();
+        self.layout.layout(
+            &mut self.radio,
+            &mut self.inner,
+            &enabled,
+            data,
+            ctx,
+            bc,
+            env,
+        )
     }
 
     fn paint(&mut self, ctx: &mut PaintCtx, data: &T, env: &Env) {
-        self.radio.paint(ctx, &self.is_enabled(), env);
-        self.inner.paint(ctx, data, env);
+        let enabled = self.is_enabled();
+        self.layout.paint(
+            &mut self.radio,
+            &mut self.inner,
+            &enabled,
+            data,
+            ctx,
+            env
+        );
     }
 }
 
 pub struct MultiCheckbox<W, T> {
     inner: WidgetPod<Option<T>, PartialWidget<W, T, OptionSome>>,
     check_box: WidgetPod<bool, Checkbox>,
-    indent: f64,
-    space: f64,
+    layout: IndentLayout,
 }
 
 impl<W, T> MultiCheckbox<W, T>
@@ -173,44 +175,41 @@ where
         Self {
             inner: WidgetPod::new(PartialWidget::new(widget, initial_data, OptionSome)),
             check_box: WidgetPod::new(Checkbox::new(name)),
-            indent: 20.0,
-            space: 10.0,
+            layout: IndentLayout::new(),
         }
-    }
-
-    /// Set show_when_disabled, the default is false.
-    pub fn set_show_when_disabled(&mut self, show_when_disabled: bool) {
-        self.inner
-            .widget_mut()
-            .set_show_when_disabled(show_when_disabled);
-    }
-
-    /// Builder-style method to set show_when_disabled to true.
-    /// The default is false.
-    pub fn show_when_disabled(mut self) -> Self {
-        self.inner.widget_mut().set_show_when_disabled(true);
-        self
     }
 
     /// Set the indent of the inner widget
     pub fn set_indent(&mut self, indent: f64) {
-        self.indent = indent;
+        self.layout.indent = indent;
     }
 
     /// Builder-style method to set the indent of the inner widget
     pub fn with_indent(mut self, indent: f64) -> Self {
-        self.indent = indent;
+        self.layout.indent = indent;
         self
     }
 
     /// Set the indent of the inner widget
     pub fn set_space(&mut self, space: f64) {
-        self.space = space;
+        self.layout.space = space;
     }
 
     /// Builder-style method to set the indent of the inner widget
     pub fn with_space(mut self, space: f64) -> Self {
-        self.space = space;
+        self.layout.space = space;
+        self
+    }
+
+    /// Set show_when_disabled, the default is false.
+    pub fn set_show_when_disabled(&mut self, show_when_disabled: bool) {
+        self.layout.always_visible = show_when_disabled;
+    }
+
+    /// Builder-style method to set show_when_disabled to true.
+    /// The default is false.
+    pub fn show_when_disabled(mut self) -> Self {
+        self.layout.always_visible = true;
         self
     }
 
@@ -256,6 +255,8 @@ where
         if !enabled && self.is_enabled() {
             *data = None;
         }
+
+        self.layout.set_visible(enabled, ctx);
     }
 
     fn lifecycle(
@@ -265,9 +266,9 @@ where
         data: &Option<T>,
         env: &Env,
     ) {
-        self.inner.lifecycle(ctx, event, data, env);
         self.check_box
             .lifecycle(ctx, event, &self.is_enabled(), env);
+        self.inner.lifecycle(ctx, event, data, env);
     }
 
     fn update(&mut self, ctx: &mut UpdateCtx, _old_data: &Option<T>, data: &Option<T>, env: &Env) {
@@ -282,29 +283,112 @@ where
         data: &Option<T>,
         env: &Env,
     ) -> Size {
-        let radio_size = self.check_box.layout(ctx, bc, &self.is_enabled(), env);
-        self.check_box
-            .set_origin(ctx, &self.is_enabled(), env, Point::ZERO);
+        let enabled = self.is_enabled();
+        self.layout.layout(
+            &mut self.check_box,
+            &mut self.inner,
+            &enabled,
+            data,
+            ctx,
+            bc,
+            env,
+        )
+    }
+
+    fn paint(&mut self, ctx: &mut PaintCtx, data: &Option<T>, env: &Env) {
+        let enabled = self.is_enabled();
+        self.layout.paint(
+            &mut self.check_box,
+            &mut self.inner,
+            &enabled,
+            data,
+            ctx,
+            env
+        );
+    }
+}
+
+struct IndentLayout {
+    space: f64,
+    indent: f64,
+    always_visible: bool,
+    height: Animated<f64>,
+}
+
+impl IndentLayout {
+    pub fn new() -> Self {
+        IndentLayout {
+            space: 10.0,
+            indent: 20.0,
+            always_visible: true,
+            height: Animated::new(
+                0.0,
+                Default::default(),
+                SimpleCurve::EaseOut,
+                false,
+            ),
+        }
+    }
+
+    pub fn update(&mut self, nanos: &u64, ctx: &mut EventCtx) {
+        self.height.update(*nanos, ctx);
+    }
+
+    pub fn set_visible(&mut self, visible: bool, ctx: &mut EventCtx) {
+        //TODO: update this when context traits are stabilised
+        let new_value = if visible || self.always_visible { 1.0 } else { 0.0 };
+        if new_value != self.height.get() {
+            ctx.request_anim_frame();
+            self.height.animate(new_value);
+        }
+    }
+
+    pub fn layout<A: Data, B: Data>(
+        &self,
+        header: &mut WidgetPod<A, impl Widget<A>>,
+        body: &mut WidgetPod<B, impl Widget<B>>,
+        data_a: &A,
+        data_b: &B,
+        ctx: &mut LayoutCtx,
+        bc: &BoxConstraints,
+        env: &Env,
+    ) -> Size {
+        let radio_size = header.layout(ctx, bc, data_a, env);
+        header.set_origin(ctx, data_a, env, Point::ZERO);
 
         let inner_origin = Vec2::new(self.indent, radio_size.height + self.space);
-        let inner_bc = bc.shrink(inner_origin);
+        let inner_bc = bc.shrink(inner_origin.to_size());
 
-        let inner_size = self.inner.layout(ctx, &inner_bc, data, env);
-        self.inner
-            .set_origin(ctx, data, env, inner_origin.to_point());
+        let inner_size = body.layout(ctx, &inner_bc, data_b, env);
+        body.set_origin(ctx, data_b, env, inner_origin.to_point());
 
         if !inner_size.is_empty() {
             Size::new(
                 radio_size.width.max(inner_size.width + inner_origin.x),
-                inner_origin.y + inner_size.height,
+                radio_size.height.interpolate(
+                    &(inner_origin.y + inner_size.height),
+                    self.height.get()
+                )
             )
         } else {
             radio_size
         }
     }
 
-    fn paint(&mut self, ctx: &mut PaintCtx, data: &Option<T>, env: &Env) {
-        self.check_box.paint(ctx, &self.is_enabled(), env);
-        self.inner.paint(ctx, data, env);
+    pub fn paint<A: Data, B: Data>(
+        &self,
+        header: &mut WidgetPod<A, impl Widget<A>>,
+        body: &mut WidgetPod<B, impl Widget<B>>,
+        data_a: &A,
+        data_b: &B,
+        ctx: &mut PaintCtx,
+        env: &Env,
+    ) {
+        header.paint(ctx, data_a, env);
+        if self.height.animating() {
+            let paint_rect = ctx.size().to_rect();
+            ctx.clip(paint_rect);
+        }
+        body.paint(ctx, data_b, env);
     }
 }

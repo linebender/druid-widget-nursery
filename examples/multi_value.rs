@@ -57,15 +57,14 @@ fn main_widget() -> impl Widget<TestData> {
             },
             |data: &mut TestData, inner| *data = TestData::A(inner),
         ),
-    )
-    .show_when_disabled();
+    );
 
     let b =
-        MultiRadio::new("Variant B", TextBox::new(), String::new(), TestDataB).show_when_disabled();
+        MultiRadio::new("Variant B", TextBox::new(), String::new(), TestDataB);
 
     let c_inner = MultiCheckbox::new("inner value", TextBox::new(), String::from("initial data"));
 
-    let c = MultiRadio::new("Variant C", c_inner, None, TestDataC).show_when_disabled();
+    let c = MultiRadio::new("Variant C", c_inner, None, TestDataC);
 
     Flex::column()
         .with_child(a)
@@ -86,7 +85,6 @@ fn main() {
 
     // start the application
     AppLauncher::with_window(main_window)
-        .use_env_tracing()
         .launch(app_data)
         .expect("Failed to launch application");
 }

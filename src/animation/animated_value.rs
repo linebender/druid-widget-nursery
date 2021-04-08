@@ -1,6 +1,6 @@
 use crate::animation::AnimationCurve;
 use std::time::Duration;
-use druid::{Color, Vec2, Size, Point, Rect, EventCtx, Insets};
+use druid::{Color, Vec2, Size, Point, Rect, EventCtx, Insets, Data};
 use std::ops::Deref;
 
 /// Animated provides simple transition-animations for single values or tuples of values that implement
@@ -11,24 +11,22 @@ pub struct Animated<T> {
     full_duration: f64,
     current_duration: f64,
     curve: AnimationCurve,
-    paint: bool,
     layout: bool,
 
     current: T
 }
 
-impl<T: Interpolate> Animated<T> {
+impl<T: Interpolate + Data> Animated<T> {
     /// Creates a new animation with a start value, a duration and a curve.
     /// The paint and layout flags indicate if animate should request paint or layout when the value
     /// changes.
-    pub fn new(value: T, duration: Duration, curve: impl Into<AnimationCurve>, paint: bool, layout: bool) -> Self {
+    pub fn new(value: T, duration: Duration, curve: impl Into<AnimationCurve>, layout: bool) -> Self {
         Animated {
             start: value.clone(),
             end: value.clone(),
             full_duration: duration.as_secs_f64(),
             current_duration: duration.as_secs_f64(),
             curve: curve.into(),
-            paint,
             layout,
 
             current: value,
@@ -36,14 +34,13 @@ impl<T: Interpolate> Animated<T> {
     }
 
 
-    pub fn jump(value: T, paint: bool, layout: bool) -> Self {
+    pub fn jump(value: T, layout: bool) -> Self {
         Animated {
             start: value.clone(),
             end: value.clone(),
             full_duration: 0.0,
             current_duration: 0.0,
             curve: Default::default(),
-            paint,
             layout,
             current: value.clone(),
         }
@@ -94,9 +91,15 @@ impl<T: Interpolate> Animated<T> {
     /// value.
     //TODO: change to RequestCtx to automatically update
     pub fn animate(&mut self, value: T) {
-        self.start = self.current.clone();
-        self.end = value;
-        self.current_duration = 0.0;
+        if !value.same(&self.end) {
+            self.start = self.current.clone();
+            self.end = value.clone();
+            self.current_duration = 0.0;
+            if self.full_duration == 0.0 {
+                self.current = value;
+                //if self.layout { ctx.request_layout(); } else { ctx.request_paint(); }
+            } // else { ctx.request_anim_frame(); }
+        }
     }
 
     pub fn animate_with(&mut self, value: T, duration: Duration, curve: impl Into<AnimationCurve>) {
@@ -126,12 +129,12 @@ impl<T: Interpolate> Animated<T> {
     /// If the transition's end isn't reached an additional animation-frame is requested.
     ///
     pub fn update(&mut self, nanos: u64, ctx: &mut EventCtx) {
+        // This must happen before updating the value!
         if self.animating() {
-            if self.paint {
-                ctx.request_paint();
-            }
             if self.layout {
                 ctx.request_layout();
+            } else {
+                ctx.request_paint();
             }
         }
 
