@@ -164,7 +164,7 @@ pub fn main() {
 
     // start the application
     AppLauncher::with_window(main_window)
-        .use_env_tracing()
+        .log_to_console()
         .launch(taxonomy)
         .expect("launch failed");
 }

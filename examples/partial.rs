@@ -46,7 +46,7 @@ fn main() {
 
     // start the application
     AppLauncher::with_window(main_window)
-        .use_env_tracing()
+        .log_to_console()
         .launch(app_data)
         .expect("Failed to launch application");
 }
