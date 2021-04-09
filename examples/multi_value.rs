@@ -132,7 +132,7 @@ fn main_widget() -> impl Widget<TestData> {
 fn main() {
     let main_window = WindowDesc::new(main_widget())
         .title("Select")
-        .window_size((400., 400.))
+        .window_size((400., 280.))
         .set_position((700.0, 300.0));
 
     // create the initial app state
