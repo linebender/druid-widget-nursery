@@ -24,6 +24,7 @@ If you add a new widget, please add its name and a short summary here.
  - Animator : a helper for running multiple animations with different curves/timing/dependencies
  - Animated : a helper for simple transitions.
  - PartialWidget : a widget that shows a widget if its data is present
+   
    ![Multivalue example](multi-value-example.gif)
  - MultiRadio : a Radio that represents multiple values through an inner widget
  - MultiCheckbox : a Checkbox that represents multiple values through an inner widget
