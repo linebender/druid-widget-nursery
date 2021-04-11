@@ -22,14 +22,12 @@ impl AnimatedWidget {
                 Color::RED,
                 Duration::from_secs_f64(0.8),
                 SimpleCurve::EaseInOut,
-                true,
                 false
             ),
             insets: Animated::new(
                 6.0,
                 Duration::from_secs_f64(0.2),
                 SimpleCurve::EaseOut,
-                true,
                 false,
             ),
             current_color: 0,

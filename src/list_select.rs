@@ -15,7 +15,7 @@
 //! A simple list selection widget, for selecting a single value out of a list.
 
 use druid::keyboard_types::Key;
-use druid::widget::{Controller, ControllerHost, CrossAxisAlignment, Flex, Label, LabelText};
+use druid::widget::{Controller, CrossAxisAlignment, Flex, Label, LabelText};
 use druid::{
     theme, BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx,
     LinearGradient, PaintCtx, RenderContext, Size, UnitPoint, UpdateCtx, Widget,
