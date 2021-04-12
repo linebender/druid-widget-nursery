@@ -14,6 +14,11 @@ pub trait Prism<T, U> {
     fn put(&self, data: &mut T, inner: U);
 }
 
+///
+pub trait PrismWidget<T>: Widget<T> {
+    fn is_active_for(&self, data: &T) -> bool;
+}
+
 /// A Widget which displays data which is not always present
 /// The main use case are an enum variants
 pub struct PrismWrap<W, U, P> {
@@ -68,6 +73,17 @@ where
     /// By calling enable the current internal data gets injected into the external data.
     pub fn internal_data(&self) -> &U {
         &self.current_data
+    }
+}
+
+impl<W, T, U, P> PrismWidget<T> for PrismWrap<W, U, P>
+where
+    U: Data,
+    W: Widget<U>,
+    P: Prism<T, U>,
+{
+    fn is_active_for(&self, data: &T) -> bool {
+        self.prism.get(data).is_some()
     }
 }
 
@@ -128,11 +144,9 @@ where
     }
 }
 
-///
-pub trait PrismWidget<T>: Widget<T> {
-    fn is_active_for(&self, data: &T) -> bool;
-}
 
+/// A widget similar to PrismWrap, but with the limitation that this widget should only be visible
+/// if its data is present.
 pub struct PrismWidgetImpl<W, P, U> {
     inner: W,
     prism: P,
@@ -160,6 +174,10 @@ impl<T, U, P: Prism<T, U>, W: Widget<U>> Widget<T> for PrismWidgetImpl<W, P, U> 
         if let Some(mut inner_data) = self.prism.get(data) {
             self.inner.event(ctx, event, &mut inner_data, env);
             self.prism.put(data, inner_data);
+        } else if event.should_propagate_to_hidden() {
+            if let Some(mut data) = self.cached_data.clone() {
+                self.inner.event(ctx, event, &mut data, env);
+            }
         }
     }
 
@@ -167,24 +185,38 @@ impl<T, U, P: Prism<T, U>, W: Widget<U>> Widget<T> for PrismWidgetImpl<W, P, U> 
         if let LifeCycle::WidgetAdded = event {
             self.cached_data = Some(self.prism.get(data).unwrap());
         }
-        self.inner.lifecycle(ctx, event, self.cached_data.as_ref().unwrap(), env);
+        if self.is_active_for(data) || event.should_propagate_to_hidden() {
+            if let Some(data) = &self.cached_data {
+                self.inner.lifecycle(ctx, event, data, env);
+            }
+        }
     }
 
     fn update(&mut self, ctx: &mut UpdateCtx, old_data: &T, data: &T, env: &Env) {
-        if let Some(data) = self.prism.get(data) {
-            self.inner.update(ctx, self.cached_data.as_ref().unwrap(), &data, env);
-            self.cached_data = Some(data);
+        if let Some((old, data)) = self.cached_data.as_ref().zip(self.prism.get(data)) {
+            self.inner.update(ctx, old, data, env);
+            ctx.set_disabled(false);
+            self.cached_data = Some(data.clone());
         } else if ctx.env_changed() || ctx.has_requested_update() {
-            self.inner.update(ctx, self.cached_data.as_ref().unwrap(), self.cached_data.as_ref().unwrap(), env);
+            if let Some(data) = &self.cached_data {
+                self.inner.update(ctx, data, data, env);
+            }
+            ctx.set_disabled(true);
         }
     }
 
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> Size {
-        self.inner.layout(ctx, bc, self.cached_data.as_ref().unwrap(), env)
+        if let Some(data) = &self.cached_data {
+            self.inner.layout(ctx, bc, data, env)
+        } else {
+            bc.min()
+        }
     }
 
     fn paint(&mut self, ctx: &mut PaintCtx, data: &T, env: &Env) {
-        self.inner.paint(ctx, self.cached_data.as_ref().unwrap(), env);
+        if let Some(data) = &self.cached_data {
+            self.inner.paint(ctx, data, env);
+        }
     }
 }
 
