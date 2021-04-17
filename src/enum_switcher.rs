@@ -1,5 +1,8 @@
-use druid::{Data, Widget, EventCtx, LifeCycle, PaintCtx, LifeCycleCtx, BoxConstraints, Size, LayoutCtx, Event, Env, UpdateCtx, WidgetPod};
-use crate::prism::{Prism, PrismWidget, PrismWidgetImpl};
+use crate::prism::{Prism, PrismWidget, PrismWrap};
+use druid::{
+    BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Size,
+    UpdateCtx, Widget, WidgetPod,
+};
 
 pub struct LazySwitcher<T: Data> {
     builder: Vec<Box<dyn Fn(&T) -> Option<Box<dyn PrismWidget<T>>>>>,
@@ -13,20 +16,25 @@ impl<T: Data> LazySwitcher<T> {
             current: None,
         }
     }
-    pub fn with_variant<U: Data, P: Prism<T, U> + Clone, W: Widget<U>>(mut self, prism: P, builder: impl Fn() -> W) -> Self {
-        self.builder.push(Box::new(move|data|{
-            prism.get(data).map(|_|Box::new(PrismWidgetImpl::new(
-                builder(),
-                prism.clone()
-            )))
+    pub fn with_variant<U: Data, P: Prism<T, U> + Clone, W: Widget<U>>(
+        mut self,
+        prism: P,
+        builder: impl Fn() -> W,
+    ) -> Self {
+        self.builder.push(Box::new(move |data| {
+            prism
+                .get(data)
+                .map(|_| Box::new(PrismWrap::new(builder(), prism.clone())))
         }));
         self
     }
 
     fn rebuild(&mut self, data: &T) -> bool {
         let had_child = self.current.is_none();
-        let new = self.builder.iter()
-            .filter_map(|builder|(builder)(data))
+        let new = self
+            .builder
+            .iter()
+            .filter_map(|builder| (builder)(data))
             .next();
         self.current = new;
 
@@ -98,17 +106,21 @@ impl<T: Data> Switcher<T> {
             current: None,
         }
     }
-    pub fn with_variant<U: Data, P: Prism<T, U>>(mut self, prism: P, widget: impl Widget<U>) -> Self {
-        self.widgets.push(WidgetPod::new(Box::new(PrismWidgetImpl::new(
-            widget,
-            prism
-        ))));
+    pub fn with_variant<U: Data, P: Prism<T, U>>(
+        mut self,
+        prism: P,
+        widget: impl Widget<U>,
+    ) -> Self {
+        self.widgets
+            .push(WidgetPod::new(Box::new(PrismWrap::new(widget, prism))));
         self
     }
     pub fn rebuild(&mut self, data: &T) -> bool {
         let old = self.current;
-        let new = self.widgets.iter()
-            .position(|widget|widget.widget().is_active_for(data));
+        let new = self
+            .widgets
+            .iter()
+            .position(|widget| widget.widget().is_active_for(data));
         self.current = new;
         old != self.current
     }
@@ -116,8 +128,10 @@ impl<T: Data> Switcher<T> {
 
 impl<T: Data> Widget<T> for Switcher<T> {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
-        for child in self.widgets.iter_mut() {
-            child.event(ctx, event, data, env);
+        for (index, child) in self.widgets.iter_mut().enumerate() {
+            if event.should_propagate_to_hidden() || self.current == Some(index) {
+                child.event(ctx, event, data, env);
+            }
         }
     }
 
@@ -125,8 +139,10 @@ impl<T: Data> Widget<T> for Switcher<T> {
         if let LifeCycle::WidgetAdded = event {
             self.rebuild(data);
         }
-        for child in self.widgets.iter_mut() {
-            child.lifecycle(ctx, event, data, env);
+        for (index, child) in self.widgets.iter_mut().enumerate() {
+            if event.should_propagate_to_hidden() || self.current == Some(index) {
+                child.lifecycle(ctx, event, data, env);
+            }
         }
     }
 

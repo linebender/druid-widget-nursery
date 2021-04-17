@@ -59,8 +59,7 @@ fn main_widget() -> impl Widget<TestData> {
         ),
     );
 
-    let b =
-        MultiRadio::new("Variant B", TextBox::new(), String::new(), TestDataB);
+    let b = MultiRadio::new("Variant B", TextBox::new(), String::new(), TestDataB);
 
     let c_inner = MultiCheckbox::new("inner value", TextBox::new(), String::from("initial data"));
 
@@ -89,28 +88,15 @@ fn main_widget() -> impl Widget<TestData> {
             |data: &mut TestData, inner| *data = TestData::A(inner),
         ),
     )
+    .show_when_disabled();
+
+    let b =
+        MultiRadio::new("Variant B", TextBox::new(), String::new(), TestDataB).show_when_disabled();
+
+    let c_inner = MultiCheckbox::new("inner value", TextBox::new(), String::from("initial data"))
         .show_when_disabled();
 
-    let b = MultiRadio::new(
-            "Variant B",
-            TextBox::new(),
-            String::new(),
-            TestDataB
-        )
-        .show_when_disabled();
-
-    let c_inner = MultiCheckbox::new(
-        "inner value",
-        TextBox::new(),
-        String::from("initial data")
-        ).show_when_disabled();
-
-    let c = MultiRadio::new(
-        "Variant C",
-        c_inner,
-        None,
-        TestDataC
-    ).show_when_disabled();
+    let c = MultiRadio::new("Variant C", c_inner, None, TestDataC).show_when_disabled();
 
     let right = Flex::column()
         .with_child(a)

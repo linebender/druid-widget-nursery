@@ -1,13 +1,16 @@
-use crate::prism::{OptionSome, PrismWrap, Prism};
+use crate::animation::{Animated, AnimationCurve, Interpolate, SimpleCurve};
+use crate::prism::{DisablePrismWrap, OptionSome, Prism};
 use druid::widget::{Checkbox, Radio};
-use druid::{BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Point, Size, UpdateCtx, Vec2, Widget, WidgetPod, RenderContext};
+use druid::{
+    BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx,
+    Point, RenderContext, Size, UpdateCtx, Vec2, Widget, WidgetPod,
+};
 use std::fmt::Debug;
-use crate::animation::{Animated, SimpleCurve, Interpolate, AnimationCurve};
 use std::time::Duration;
 
 ///A Radio which has further configuration for the value it represents
 pub struct MultiRadio<W, T, U, P> {
-    inner: WidgetPod<T, PrismWrap<W, U, P>>,
+    inner: WidgetPod<T, DisablePrismWrap<W, U, P>>,
     radio: WidgetPod<bool, Radio<bool>>,
     layout: IndentLayout,
 }
@@ -27,7 +30,7 @@ where
     /// instead of U which makes it useful for Enums.
     pub fn new(name: &str, widget: W, initial_data: U, prism: P) -> Self {
         Self {
-            inner: WidgetPod::new(PrismWrap::new(widget, initial_data, prism)),
+            inner: WidgetPod::new(DisablePrismWrap::new(widget, initial_data, prism)),
             radio: WidgetPod::new(Radio::new(name, true)),
             layout: IndentLayout::new(),
         }
@@ -68,7 +71,7 @@ where
     }
 
     /// A Builder-style method to set the duration for the transition
-        /// between shown and hidden.
+    /// between shown and hidden.
     pub fn set_transition_duration(&mut self, duration: Duration) {
         self.layout.height.set_duration(duration);
     }
@@ -170,19 +173,13 @@ where
 
     fn paint(&mut self, ctx: &mut PaintCtx, data: &T, env: &Env) {
         let enabled = self.is_enabled();
-        self.layout.paint(
-            &mut self.radio,
-            &mut self.inner,
-            &enabled,
-            data,
-            ctx,
-            env
-        );
+        self.layout
+            .paint(&mut self.radio, &mut self.inner, &enabled, data, ctx, env);
     }
 }
 
 pub struct MultiCheckbox<W, T> {
-    inner: WidgetPod<Option<T>, PrismWrap<W, T, OptionSome>>,
+    inner: WidgetPod<Option<T>, DisablePrismWrap<W, T, OptionSome>>,
     check_box: WidgetPod<bool, Checkbox>,
     layout: IndentLayout,
 }
@@ -198,7 +195,7 @@ where
     /// instead of U which makes it useful for Enums.
     pub fn new(name: &str, widget: W, initial_data: T) -> Self {
         Self {
-            inner: WidgetPod::new(PrismWrap::new(widget, initial_data, OptionSome)),
+            inner: WidgetPod::new(DisablePrismWrap::new(widget, initial_data, OptionSome)),
             check_box: WidgetPod::new(Checkbox::new(name)),
             layout: IndentLayout::new(),
         }
@@ -361,7 +358,7 @@ where
             &enabled,
             data,
             ctx,
-            env
+            env,
         );
     }
 }
@@ -394,7 +391,11 @@ impl IndentLayout {
 
     pub fn set_visible(&mut self, visible: bool) -> bool {
         //TODO: update this when context traits are stabilised
-        let new_value = if visible || self.always_visible { 1.0 } else { 0.0 };
+        let new_value = if visible || self.always_visible {
+            1.0
+        } else {
+            0.0
+        };
         if new_value != self.height.end() {
             self.height.animate(new_value);
             true
@@ -404,7 +405,12 @@ impl IndentLayout {
     }
 
     pub fn init_visible(&mut self, visible: bool) {
-        self.height.jump_to_value(if visible || self.always_visible { 1.0 } else { 0.0 });
+        self.height
+            .jump_to_value(if visible || self.always_visible {
+                1.0
+            } else {
+                0.0
+            });
     }
 
     pub fn layout<A: Data, B: Data>(
@@ -429,10 +435,9 @@ impl IndentLayout {
         if !inner_size.is_empty() {
             Size::new(
                 radio_size.width.max(inner_size.width + inner_origin.x),
-                radio_size.height.interpolate(
-                    &(inner_origin.y + inner_size.height),
-                    self.height.get()
-                )
+                radio_size
+                    .height
+                    .interpolate(&(inner_origin.y + inner_size.height), self.height.get()),
             )
         } else {
             radio_size

@@ -1,12 +1,16 @@
-use druid::{BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Size, UpdateCtx, Widget};
+use druid::{
+    BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Size,
+    UpdateCtx, Widget,
+};
 
 //TODO: Maybe write a derive macro
 /// A trait similar to druid::Lens that represents data which is not always present
 ///
-/// This is just a simple prototype for me to work with until [``] is merged.
-/// There is also discussion about Prisms in [``].
+/// This is just a simple prototype for me to work with until [`#1136`] is merged.
+/// There is also discussion about Prisms in [`#1135`].
 ///
-///
+/// [`#1136`]: https://github.com/linebender/druid/pull/1136
+/// [`#1135`]: https://github.com/linebender/druid/issues/1135
 pub trait Prism<T, U> {
     ///Extract the data (if present) from a move general type
     fn get(&self, data: &T) -> Option<U>;
@@ -19,16 +23,17 @@ pub trait PrismWidget<T>: Widget<T> {
     fn is_active_for(&self, data: &T) -> bool;
 }
 
-/// A Widget which displays data which is not always present
+/// A Widget wrapper which disables the inner widget if its data is not present. If you dont need this
+/// use PrismWrap.
 /// The main use case are an enum variants
-pub struct PrismWrap<W, U, P> {
+pub struct DisablePrismWrap<W, U, P> {
     widget: W,
     current_data: U,
     prism: P,
     enabled: bool,
 }
 
-impl<W, U, P> PrismWrap<W, U, P>
+impl<W, U, P> DisablePrismWrap<W, U, P>
 where
     U: Data,
     W: Widget<U>,
@@ -76,7 +81,7 @@ where
     }
 }
 
-impl<W, T, U, P> PrismWidget<T> for PrismWrap<W, U, P>
+impl<W, T, U, P> PrismWidget<T> for DisablePrismWrap<W, U, P>
 where
     U: Data,
     W: Widget<U>,
@@ -87,7 +92,7 @@ where
     }
 }
 
-impl<W, T, U, P> Widget<T> for PrismWrap<W, U, P>
+impl<W, T, U, P> Widget<T> for DisablePrismWrap<W, U, P>
 where
     U: Data,
     W: Widget<U>,
@@ -130,7 +135,8 @@ where
         } else {
             self.enabled = false;
 
-            self.widget.update(ctx, &self.current_data, &self.current_data, env);
+            self.widget
+                .update(ctx, &self.current_data, &self.current_data, env);
         }
         ctx.set_disabled(!self.enabled);
     }
@@ -144,18 +150,17 @@ where
     }
 }
 
-
-/// A widget similar to PrismWrap, but with the limitation that this widget should only be visible
-/// if its data is present.
-pub struct PrismWidgetImpl<W, P, U> {
+/// A Widget wrapper similar to PrismWrapDisable, but with the limitation that this widget should
+/// only be visible if its data is present.
+pub struct PrismWrap<W, P, U> {
     inner: W,
     prism: P,
     cached_data: Option<U>,
 }
 
-impl<W, P, U> PrismWidgetImpl<W, P, U> {
+impl<W, P, U> PrismWrap<W, P, U> {
     pub fn new(widget: W, prism: P) -> Self {
-        PrismWidgetImpl {
+        PrismWrap {
             inner: widget,
             prism,
             cached_data: None,
@@ -163,21 +168,19 @@ impl<W, P, U> PrismWidgetImpl<W, P, U> {
     }
 }
 
-impl<T, U, P: Prism<T, U>, W: Widget<U>> PrismWidget<T> for PrismWidgetImpl<W, P, U> {
+impl<T, U, P: Prism<T, U>, W: Widget<U>> PrismWidget<T> for PrismWrap<W, P, U> {
     fn is_active_for(&self, data: &T) -> bool {
         self.prism.get(data).is_some()
     }
 }
 
-impl<T, U, P: Prism<T, U>, W: Widget<U>> Widget<T> for PrismWidgetImpl<W, P, U> {
+impl<T, U, P: Prism<T, U>, W: Widget<U>> Widget<T> for PrismWrap<W, P, U> {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
         if let Some(mut inner_data) = self.prism.get(data) {
             self.inner.event(ctx, event, &mut inner_data, env);
             self.prism.put(data, inner_data);
-        } else if event.should_propagate_to_hidden() {
-            if let Some(mut data) = self.cached_data.clone() {
-                self.inner.event(ctx, event, &mut data, env);
-            }
+        } else if let Some(mut data) = self.cached_data.clone() {
+            self.inner.event(ctx, event, &mut data, env);
         }
     }
 
@@ -185,22 +188,21 @@ impl<T, U, P: Prism<T, U>, W: Widget<U>> Widget<T> for PrismWidgetImpl<W, P, U> 
         if let LifeCycle::WidgetAdded = event {
             self.cached_data = Some(self.prism.get(data).unwrap());
         }
-        if self.is_active_for(data) || event.should_propagate_to_hidden() {
-            if let Some(data) = &self.cached_data {
-                self.inner.lifecycle(ctx, event, data, env);
-            }
+        if let Some(data) = &self.cached_data {
+            self.inner.lifecycle(ctx, event, data, env);
         }
     }
 
     fn update(&mut self, ctx: &mut UpdateCtx, old_data: &T, data: &T, env: &Env) {
-        if let Some((old, data)) = self.cached_data.as_ref().zip(self.prism.get(data)) {
-            self.inner.update(ctx, old, data, env);
-            ctx.set_disabled(false);
-            self.cached_data = Some(data.clone());
-        } else if ctx.env_changed() || ctx.has_requested_update() {
-            if let Some(data) = &self.cached_data {
-                self.inner.update(ctx, data, data, env);
+        if let Some(data) = self.prism.get(data) {
+            if self.cached_data.is_some() {
+                self.cached_data = Some(data.clone());
             }
+            self.inner
+                .update(ctx, self.cached_data.as_ref().unwrap(), &data, env);
+            ctx.set_disabled(false);
+            self.cached_data = Some(data);
+        } else {
             ctx.set_disabled(true);
         }
     }
@@ -221,12 +223,13 @@ impl<T, U, P: Prism<T, U>, W: Widget<U>> Widget<T> for PrismWidgetImpl<W, P, U> 
 }
 
 #[macro_export]
-macro_rules! prism{
+macro_rules! prism {
     //Empty variant
-    ($name:ident: $base:ty => $variant:tt ) => {//$($el:ty),+
+    ($name:ident: $base:ty => $variant:tt ) => {
+        //$($el:ty),+
         pub struct $name;
 
-        impl Prism<$base, ()> for $name{
+        impl Prism<$base, ()> for $name {
             fn get(&self, data: &$base) -> ::std::option::Option<()> {
                 if let <$base>::$variant = data.clone() {
                     ::std::option::Option::Some(())
@@ -238,8 +241,7 @@ macro_rules! prism{
                 *data = <$base>::$variant;
             }
         }
-    }
-
+    };
 }
 
 pub struct OptionSome;
