@@ -4,7 +4,8 @@ use druid::{
     UpdateCtx, Widget,
 };
 
-/// A widget like switcher, but the inner widgets are created on demand.
+/// A widget like switcher, but the inner widgets are created on demand. This is useful for tree-like
+/// structures, which you can't represent with Switcher recursively.
 pub struct LazySwitcher<T: Data> {
     builder: Vec<Box<dyn Fn(&T) -> Option<Box<dyn PrismWidget<T>>>>>,
     current: Option<Box<dyn PrismWidget<T>>>,
