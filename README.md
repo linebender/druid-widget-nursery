@@ -28,6 +28,8 @@ If you add a new widget, please add its name and a short summary here.
    ![Multivalue example](multi-value-example.gif)
  - MultiRadio : a Radio that represents multiple values through an inner widget
  - MultiCheckbox : a Checkbox that represents multiple values through an inner widget
+ - Switcher : a widget which displays the first widget for which the associated Prism returns `Some()`
+ - LazySwitcher : a widget like Switcher but the inner widget are created lazily on demand.
  - TooltipController : a convenient way to pop up text tooltips on mouse hover
  - OnMonitor : a helper widget for keeping subwindows from going outside the monitor bounds
 

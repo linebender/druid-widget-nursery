@@ -4,6 +4,7 @@ use druid::{
     UpdateCtx, Widget,
 };
 
+///
 pub struct LazySwitcher<T: Data> {
     builder: Vec<Box<dyn Fn(&T) -> Option<Box<dyn PrismWidget<T>>>>>,
     current: Option<Box<dyn PrismWidget<T>>>,
@@ -108,8 +109,7 @@ impl<T: Data> Switcher<T> {
         prism: P,
         widget: impl Widget<U> + 'static,
     ) -> Self {
-        self.widgets
-            .push(Box::new(PrismWrap::new(widget, prism)));
+        self.widgets.push(Box::new(PrismWrap::new(widget, prism)));
         self
     }
 

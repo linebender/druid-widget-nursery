@@ -127,7 +127,7 @@ fn main_widget() -> impl Widget<TestData> {
         .with_variant(TestDataB, TextBox::new())
         .with_variant(
             TestDataC,
-            MultiCheckbox::new("optional data", TextBox::new(), "".to_string())
+            MultiCheckbox::new("optional data", TextBox::new(), "".to_string()),
         );
 
     Flex::row()
