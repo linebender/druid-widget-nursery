@@ -184,11 +184,6 @@ impl<W: Widget<U>, P, U> PrismWrap<W, P, U> {
             cached_data: None,
         }
     }
-
-    ///
-    pub fn is_present(&self) -> bool {
-        self.cached_data.is_some()
-    }
 }
 
 impl<T, U: Data, P: Prism<T, U>, W: Widget<U>> PrismWidget<T> for PrismWrap<W, P, U> {
