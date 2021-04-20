@@ -26,6 +26,8 @@ If you add a new widget, please add its name and a short summary here.
  - PartialWidget : a widget that shows a widget if its data is present
  - MultiRadio : a Radio that represents multiple values through an inner widget
  - MultiCheckbox : a Checkbox that represents multiple values through an inner widget
+ - Switcher : a widget which displays the first widget for which the associated Prism returns `Some()`
+ - LazySwitcher : a widget like Switcher but the inner widget are created lazily on demand.
 
 ## ProgressBar Improvements
 - Building on the existing progress bar in druid.

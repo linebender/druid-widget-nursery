@@ -78,7 +78,7 @@ fn main_widget() -> impl Widget<DropDownState> {
                             ("Orange", Fruit::Orange),
                         ])
                     },
-                    druid::Size::new(100., 400.)
+                    druid::Size::new(100., 400.),
                 )
                 .align_left()
                 .lens(DropDownState::fruit),

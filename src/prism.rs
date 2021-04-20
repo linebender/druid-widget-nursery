@@ -1,4 +1,7 @@
-use druid::{BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Size, UpdateCtx, Widget, WidgetPod};
+use druid::{
+    BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Size,
+    UpdateCtx, Widget, WidgetPod,
+};
 
 //TODO: Maybe write a derive macro
 /// A trait similar to druid::Lens that represents data which is not always present
@@ -154,8 +157,7 @@ where
         } else {
             self.enabled = false;
 
-            self.widget
-                .update(ctx, &self.current_data, env);
+            self.widget.update(ctx, &self.current_data, env);
         }
         ctx.set_disabled(!self.enabled);
     }
