@@ -1,12 +1,12 @@
 use crate::prism::{Prism, PrismWidget, PrismWrap};
 use druid::{
     BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Size,
-    UpdateCtx, Widget, WidgetPod,
+    UpdateCtx, Widget,
 };
 
 pub struct LazySwitcher<T: Data> {
     builder: Vec<Box<dyn Fn(&T) -> Option<Box<dyn PrismWidget<T>>>>>,
-    current: Option<WidgetPod<T, Box<dyn PrismWidget<T>>>>,
+    current: Option<Box<dyn PrismWidget<T>>>,
 }
 
 impl<T: Data> LazySwitcher<T> {
@@ -16,20 +16,26 @@ impl<T: Data> LazySwitcher<T> {
             current: None,
         }
     }
-    pub fn with_variant<U: Data, P: Prism<T, U> + Clone, W: Widget<U>>(
+    pub fn with_variant<U: Data, P: Prism<T, U> + Clone + 'static, W: Widget<U> + 'static>(
         mut self,
         prism: P,
-        builder: impl Fn() -> W,
+        builder: impl Fn() -> W + 'static,
     ) -> Self {
         self.builder.push(Box::new(move |data| {
             prism
                 .get(data)
-                .map(|_| Box::new(PrismWrap::new(builder(), prism.clone())))
+                .map(|_| Box::new(PrismWrap::new(builder(), prism.clone())) as _)
         }));
         self
     }
 
-    fn rebuild(&mut self, data: &T) -> bool {
+    fn rebuild_if_needed(&mut self, data: &T) -> bool {
+        if let Some(current) = &self.current {
+            if current.is_active_for(data) {
+                return false;
+            }
+        }
+
         let had_child = self.current.is_none();
         let new = self
             .builder
@@ -51,7 +57,7 @@ impl<T: Data> Widget<T> for LazySwitcher<T> {
 
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
         if let LifeCycle::WidgetAdded = event {
-            self.rebuild(data);
+            self.rebuild_if_needed(data);
         }
 
         if let Some(inner) = &mut self.current {
@@ -59,29 +65,20 @@ impl<T: Data> Widget<T> for LazySwitcher<T> {
         }
     }
 
-    fn update(&mut self, ctx: &mut UpdateCtx, _: &T, data: &T, env: &Env) {
+    fn update(&mut self, ctx: &mut UpdateCtx, old_data: &T, data: &T, env: &Env) {
+        if self.rebuild_if_needed(data) {
+            ctx.children_changed();
+            ctx.request_layout();
+        }
+
         if let Some(inner) = &mut self.current {
-            if inner.widget().is_active_for(data) {
-                inner.update(ctx, data, env);
-            } else {
-                if self.rebuild(data) {
-                    ctx.children_changed();
-                    ctx.request_layout();
-                }
-            }
-        } else {
-            if self.rebuild(data) {
-                ctx.children_changed();
-                ctx.request_layout();
-            }
+            inner.update(ctx, old_data, data, env);
         }
     }
 
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> Size {
         if let Some(inner) = &mut self.current {
-            let size = inner.layout(ctx, bc, data, env);
-            ctx.set_baseline_offset(inner.baseline_offset());
-            size
+            inner.layout(ctx, bc, data, env)
         } else {
             bc.min()
         }
@@ -95,7 +92,7 @@ impl<T: Data> Widget<T> for LazySwitcher<T> {
 }
 
 pub struct Switcher<T: Data> {
-    widgets: Vec<WidgetPod<T, Box<dyn PrismWidget<T>>>>,
+    widgets: Vec<Box<dyn PrismWidget<T>>>,
     current: Option<usize>,
 }
 
@@ -106,21 +103,28 @@ impl<T: Data> Switcher<T> {
             current: None,
         }
     }
-    pub fn with_variant<U: Data, P: Prism<T, U>>(
+    pub fn with_variant<U: Data, P: Prism<T, U> + 'static>(
         mut self,
         prism: P,
-        widget: impl Widget<U>,
+        widget: impl Widget<U> + 'static,
     ) -> Self {
         self.widgets
-            .push(WidgetPod::new(Box::new(PrismWrap::new(widget, prism))));
+            .push(Box::new(PrismWrap::new(widget, prism)));
         self
     }
-    pub fn rebuild(&mut self, data: &T) -> bool {
+
+    fn rebuild_if_needed(&mut self, data: &T) -> bool {
+        if let Some(current) = self.current {
+            if self.widgets[current].is_active_for(data) {
+                return false;
+            }
+        }
+
         let old = self.current;
         let new = self
             .widgets
             .iter()
-            .position(|widget| widget.widget().is_active_for(data));
+            .position(|widget| widget.is_active_for(data));
         self.current = new;
         old != self.current
     }
@@ -137,7 +141,7 @@ impl<T: Data> Widget<T> for Switcher<T> {
 
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
         if let LifeCycle::WidgetAdded = event {
-            self.rebuild(data);
+            self.rebuild_if_needed(data);
         }
         for (index, child) in self.widgets.iter_mut().enumerate() {
             if event.should_propagate_to_hidden() || self.current == Some(index) {
@@ -146,30 +150,20 @@ impl<T: Data> Widget<T> for Switcher<T> {
         }
     }
 
-    fn update(&mut self, ctx: &mut UpdateCtx, _: &T, data: &T, env: &Env) {
-        if let Some(index) = self.current {
-            if !self.widgets[index].widget().is_active_for(data) {
-                if self.rebuild(data) {
-                    ctx.children_changed();
-                    ctx.request_layout();
-                }
-            }
-        } else {
-            if self.rebuild(data) {
-                ctx.children_changed();
-                ctx.request_layout();
-            }
+    fn update(&mut self, ctx: &mut UpdateCtx, old_data: &T, data: &T, env: &Env) {
+        if self.rebuild_if_needed(data) {
+            ctx.request_layout();
+            ctx.children_changed();
         }
+
         if let Some(index) = self.current {
-            self.widgets[index].update(ctx, data, env);
+            self.widgets[index].update(ctx, old_data, data, env);
         }
     }
 
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> Size {
         if let Some(index) = self.current {
-            let size = self.widgets[index].layout(ctx, bc, data, env);
-            ctx.set_baseline_offset(self.widgets[index].baseline_offset());
-            size
+            self.widgets[index].layout(ctx, bc, data, env)
         } else {
             bc.min()
         }

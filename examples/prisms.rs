@@ -10,6 +10,22 @@ enum TestData {
     C(Option<String>),
 }
 
+struct TestDataA;
+
+impl Prism<TestData, f64> for TestDataA {
+    fn get(&self, data: &TestData) -> Option<f64> {
+        if let TestData::A(value) = data {
+            Some(*value)
+        } else {
+            None
+        }
+    }
+
+    fn put(&self, data: &mut TestData, inner: f64) {
+        *data = TestData::A(inner);
+    }
+}
+
 struct TestDataB;
 
 impl Prism<TestData, String> for TestDataB {
@@ -98,7 +114,7 @@ fn main_widget() -> impl Widget<TestData> {
 
     let c = MultiRadio::new("Variant C", c_inner, None, TestDataC).show_when_disabled();
 
-    let right = Flex::column()
+    let middle = Flex::column()
         .with_child(a)
         .with_default_spacer()
         .with_child(b)
@@ -106,8 +122,18 @@ fn main_widget() -> impl Widget<TestData> {
         .with_child(c)
         .cross_axis_alignment(CrossAxisAlignment::Start);
 
+    let right = druid_widget_nursery::enum_switcher::Switcher::new()
+        .with_variant(TestDataA, Slider::new().with_range(0.0, 10.0))
+        .with_variant(TestDataB, TextBox::new())
+        .with_variant(
+            TestDataC,
+            MultiCheckbox::new("optional data", TextBox::new(), "".to_string())
+        );
+
     Flex::row()
         .with_child(left)
+        .with_default_spacer()
+        .with_child(middle)
         .with_default_spacer()
         .with_child(right)
         .cross_axis_alignment(CrossAxisAlignment::Start)
