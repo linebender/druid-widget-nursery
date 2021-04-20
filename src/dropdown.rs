@@ -49,7 +49,7 @@ impl<T: Data> Dropdown<T> {
 impl<T: Data> Widget<T> for Dropdown<T> {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
         match event {
-            Event::Notification(n) if n.is(DROP) => {
+            Event::Command(n) if n.is(DROP) => {
                 let widget = (self.drop)(data, env);
                 let origin = ctx.to_screen(Point::new(0., ctx.size().height));
                 self.window = Some(
