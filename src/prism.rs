@@ -1,7 +1,4 @@
-use druid::{
-    BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Size,
-    UpdateCtx, Widget,
-};
+use druid::{BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Size, UpdateCtx, Widget, WidgetPod};
 
 //TODO: Maybe write a derive macro
 /// A trait similar to druid::Lens that represents data which is not always present
@@ -23,11 +20,33 @@ pub trait PrismWidget<T>: Widget<T> {
     fn is_active_for(&self, data: &T) -> bool;
 }
 
+impl<T: Data> Widget<T> for Box<dyn PrismWidget<T>> {
+    fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
+        (**self).event(ctx, event, data, env);
+    }
+
+    fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
+        (**self).lifecycle(ctx, event, data, env);
+    }
+
+    fn update(&mut self, ctx: &mut UpdateCtx, old_data: &T, data: &T, env: &Env) {
+        (**self).update(ctx, old_data, data, env);
+    }
+
+    fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> Size {
+        (**self).layout(ctx, bc, data, env)
+    }
+
+    fn paint(&mut self, ctx: &mut PaintCtx, data: &T, env: &Env) {
+        (**self).paint(ctx, data, env);
+    }
+}
+
 /// A Widget wrapper which disables the inner widget if its data is not present. If you dont need this
 /// use PrismWrap.
 /// The main use case are an enum variants
 pub struct DisablePrismWrap<W, U, P> {
-    widget: W,
+    widget: WidgetPod<U, W>,
     current_data: U,
     prism: P,
     enabled: bool,
@@ -45,7 +64,7 @@ where
     /// instead of U which makes it useful for Enums.
     pub fn new(widget: W, initial_data: U, prism: P) -> Self {
         Self {
-            widget,
+            widget: WidgetPod::new(widget),
             current_data: initial_data,
             prism,
             enabled: false,
@@ -130,13 +149,13 @@ where
         if let Some(data) = self.prism.get(data) {
             self.enabled = true;
 
-            self.widget.update(ctx, &self.current_data, &data, env);
             self.current_data = data;
+            self.widget.update(ctx, &self.current_data, env);
         } else {
             self.enabled = false;
 
             self.widget
-                .update(ctx, &self.current_data, &self.current_data, env);
+                .update(ctx, &self.current_data, env);
         }
         ctx.set_disabled(!self.enabled);
     }
@@ -153,28 +172,33 @@ where
 /// A Widget wrapper similar to PrismWrapDisable, but with the limitation that this widget should
 /// only be visible if its data is present.
 pub struct PrismWrap<W, P, U> {
-    inner: W,
+    inner: WidgetPod<U, W>,
     prism: P,
     cached_data: Option<U>,
 }
 
-impl<W, P, U> PrismWrap<W, P, U> {
+impl<W: Widget<U>, P, U> PrismWrap<W, P, U> {
     pub fn new(widget: W, prism: P) -> Self {
         PrismWrap {
-            inner: widget,
+            inner: WidgetPod::new(widget),
             prism,
             cached_data: None,
         }
     }
+
+    ///
+    pub fn is_present(&self) -> bool {
+        self.cached_data.is_some()
+    }
 }
 
-impl<T, U, P: Prism<T, U>, W: Widget<U>> PrismWidget<T> for PrismWrap<W, P, U> {
+impl<T, U: Data, P: Prism<T, U>, W: Widget<U>> PrismWidget<T> for PrismWrap<W, P, U> {
     fn is_active_for(&self, data: &T) -> bool {
         self.prism.get(data).is_some()
     }
 }
 
-impl<T, U, P: Prism<T, U>, W: Widget<U>> Widget<T> for PrismWrap<W, P, U> {
+impl<T, U: Data, P: Prism<T, U>, W: Widget<U>> Widget<T> for PrismWrap<W, P, U> {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
         if let Some(mut inner_data) = self.prism.get(data) {
             self.inner.event(ctx, event, &mut inner_data, env);
@@ -186,28 +210,23 @@ impl<T, U, P: Prism<T, U>, W: Widget<U>> Widget<T> for PrismWrap<W, P, U> {
 
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
         if let LifeCycle::WidgetAdded = event {
-            self.cached_data = Some(self.prism.get(data).unwrap());
+            self.cached_data = self.prism.get(data);
         }
         if let Some(data) = &self.cached_data {
             self.inner.lifecycle(ctx, event, data, env);
         }
     }
 
-    fn update(&mut self, ctx: &mut UpdateCtx, old_data: &T, data: &T, env: &Env) {
+    fn update(&mut self, ctx: &mut UpdateCtx, _old_data: &T, data: &T, env: &Env) {
         if let Some(data) = self.prism.get(data) {
             if self.cached_data.is_some() {
-                self.cached_data = Some(data.clone());
+                self.inner.update(ctx, &data, env);
             }
-            self.inner
-                .update(ctx, self.cached_data.as_ref().unwrap(), &data, env);
-            ctx.set_disabled(false);
             self.cached_data = Some(data);
-        } else {
-            ctx.set_disabled(true);
         }
     }
 
-    fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> Size {
+    fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, _data: &T, env: &Env) -> Size {
         if let Some(data) = &self.cached_data {
             self.inner.layout(ctx, bc, data, env)
         } else {
@@ -215,7 +234,7 @@ impl<T, U, P: Prism<T, U>, W: Widget<U>> Widget<T> for PrismWrap<W, P, U> {
         }
     }
 
-    fn paint(&mut self, ctx: &mut PaintCtx, data: &T, env: &Env) {
+    fn paint(&mut self, ctx: &mut PaintCtx, _data: &T, env: &Env) {
         if let Some(data) = &self.cached_data {
             self.inner.paint(ctx, data, env);
         }
