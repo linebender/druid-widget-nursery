@@ -69,7 +69,7 @@ impl<T: Data + PartialEq> DropdownSelect<T> {
         })
         .on_click(|ctx: &mut EventCtx, t: &mut DropdownState<T>, _| {
             t.expanded = true;
-            ctx.submit_notification(DROP)
+            ctx.submit_command(DROP)
         });
 
         let make_drop = move |_t: &DropdownState<T>, env: &Env| {
