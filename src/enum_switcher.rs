@@ -4,7 +4,7 @@ use druid::{
     UpdateCtx, Widget,
 };
 
-///
+/// A widget like switcher, but the inner widgets are created on demand.
 pub struct LazySwitcher<T: Data> {
     builder: Vec<Box<dyn Fn(&T) -> Option<Box<dyn PrismWidget<T>>>>>,
     current: Option<Box<dyn PrismWidget<T>>>,
@@ -17,6 +17,9 @@ impl<T: Data> LazySwitcher<T> {
             current: None,
         }
     }
+
+    /// Adds a new variant to the widget. This variant is show as long as the prism returns `Some()`
+    /// for the current data.
     pub fn with_variant<U: Data, P: Prism<T, U> + Clone + 'static, W: Widget<U> + 'static>(
         mut self,
         prism: P,
@@ -92,6 +95,8 @@ impl<T: Data> Widget<T> for LazySwitcher<T> {
     }
 }
 
+/// A widget which displays the first widget of which the associated prism returned `Some()` for the
+/// current data.
 pub struct Switcher<T: Data> {
     widgets: Vec<Box<dyn PrismWidget<T>>>,
     current: Option<usize>,
@@ -104,6 +109,9 @@ impl<T: Data> Switcher<T> {
             current: None,
         }
     }
+
+    /// Adds a new variant to the widget. This variant is show as long as the prism returns `Some()`
+    /// for the current data.
     pub fn with_variant<U: Data, P: Prism<T, U> + 'static>(
         mut self,
         prism: P,
