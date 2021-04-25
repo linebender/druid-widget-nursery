@@ -68,8 +68,13 @@ impl<T: Data + PartialEq> DropdownSelect<T> {
                 .unwrap()
         })
         .on_click(|ctx: &mut EventCtx, t: &mut DropdownState<T>, _| {
-            t.expanded = true;
-            ctx.submit_command(DROP)
+            if t.expanded {
+                t.expanded = false;
+                ctx.submit_command(COLLAPSE.to(ctx.widget_id()));
+            } else {
+                t.expanded = true;
+                ctx.submit_command(DROP.to(ctx.widget_id()))
+            }
         });
 
         let make_drop = move |_t: &DropdownState<T>, env: &Env| {
