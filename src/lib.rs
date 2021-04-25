@@ -26,7 +26,7 @@ pub mod navigator;
 mod on_monitor;
 pub mod partial;
 mod progress_bar;
-mod seperator;
+mod separator;
 pub mod theme_loader;
 mod tooltip;
 mod tree;
@@ -48,6 +48,7 @@ pub use on_monitor::{OnMonitor, OnMonitorExt};
 pub use progress_bar::ProgressBar;
 pub use seperator::{Orientation, Seperator};
 pub use tooltip::{TooltipController, TooltipExt};
+
 pub use tree::{Tree, TreeNode, Wedge};
 
 #[cfg(feature = "async")]

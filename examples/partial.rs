@@ -15,23 +15,23 @@ fn main_widget() -> impl Widget<TestData> {
         .with_child(Radio::new("Variant B", TestData::B(String::from("hi"))))
         .with_child(Radio::new("Variant C", TestData::C));
 
-    let partial = PrismWrap::with_closures(
-        TextBox::new(),
-        String::new(),
-        |outer: &TestData| {
-            if let TestData::B(str) = outer {
-                Some(str.clone())
-            } else {
-                None
-            }
-        },
-        TestData::B,
-    );
+    // let partial = PrismWrap::with_closures(
+    //     TextBox::new(),
+    //     String::new(),
+    //     |outer: &TestData| {
+    //         if let TestData::B(str) = outer {
+    //             Some(str.clone())
+    //         } else {
+    //             None
+    //         }
+    //     },
+    //     TestData::B,
+    // );
 
     Flex::column()
         .with_child(selections)
         .with_spacer(30.0)
-        .with_child(partial)
+        //.with_child(partial)
         .padding(5.0)
         .align_horizontal(UnitPoint::CENTER)
 }
