@@ -1,10 +1,10 @@
-use druid::piet::GradientStop;
-use druid::widget::{
-    Button, CrossAxisAlignment, EnvScope, Flex, Label, List, MainAxisAlignment, Padding as Pad,
-    TextBox, WidgetExt,
+use druid::piet;
+use druid::piet::{Color, GradientStop, UnitPoint};
+use druid::widget::{Button, Flex, Label, WidgetExt};
+use druid::{
+    AppDelegate, AppLauncher, Command, Data, DelegateCtx, Env, ExtEventSink, Handled, Lens,
+    PlatformError, Selector, Target, Widget, WindowDesc,
 };
-use druid::LensExt;
-use druid::*;
 
 use druid_widget_nursery::ProgressBar;
 

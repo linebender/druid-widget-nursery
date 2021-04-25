@@ -1,5 +1,5 @@
 use druid::widget::{
-    Button, CrossAxisAlignment, Flex, Label, RadioGroup, Scroll, SizedBox, TextBox, WidgetExt,
+    Button, CrossAxisAlignment, Flex, Label, RadioGroup, Scroll, TextBox, WidgetExt,
 };
 use druid::{AppLauncher, Data, Env, EventCtx, Lens, Widget, WindowDesc};
 use druid_widget_nursery::{Dropdown, DROP};
@@ -78,7 +78,7 @@ fn main_widget() -> impl Widget<DropDownState> {
                             ("Orange", Fruit::Orange),
                         ])
                     },
-                    druid::Size::new(100., 400.)
+                    druid::Size::new(100., 400.),
                 )
                 .align_left()
                 .lens(DropDownState::fruit),
