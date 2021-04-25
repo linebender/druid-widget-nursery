@@ -23,10 +23,12 @@ mod dynamic_sized_box;
 mod list_select;
 mod multi_value;
 pub mod navigator;
+mod on_monitor;
 pub mod partial;
 mod progress_bar;
 mod separator;
 pub mod theme_loader;
+mod tooltip;
 mod tree;
 
 #[cfg(feature = "async")]
@@ -42,8 +44,11 @@ pub use dropdown_select::DropdownSelect;
 pub use dynamic_sized_box::DynamicSizedBox;
 pub use list_select::ListSelect;
 pub use multi_value::{MultiCheckbox, MultiRadio};
+pub use on_monitor::{OnMonitor, OnMonitorExt};
 pub use progress_bar::ProgressBar;
-pub use separator::{Orientation, Separator};
+pub use seperator::{Orientation, Seperator};
+pub use tooltip::{TooltipController, TooltipExt};
+
 pub use tree::{Tree, TreeNode, Wedge};
 
 #[cfg(feature = "async")]
