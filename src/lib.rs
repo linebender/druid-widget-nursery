@@ -46,7 +46,7 @@ pub use list_select::ListSelect;
 pub use multi_value::{MultiCheckbox, MultiRadio};
 pub use on_monitor::{OnMonitor, OnMonitorExt};
 pub use progress_bar::ProgressBar;
-pub use seperator::{Orientation, Seperator};
+pub use separator::{Orientation, Separator};
 pub use tooltip::{TooltipController, TooltipExt};
 
 pub use tree::{Tree, TreeNode, Wedge};
