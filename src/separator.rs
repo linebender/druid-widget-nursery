@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! A Seperator widget.
+//! A Separator widget.
 
 use druid::widget::prelude::*;
 use druid::{kurbo::Line, piet::StrokeStyle};
 use druid::{theme, Color, KeyOrValue};
 
-/// A seperator widget.
-pub struct Seperator {
+/// A separator widget.
+pub struct Separator {
     size: KeyOrValue<f64>,
     color: KeyOrValue<Color>,
     orientation: Orientation,
@@ -31,9 +31,9 @@ pub enum Orientation {
     Horizontal,
 }
 
-impl Default for Seperator {
+impl Default for Separator {
     fn default() -> Self {
-        Seperator {
+        Separator {
             size: theme::BUTTON_BORDER_WIDTH.into(),
             color: theme::BORDER_LIGHT.into(),
             orientation: Orientation::Horizontal,
@@ -42,7 +42,7 @@ impl Default for Seperator {
     }
 }
 
-impl Seperator {
+impl Separator {
     pub fn new() -> Self {
         Self::default()
     }
@@ -83,7 +83,7 @@ impl Seperator {
     }
 }
 
-impl<T> Widget<T> for Seperator {
+impl<T> Widget<T> for Separator {
     fn event(&mut self, _ctx: &mut EventCtx, _event: &Event, _data: &mut T, _env: &Env) {}
 
     fn lifecycle(&mut self, _ctx: &mut LifeCycleCtx, _event: &LifeCycle, _data: &T, _env: &Env) {}
