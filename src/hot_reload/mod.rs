@@ -36,7 +36,7 @@ impl<T: Data> WindowDesc<T> {
     fn build(self, sink: Arc<Mutex<Option<ExtEventSink>>>) -> druid::WindowDesc<T> {
         let lib_path = self.lib_path;
         let view_fn_name = self.view;
-        druid::WindowDesc::new(move || HotReloaderWidget {
+        let hot_reloader_widget = HotReloaderWidget {
             lib: HotReloadLib::new(lib_path, move || {
                 let sink = sink.lock().unwrap();
                 let sink = sink.as_ref().unwrap();
@@ -44,7 +44,8 @@ impl<T: Data> WindowDesc<T> {
             }),
             inner: None,
             view_fn_name,
-        })
+        };
+        druid::WindowDesc::new(hot_reloader_widget)
     }
 }
 
