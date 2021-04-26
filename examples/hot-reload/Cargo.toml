@@ -12,4 +12,4 @@ druid-widget-nursery = { path = "../..", features = ["hot-reload"] }
 
 [dependencies.druid]
 git = "https://github.com/linebender/druid"
-rev = "2c5d73c" # update this when upgrading to newer druid
+rev = "452328c" # update this when upgrading to newer druid
