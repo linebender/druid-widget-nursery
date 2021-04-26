@@ -407,6 +407,7 @@ impl IndentLayout {
         self.height.jump_to_value(if visible || self.always_visible { 1.0 } else { 0.0 });
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn layout<A: Data, B: Data>(
         &self,
         header: &mut WidgetPod<A, impl Widget<A>>,
