@@ -14,6 +14,8 @@
 
 //! A collection of widgets for the druid GUI framework
 
+#![allow(clippy::new_ret_no_self)]
+
 pub mod animation;
 mod canvas;
 mod computed;
