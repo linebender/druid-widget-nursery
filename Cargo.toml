@@ -38,3 +38,6 @@ required-features = ["async", "tokio/time"]
 
 [[example]]
 name = "animator"
+
+[workspace]
+members = ["examples/hot-reload"]
