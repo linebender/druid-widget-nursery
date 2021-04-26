@@ -1,12 +1,23 @@
-use druid::{WindowDesc, AppLauncher, Widget, Color, EventCtx, LifeCycle, PaintCtx, LifeCycleCtx, BoxConstraints, Size, LayoutCtx, Event, Env, UpdateCtx, RenderContext, WidgetExt, UnitPoint};
+use druid::{
+    AppLauncher, BoxConstraints, Color, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx,
+    PaintCtx, RenderContext, Size, UnitPoint, UpdateCtx, Widget, WidgetExt, WindowDesc,
+};
 use druid_widget_nursery::animation::{Animated, SimpleCurve};
 use std::time::Duration;
 
 static COLORS: [Color; 12] = [
-    Color::RED, Color::GREEN, Color::LIME,
-    Color::MAROON, Color::BLACK, Color::NAVY,
-    Color::PURPLE, Color::TEAL, Color::OLIVE,
-    Color::YELLOW, Color::BLUE, Color::WHITE
+    Color::RED,
+    Color::GREEN,
+    Color::LIME,
+    Color::MAROON,
+    Color::BLACK,
+    Color::NAVY,
+    Color::PURPLE,
+    Color::TEAL,
+    Color::OLIVE,
+    Color::YELLOW,
+    Color::BLUE,
+    Color::WHITE,
 ];
 
 struct AnimatedWidget {
@@ -22,7 +33,7 @@ impl AnimatedWidget {
                 Color::RED,
                 Duration::from_secs_f64(0.8),
                 SimpleCurve::EaseInOut,
-                false
+                false,
             ),
             insets: Animated::new(
                 6.0,
@@ -58,7 +69,8 @@ impl Widget<()> for AnimatedWidget {
             Event::MouseUp(_) => {
                 if ctx.is_hot() {
                     self.current_color += 1;
-                    self.color.animate(COLORS[self.current_color % COLORS.len()].clone());
+                    self.color
+                        .animate(COLORS[self.current_color % COLORS.len()].clone());
                 }
                 ctx.set_active(false);
                 ctx.request_anim_frame();
@@ -86,7 +98,8 @@ impl Widget<()> for AnimatedWidget {
     }
 
     fn paint(&mut self, ctx: &mut PaintCtx, _: &(), _: &Env) {
-        let shape = ctx.size()
+        let shape = ctx
+            .size()
             .to_rect()
             .inset(-*self.insets)
             .to_rounded_rect(8.0);
@@ -96,8 +109,7 @@ impl Widget<()> for AnimatedWidget {
 }
 
 fn main_widget() -> impl Widget<()> {
-    AnimatedWidget::new()
-        .align_horizontal(UnitPoint::CENTER)
+    AnimatedWidget::new().align_horizontal(UnitPoint::CENTER)
 }
 
 fn main() {

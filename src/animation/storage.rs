@@ -1,6 +1,8 @@
 use std::num::NonZeroU32;
 
+#[allow(clippy::upper_case_acronyms)]
 type ASOffset = u32;
+#[allow(clippy::upper_case_acronyms)]
 type ASVersion = NonZeroU32;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
@@ -15,6 +17,7 @@ impl AnimationId {
     }
 }
 
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Debug)]
 enum ASEntry<Value> {
     Busy(ASVersion, Value),
