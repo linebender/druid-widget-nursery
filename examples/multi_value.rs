@@ -50,7 +50,7 @@ fn main_widget() -> impl Widget<TestData> {
         Closures(
             |outer: &TestData| {
                 if let TestData::A(value) = outer {
-                    Some(value.clone())
+                    Some(*value)
                 } else {
                     None
                 }
@@ -81,7 +81,7 @@ fn main_widget() -> impl Widget<TestData> {
         Closures(
             |outer: &TestData| {
                 if let TestData::A(value) = outer {
-                    Some(value.clone())
+                    Some(*value)
                 } else {
                     None
                 }

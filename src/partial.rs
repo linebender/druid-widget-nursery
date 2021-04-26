@@ -75,18 +75,15 @@ where
             let lifecycle_event = event;
             dbg!(lifecycle_event);
         }
-        match event {
-            LifeCycle::WidgetAdded => {
-                if let Some(data) = self.prism.get(data) {
-                    self.enabled = true;
-                    self.current_data = data;
-                } else {
-                    self.enabled = false;
-                }
-
-                ctx.set_disabled(!self.enabled);
+        if let LifeCycle::WidgetAdded = event {
+            if let Some(data) = self.prism.get(data) {
+                self.enabled = true;
+                self.current_data = data;
+            } else {
+                self.enabled = false;
             }
-            _ => {}
+
+            ctx.set_disabled(!self.enabled);
         }
         self.widget.lifecycle(ctx, event, &self.current_data, env);
     }

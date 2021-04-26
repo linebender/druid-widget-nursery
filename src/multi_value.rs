@@ -395,7 +395,7 @@ impl IndentLayout {
     pub fn set_visible(&mut self, visible: bool) -> bool {
         //TODO: update this when context traits are stabilised
         let new_value = if visible || self.always_visible { 1.0 } else { 0.0 };
-        if new_value != self.height.end() {
+        if (new_value - self.height.end()).abs() > f64::EPSILON {
             self.height.animate(new_value);
             true
         } else {
@@ -407,6 +407,7 @@ impl IndentLayout {
         self.height.jump_to_value(if visible || self.always_visible { 1.0 } else { 0.0 });
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn layout<A: Data, B: Data>(
         &self,
         header: &mut WidgetPod<A, impl Widget<A>>,
