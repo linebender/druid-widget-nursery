@@ -87,8 +87,8 @@ impl<T: Data> AppLauncher<T> {
     /// # Panics
     ///
     /// Panics if the logger fails to initialize.
-    pub fn use_simple_logger(mut self) -> Self {
-        self.inner = self.inner.use_simple_logger();
+    pub fn log_to_console(mut self) -> Self {
+        self.inner = self.inner.log_to_console();
         self
     }
 
