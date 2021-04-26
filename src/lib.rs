@@ -25,6 +25,7 @@ mod multi_value;
 pub mod navigator;
 pub mod partial;
 mod progress_bar;
+mod repeater;
 mod separator;
 pub mod theme_loader;
 mod tree;
@@ -43,6 +44,7 @@ pub use dynamic_sized_box::DynamicSizedBox;
 pub use list_select::ListSelect;
 pub use multi_value::{MultiCheckbox, MultiRadio};
 pub use progress_bar::ProgressBar;
+pub use repeater::Repeater;
 pub use separator::{Orientation, Separator};
 pub use tree::{Tree, TreeNode, Wedge};
 
