@@ -6,12 +6,12 @@ edition = "2018"
 license = "MIT OR Apache-2.0"
 
 [features]
-async = ["tokio", "futures", "flume"]
+async = ["tokio/rt", "futures", "flume"]
 hot-reload = ["libloading", "notify5", "rand"]
 
 [dependencies.druid]
 git = "https://github.com/linebender/druid"
-rev = "75e83ae" # update this when upgrading to newer druid
+rev = "452328c" # update this when upgrading to newer druid
 # and update examples/hot_reload/Cargo.toml as well
 
 [dependencies]
@@ -22,7 +22,7 @@ log = "0.4.11"
 notify = { version = "4.0.12", optional = true }
 
 # async
-tokio = { version = "1.0", features = ["rt"], optional = true }
+tokio = { version = "1.0", features = ["rt", "time"], optional = true }
 futures = { version = "0.3", optional = true }
 flume = { version = "0.10", optional = true }
 
@@ -38,3 +38,6 @@ required-features = ["async", "tokio/time"]
 
 [[example]]
 name = "animator"
+
+[workspace]
+members = ["examples/hot-reload"]

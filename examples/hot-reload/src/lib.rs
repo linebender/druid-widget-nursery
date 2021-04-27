@@ -1,4 +1,4 @@
-use druid::widget::{Checkbox, Flex, TextBox};
+use druid::widget::{Flex, TextBox};
 use druid::{Data, Lens, Widget, WidgetExt};
 
 #[derive(Debug, Default, Data, Clone, Lens)]

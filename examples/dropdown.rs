@@ -1,5 +1,5 @@
 use druid::widget::{
-    Button, CrossAxisAlignment, Flex, Label, RadioGroup, Scroll, SizedBox, TextBox, WidgetExt,
+    Button, CrossAxisAlignment, Flex, Label, RadioGroup, Scroll, TextBox, WidgetExt,
 };
 use druid::{AppLauncher, Data, Env, EventCtx, Lens, Widget, WindowDesc};
 use druid_widget_nursery::{Dropdown, DROP};
@@ -32,7 +32,7 @@ fn main_widget() -> impl Widget<DropDownState> {
                         .with_flex_spacer(1.)
                         .with_child(
                             Button::new("V")
-                                .on_click(|ctx: &mut EventCtx, _, _| ctx.submit_notification(DROP)),
+                                .on_click(|ctx: &mut EventCtx, _, _| ctx.submit_command(DROP)),
                         ),
                     |_, _| {
                         let places: Vec<(&'static str, String)> =
@@ -53,7 +53,7 @@ fn main_widget() -> impl Widget<DropDownState> {
                         .with_flex_spacer(1.)
                         .with_child(
                             Button::new("V")
-                                .on_click(|ctx: &mut EventCtx, _, _| ctx.submit_notification(DROP)),
+                                .on_click(|ctx: &mut EventCtx, _, _| ctx.submit_command(DROP)),
                         ),
                     |_, _| {
                         RadioGroup::new(vec![
@@ -70,7 +70,7 @@ fn main_widget() -> impl Widget<DropDownState> {
             .with_child(
                 Dropdown::new_sized(
                     Button::new(|f: &Fruit, _: &Env| format!("{:?}", f))
-                        .on_click(|ctx: &mut EventCtx, _, _| ctx.submit_notification(DROP)),
+                        .on_click(|ctx: &mut EventCtx, _, _| ctx.submit_command(DROP)),
                     |_, _| {
                         RadioGroup::new(vec![
                             ("Apple", Fruit::Apple),
@@ -78,7 +78,7 @@ fn main_widget() -> impl Widget<DropDownState> {
                             ("Orange", Fruit::Orange),
                         ])
                     },
-                    druid::Size::new(100., 400.)
+                    druid::Size::new(100., 400.),
                 )
                 .align_left()
                 .lens(DropDownState::fruit),
@@ -106,7 +106,7 @@ pub fn main() {
 
     // start the application
     AppLauncher::with_window(main_window)
-        .use_env_tracing()
+        .log_to_console()
         .launch(initial_state)
         .expect("Failed to launch application");
 }

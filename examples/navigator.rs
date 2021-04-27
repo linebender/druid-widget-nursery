@@ -21,7 +21,7 @@ fn main() {
     let contacts = get_data();
 
     AppLauncher::with_window(window)
-        .use_env_tracing()
+        .log_to_console()
         .launch(AppState {
             app_name: "This is a paragraph about the Navigator.".to_string(),
             nav_state: Arc::new(vec![UiView::new("contacts".to_string())]),

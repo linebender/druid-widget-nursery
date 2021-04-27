@@ -88,25 +88,25 @@ impl ProgressBar {
 
     //Internal getters that resolve using theme or control values.
     fn bar_brush(&self, env: &Env) -> PaintBrush {
-        self.bar_brush
-            .clone()
-            .unwrap_or(PaintBrush::Linear(LinearGradient::new(
+        self.bar_brush.clone().unwrap_or_else(|| {
+            PaintBrush::Linear(LinearGradient::new(
                 UnitPoint::TOP,
                 UnitPoint::BOTTOM,
                 (env.get(theme::PRIMARY_LIGHT), env.get(theme::PRIMARY_DARK)),
-            )))
+            ))
+        })
     }
     fn background_brush(&self, env: &Env) -> PaintBrush {
-        self.background_brush
-            .clone()
-            .unwrap_or(PaintBrush::Linear(LinearGradient::new(
+        self.background_brush.clone().unwrap_or_else(|| {
+            PaintBrush::Linear(LinearGradient::new(
                 UnitPoint::TOP,
                 UnitPoint::BOTTOM,
                 (
                     env.get(theme::BACKGROUND_LIGHT),
                     env.get(theme::BACKGROUND_DARK),
                 ),
-            )))
+            ))
+        })
     }
 }
 

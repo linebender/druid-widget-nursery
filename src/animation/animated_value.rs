@@ -1,7 +1,7 @@
 use crate::animation::AnimationCurve;
-use std::time::Duration;
-use druid::{Color, Vec2, Size, Point, Rect, EventCtx, Insets};
+use druid::{Color, Data, EventCtx, Insets, Point, Rect, Size, Vec2};
 use std::ops::Deref;
+use std::time::Duration;
 
 /// Animated provides simple transition-animations for single values or tuples of values that implement
 /// Interpolate.
@@ -11,44 +11,43 @@ pub struct Animated<T> {
     full_duration: f64,
     current_duration: f64,
     curve: AnimationCurve,
-    paint: bool,
     layout: bool,
-
-    current: T
+    current: T,
 }
 
-impl<T: Interpolate> Animated<T> {
+impl<T: Interpolate + Data> Animated<T> {
     /// Creates a new animation with a start value, a duration and a curve.
     /// The paint and layout flags indicate if animate should request paint or layout when the value
     /// changes.
-    pub fn new(value: T, duration: Duration, curve: impl Into<AnimationCurve>, paint: bool, layout: bool) -> Self {
+    pub fn new(
+        value: T,
+        duration: Duration,
+        curve: impl Into<AnimationCurve>,
+        layout: bool,
+    ) -> Self {
         Animated {
             start: value.clone(),
             end: value.clone(),
             full_duration: duration.as_secs_f64(),
             current_duration: duration.as_secs_f64(),
             curve: curve.into(),
-            paint,
             layout,
 
             current: value,
         }
     }
 
-
-    pub fn jump(value: T, paint: bool, layout: bool) -> Self {
+    pub fn jump(value: T, layout: bool) -> Self {
         Animated {
             start: value.clone(),
             end: value.clone(),
             full_duration: 0.0,
             current_duration: 0.0,
             curve: Default::default(),
-            paint,
             layout,
-            current: value.clone(),
+            current: value,
         }
     }
-
 
     /// Returns the interpolated value.
     pub fn get(&self) -> T {
@@ -85,7 +84,6 @@ impl<T: Interpolate> Animated<T> {
         self.curve = curve.into();
     }
 
-
     pub fn animating(&self) -> bool {
         self.current_duration < self.full_duration
     }
@@ -94,9 +92,15 @@ impl<T: Interpolate> Animated<T> {
     /// value.
     //TODO: change to RequestCtx to automatically update
     pub fn animate(&mut self, value: T) {
-        self.start = self.current.clone();
-        self.end = value;
-        self.current_duration = 0.0;
+        if !value.same(&self.end) {
+            self.start = self.current.clone();
+            self.end = value.clone();
+            self.current_duration = 0.0;
+            if self.full_duration == 0.0 {
+                self.current = value;
+                //if self.layout { ctx.request_layout(); } else { ctx.request_paint(); }
+            } // else { ctx.request_anim_frame(); }
+        }
     }
 
     pub fn animate_with(&mut self, value: T, duration: Duration, curve: impl Into<AnimationCurve>) {
@@ -126,12 +130,12 @@ impl<T: Interpolate> Animated<T> {
     /// If the transition's end isn't reached an additional animation-frame is requested.
     ///
     pub fn update(&mut self, nanos: u64, ctx: &mut EventCtx) {
+        // This must happen before updating the value!
         if self.animating() {
-            if self.paint {
-                ctx.request_paint();
-            }
             if self.layout {
                 ctx.request_layout();
+            } else {
+                ctx.request_paint();
             }
         }
 
@@ -140,7 +144,11 @@ impl<T: Interpolate> Animated<T> {
 
         if self.animating() {
             ctx.request_anim_frame();
-            self.current = self.start.interpolate(&self.end, self.curve.translate(self.current_duration / self.full_duration));
+            self.current = self.start.interpolate(
+                &self.end,
+                self.curve
+                    .translate(self.current_duration / self.full_duration),
+            );
         } else {
             self.current = self.end.clone();
         }
@@ -176,26 +184,35 @@ impl Interpolate for Color {
             r1.interpolate(&r2, value),
             g1.interpolate(&g2, value),
             b1.interpolate(&b2, value),
-            a1.interpolate(&a2, value)
+            a1.interpolate(&a2, value),
         )
     }
 }
 
 impl Interpolate for Vec2 {
     fn interpolate(&self, other: &Self, value: f64) -> Self {
-        Vec2::new(self.x.interpolate(&other.x, value), self.y.interpolate(&other.y, value))
+        Vec2::new(
+            self.x.interpolate(&other.x, value),
+            self.y.interpolate(&other.y, value),
+        )
     }
 }
 
 impl Interpolate for Point {
     fn interpolate(&self, other: &Self, value: f64) -> Self {
-        Point::new(self.x.interpolate(&other.x, value), self.y.interpolate(&other.y, value))
+        Point::new(
+            self.x.interpolate(&other.x, value),
+            self.y.interpolate(&other.y, value),
+        )
     }
 }
 
 impl Interpolate for Size {
     fn interpolate(&self, other: &Self, value: f64) -> Self {
-        Size::new(self.width.interpolate(&other.width, value), self.height.interpolate(&other.height, value))
+        Size::new(
+            self.width.interpolate(&other.width, value),
+            self.height.interpolate(&other.height, value),
+        )
     }
 }
 
@@ -203,7 +220,7 @@ impl Interpolate for Rect {
     fn interpolate(&self, other: &Self, value: f64) -> Self {
         Rect::from_origin_size(
             self.origin().interpolate(&other.origin(), value),
-            self.size().interpolate(&other.size(), value)
+            self.size().interpolate(&other.size(), value),
         )
     }
 }
@@ -214,14 +231,17 @@ impl Interpolate for Insets {
             self.x0.interpolate(&other.x0, value),
             self.y0.interpolate(&other.y0, value),
             self.x1.interpolate(&other.x1, value),
-            self.y1.interpolate(&other.y1, value)
+            self.y1.interpolate(&other.y1, value),
         )
     }
 }
 
 impl<A: Interpolate, B: Interpolate> Interpolate for (A, B) {
     fn interpolate(&self, other: &Self, value: f64) -> Self {
-        (self.0.interpolate(&other.0, value), self.1.interpolate(&other.1, value))
+        (
+            self.0.interpolate(&other.0, value),
+            self.1.interpolate(&other.1, value),
+        )
     }
 }
 
@@ -230,7 +250,7 @@ impl<A: Interpolate, B: Interpolate, C: Interpolate> Interpolate for (A, B, C) {
         (
             self.0.interpolate(&other.0, value),
             self.1.interpolate(&other.1, value),
-            self.2.interpolate(&other.2, value)
+            self.2.interpolate(&other.2, value),
         )
     }
 }
@@ -241,24 +261,14 @@ impl<A: Interpolate, B: Interpolate, C: Interpolate, D: Interpolate> Interpolate
             self.0.interpolate(&other.0, value),
             self.1.interpolate(&other.1, value),
             self.2.interpolate(&other.2, value),
-            self.3.interpolate(&other.3, value)
-        )
-    }
-}
-
-impl<A: Interpolate, B: Interpolate, C: Interpolate, D: Interpolate, E: Interpolate> Interpolate for (A, B, C, D, E) {
-    fn interpolate(&self, other: &Self, value: f64) -> Self {
-        (
-            self.0.interpolate(&other.0, value),
-            self.1.interpolate(&other.1, value),
-            self.2.interpolate(&other.2, value),
             self.3.interpolate(&other.3, value),
-            self.4.interpolate(&other.4, value)
         )
     }
 }
 
-impl<A: Interpolate, B: Interpolate, C: Interpolate, D: Interpolate, E: Interpolate, F: Interpolate> Interpolate for (A, B, C, D, E, F) {
+impl<A: Interpolate, B: Interpolate, C: Interpolate, D: Interpolate, E: Interpolate> Interpolate
+    for (A, B, C, D, E)
+{
     fn interpolate(&self, other: &Self, value: f64) -> Self {
         (
             self.0.interpolate(&other.0, value),
@@ -266,7 +276,27 @@ impl<A: Interpolate, B: Interpolate, C: Interpolate, D: Interpolate, E: Interpol
             self.2.interpolate(&other.2, value),
             self.3.interpolate(&other.3, value),
             self.4.interpolate(&other.4, value),
-            self.5.interpolate(&other.5, value)
+        )
+    }
+}
+
+impl<
+        A: Interpolate,
+        B: Interpolate,
+        C: Interpolate,
+        D: Interpolate,
+        E: Interpolate,
+        F: Interpolate,
+    > Interpolate for (A, B, C, D, E, F)
+{
+    fn interpolate(&self, other: &Self, value: f64) -> Self {
+        (
+            self.0.interpolate(&other.0, value),
+            self.1.interpolate(&other.1, value),
+            self.2.interpolate(&other.2, value),
+            self.3.interpolate(&other.3, value),
+            self.4.interpolate(&other.4, value),
+            self.5.interpolate(&other.5, value),
         )
     }
 }

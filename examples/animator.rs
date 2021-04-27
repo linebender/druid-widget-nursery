@@ -102,7 +102,7 @@ fn main() {
 
     // start the application
     AppLauncher::with_window(main_window)
-        .use_env_tracing()
+        .log_to_console()
         .launch(initial_state)
         .expect("Failed to launch application");
 }
@@ -141,24 +141,22 @@ struct AnimatedWidget {
 }
 
 impl AnimatedWidget {
-    fn register_animation(&mut self, data: &AnimState) -> Option<AnimationId> {
-        Some(
-            self.animator
-                .new_animation()
-                .curve(data.curve)
-                .repeat_limit(data.repeat_limit)
-                .direction(data.direction)
-                .duration(Duration::from_millis(data.duration.unwrap_or(1000) as u64))
-                .id(),
-        )
+    fn register_animation(&mut self, data: &AnimState) -> AnimationId {
+        self.animator
+            .new_animation()
+            .curve(data.curve)
+            .repeat_limit(data.repeat_limit)
+            .direction(data.direction)
+            .duration(Duration::from_millis(data.duration.unwrap_or(1000) as u64))
+            .id()
     }
 
     fn animate_size(&mut self, data: &AnimState) {
-        self.ids.0 = self.register_animation(data);
+        self.ids.0 = Some(self.register_animation(data));
     }
 
     fn animate_alpha(&mut self, data: &AnimState) {
-        self.ids.1 = self.register_animation(data);
+        self.ids.1 = Some(self.register_animation(data));
     }
 }
 

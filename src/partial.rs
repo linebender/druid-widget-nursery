@@ -1,19 +1,15 @@
-use druid::{
-    BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Size,
-    UpdateCtx, Widget,
-};
+use druid::{BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Size, UpdateCtx, Widget};
 
 /// A Widget which displays data which is not always present
 /// The main use case are an enum variants
-pub struct PartialWidget<W, U, P> {
+pub struct PrismWrap<W, U, P> {
     widget: W,
     current_data: U,
     prism: P,
     enabled: bool,
-    show_when_disabled: bool,
 }
 
-impl<W, U, P> PartialWidget<W, U, P>
+impl<W, U, P> PrismWrap<W, U, P>
 where
     U: Data,
     W: Widget<U>,
@@ -29,20 +25,7 @@ where
             current_data: initial_data,
             prism,
             enabled: false,
-            show_when_disabled: false,
         }
-    }
-
-    /// Set show_when_disabled, the default is false.
-    pub fn set_show_when_disabled(&mut self, show_when_disabled: bool) {
-        self.show_when_disabled = show_when_disabled;
-    }
-
-    /// Builder-style method to set show_when_disabled to true.
-    /// The default is false.
-    pub fn show_when_disabled(mut self) -> Self {
-        self.show_when_disabled = true;
-        self
     }
 
     /// Injects the this widgets internal data (the data before this widget got disabled, if it was
@@ -74,95 +57,94 @@ where
     }
 }
 
-impl<W, T, U, P> Widget<T> for PartialWidget<W, U, P>
+impl<W, T, U, P> Widget<T> for PrismWrap<W, U, P>
 where
     U: Data,
     W: Widget<U>,
     P: Prism<T, U>,
 {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
-        if self.enabled {
-            let mut new_data = self.current_data.clone();
-
-            self.widget.event(ctx, event, &mut new_data, env);
-
-            if !new_data.same(&self.current_data) {
-                self.prism.put(data, new_data);
-            }
+        if let Some(mut inner_data) = self.prism.get(data) {
+            self.widget.event(ctx, event, &mut inner_data, env);
+            self.prism.put(data, inner_data);
         }
     }
 
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
-        //TODO: decide which lifecycle events should get send when the widget is disabled
         if env.get(Env::DEBUG_WIDGET) {
             let lifecycle_event = event;
             dbg!(lifecycle_event);
         }
-        match event {
-            LifeCycle::WidgetAdded => {
-                if let Some(data) = self.prism.get(data) {
-                    self.enabled = true;
-                    self.current_data = data;
-                } else {
-                    self.enabled = false;
-                }
+        if let LifeCycle::WidgetAdded = event {
+            if let Some(data) = self.prism.get(data) {
+                self.enabled = true;
+                self.current_data = data;
+            } else {
+                self.enabled = false;
             }
-            _ => {}
-        }
 
+            ctx.set_disabled(!self.enabled);
+        }
         self.widget.lifecycle(ctx, event, &self.current_data, env);
     }
 
     fn update(&mut self, ctx: &mut UpdateCtx, _old_data: &T, data: &T, env: &Env) {
-        let was_enabled = self.enabled;
-
         if let Some(data) = self.prism.get(data) {
             self.enabled = true;
 
-            if !data.same(&self.current_data) {
-                self.widget.update(ctx, &self.current_data, &data, env);
-
-                self.current_data = data;
-            }
-
-            if !was_enabled && !self.show_when_disabled {
-                //Widget was hidden and will be visible
-                ctx.request_layout();
-            }
+            self.widget.update(ctx, &self.current_data, &data, env);
+            self.current_data = data;
         } else {
             self.enabled = false;
 
-            //enabled changed
-            if was_enabled && !self.show_when_disabled {
-                //Widget was visible and will be hidden
-                ctx.request_layout();
-            }
+            self.widget.update(ctx, &self.current_data, &self.current_data, env);
         }
+        ctx.set_disabled(!self.enabled);
     }
 
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, _data: &T, env: &Env) -> Size {
-        if self.enabled || self.show_when_disabled {
-            self.widget.layout(ctx, bc, &self.current_data, env)
-        } else {
-            bc.min()
-        }
+        self.widget.layout(ctx, bc, &self.current_data, env)
     }
 
     fn paint(&mut self, ctx: &mut PaintCtx, _data: &T, env: &Env) {
-        if self.enabled || self.show_when_disabled {
-            //TODO: signal that the widget is disabled
-            self.widget.paint(ctx, &self.current_data, env);
-        }
+        self.widget.paint(ctx, &self.current_data, env);
     }
 }
 
 //TODO: Maybe write a derive macro
-///A trait similar to druid::Lens that represents data which is not always present
+/// A trait similar to druid::Lens that represents data which is not always present
+///
+/// This is just a simple prototype for me to work with until [``] is merged.
+/// There is also discussion about Prisms in [``].
+///
+///
 pub trait Prism<T, U> {
     ///Extract the data (if present) from a move general type
     fn get(&self, data: &T) -> Option<U>;
     ///Store the data back in the original type
     fn put(&self, data: &mut T, inner: U);
+}
+
+#[macro_export]
+macro_rules! prism{
+    //Empty variant
+    ($name:ident: $base:ty => $variant:tt ) => {//$($el:ty),+
+        pub struct $name;
+
+        impl Prism<$base, ()> for $name{
+            fn get(&self, data: &$base) -> ::std::option::Option<()> {
+                if let <$base>::$variant = data.clone() {
+                    ::std::option::Option::Some(())
+                } else {
+                    ::std::option::Option::None
+                }
+            }
+            fn put(&self, data: &mut $base, _: ()) {
+                *data = <$base>::$variant;
+            }
+        }
+    }
+
 }
 
 pub struct OptionSome;
@@ -177,7 +159,9 @@ impl<T: Data> Prism<Option<T>, T> for OptionSome {
     }
 }
 
-pub struct OptionNone;
+prism!(OptionNone: Option<String> => None);
+
+/*pub struct OptionNone;
 
 impl<T> Prism<Option<T>, ()> for OptionNone {
     fn get(&self, data: &Option<T>) -> Option<()> {
@@ -191,7 +175,7 @@ impl<T> Prism<Option<T>, ()> for OptionNone {
     fn put(&self, data: &mut Option<T>, _: ()) {
         *data = None;
     }
-}
+}*/
 
 pub struct ResultOk;
 

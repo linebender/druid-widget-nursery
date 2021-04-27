@@ -7,6 +7,7 @@ Cargo.lock
 
 ## Visual Studio Code
 .vscode/
+workspace.code-workspace
 
 ## Sublime Text
 *.sublime-workspace
