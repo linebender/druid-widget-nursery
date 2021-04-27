@@ -23,11 +23,7 @@ where
     W: Widget<U>,
 {
     /// creates a new MultiRadio from the inner widget, the initial data
-    /// and a Prism which decides the part of the data represented here
-    /// the external state.
-    ///
-    /// Prisms work similar to druid::Lens except that get returns Option<U>
-    /// instead of U which makes it useful for Enums.
+    /// and a Prism which decides which part of the data is represented here.
     pub fn new(name: &str, widget: W, initial_data: U, prism: P) -> Self {
         Self {
             inner: WidgetPod::new(DisablePrismWrap::new(widget, initial_data, prism)),
@@ -94,8 +90,8 @@ where
         self
     }
 
-    /// Injects the this widgets internal data (the data before this widget got disabled, if it was
-    /// never enabled this is initial data) into data.
+    /// Injects this widgets internal data (the data before this widget got disabled, if it was
+    /// never enabled this is initial data) into the provided data.
     /// If data was this widgets external data, the widget will get enabled
     /// during the next update call.
     ///
@@ -178,6 +174,7 @@ where
     }
 }
 
+///A Checkbox for Option instead of bool
 pub struct MultiCheckbox<W, T> {
     inner: WidgetPod<Option<T>, DisablePrismWrap<W, T, OptionSome>>,
     check_box: WidgetPod<bool, Checkbox>,
@@ -190,9 +187,6 @@ where
     W: Widget<T>,
 {
     /// creates a new MultiCheckbox from the name, the inner widget and the initial data.
-    ///
-    /// The closures work similar to druid::Lens except that get returns Option<U>
-    /// instead of U which makes it useful for Enums.
     pub fn new(name: &str, widget: W, initial_data: T) -> Self {
         Self {
             inner: WidgetPod::new(DisablePrismWrap::new(widget, initial_data, OptionSome)),

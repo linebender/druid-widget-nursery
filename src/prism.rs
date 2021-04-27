@@ -12,13 +12,13 @@ use druid::{
 /// [`#1136`]: https://github.com/linebender/druid/pull/1136
 /// [`#1135`]: https://github.com/linebender/druid/issues/1135
 pub trait Prism<T, U> {
-    ///Extract the data (if present) from a move general type
+    ///Extract the data (if present) from the outer type
     fn get(&self, data: &T) -> Option<U>;
-    ///Store the data back in the original type
+    ///Store the data back in the outer type
     fn put(&self, data: &mut T, inner: U);
 }
 
-///
+/// A trait implemented by PrismWrappers to check if this widget can handle the current data.
 pub trait PrismWidget<T>: Widget<T> {
     fn is_active_for(&self, data: &T) -> bool;
 }
@@ -45,9 +45,9 @@ impl<T: Data> Widget<T> for Box<dyn PrismWidget<T>> {
     }
 }
 
-/// A Widget wrapper which disables the inner widget if its data is not present. If you dont need this
-/// use PrismWrap.
-/// The main use case are an enum variants
+/// A Widget wrapper which disables the inner widget if its data is not present. If you dont need to disable
+/// the widget, use PrismWrap instead.
+/// The main use case are enum variants
 pub struct DisablePrismWrap<W, U, P> {
     widget: WidgetPod<U, W>,
     current_data: U,
@@ -173,7 +173,7 @@ where
 }
 
 /// A Widget wrapper similar to PrismWrapDisable, but with the limitation that this widget should
-/// only be visible if its data is present.
+/// only be visible if its data is present. In return you dont need to provide the initial data.
 pub struct PrismWrap<W, P, U> {
     inner: WidgetPod<U, W>,
     prism: P,

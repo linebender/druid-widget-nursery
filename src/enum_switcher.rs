@@ -36,6 +36,7 @@ impl<T: Data> LazySwitcher<T> {
         self
     }
 
+    /// updates the inner widget and returns true if the widget changed
     fn rebuild_if_needed(&mut self, data: &T) -> bool {
         if let Some(current) = &self.current {
             if current.is_active_for(data) {
@@ -130,6 +131,7 @@ impl<T: Data> Switcher<T> {
         self
     }
 
+    /// updates the inner widget and returns true if the widget changed
     fn rebuild_if_needed(&mut self, data: &T) -> bool {
         if let Some(current) = self.current {
             if self.widgets[current].is_active_for(data) {
