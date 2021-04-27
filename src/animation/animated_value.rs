@@ -12,7 +12,8 @@ pub struct Animated<T> {
     current_duration: f64,
     curve: AnimationCurve,
     layout: bool,
-    current: T,
+
+    current: T
 }
 
 impl<T: Interpolate + Data> Animated<T> {
