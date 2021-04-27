@@ -61,7 +61,6 @@ impl<T: Data> Default for LazySwitcher<T> {
     }
 }
 
-
 impl<T: Data> Widget<T> for LazySwitcher<T> {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
         if let Some(inner) = &mut self.current {

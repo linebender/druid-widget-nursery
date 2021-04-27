@@ -13,7 +13,7 @@ pub struct Animated<T> {
     curve: AnimationCurve,
     layout: bool,
 
-    current: T
+    current: T,
 }
 
 impl<T: Interpolate + Data> Animated<T> {
