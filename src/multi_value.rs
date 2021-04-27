@@ -391,7 +391,11 @@ impl IndentLayout {
 
     pub fn set_visible(&mut self, visible: bool) -> bool {
         //TODO: update this when context traits are stabilised
-        let new_value = if visible || self.always_visible { 1.0 } else { 0.0 };
+        let new_value = if visible || self.always_visible {
+            1.0
+        } else {
+            0.0
+        };
         if (new_value - self.height.end()).abs() > f64::EPSILON {
             self.height.animate(new_value);
             true

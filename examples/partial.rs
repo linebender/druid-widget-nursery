@@ -1,6 +1,6 @@
 use druid::widget::{Flex, Radio, TextBox};
 use druid::{AppLauncher, Data, UnitPoint, Widget, WidgetExt, WindowDesc};
-use druid_widget_nursery::prism::{DisablePrismWrap, Closures};
+use druid_widget_nursery::prism::{Closures, DisablePrismWrap};
 
 #[derive(Data, Clone, PartialEq)]
 enum TestData {
@@ -26,8 +26,8 @@ fn main_widget() -> impl Widget<TestData> {
                     None
                 }
             },
-            |data: &mut TestData, inner|*data = TestData::B(inner),
-        )
+            |data: &mut TestData, inner| *data = TestData::B(inner),
+        ),
     );
 
     Flex::column()

@@ -4,10 +4,12 @@ use druid::{
     UpdateCtx, Widget,
 };
 
+type WidgetBuilder<T> = Box<dyn Fn(&T) -> Option<Box<dyn PrismWidget<T>>>>;
+
 /// A widget like switcher, but the inner widgets are created on demand. This is useful for tree-like
 /// structures, which you can't represent with Switcher recursively.
 pub struct LazySwitcher<T: Data> {
-    builder: Vec<Box<dyn Fn(&T) -> Option<Box<dyn PrismWidget<T>>>>>,
+    builder: Vec<WidgetBuilder<T>>,
     current: Option<Box<dyn PrismWidget<T>>>,
 }
 
@@ -52,6 +54,13 @@ impl<T: Data> LazySwitcher<T> {
         had_child || self.current.is_some()
     }
 }
+
+impl<T: Data> Default for LazySwitcher<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 
 impl<T: Data> Widget<T> for LazySwitcher<T> {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
@@ -136,6 +145,12 @@ impl<T: Data> Switcher<T> {
             .position(|widget| widget.is_active_for(data));
         self.current = new;
         old != self.current
+    }
+}
+
+impl<T: Data> Default for Switcher<T> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
