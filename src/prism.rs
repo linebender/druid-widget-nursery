@@ -1,7 +1,4 @@
-use druid::{
-    BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Size,
-    UpdateCtx, Widget, WidgetPod,
-};
+use druid::{BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Size, UpdateCtx, Widget, WidgetPod, Point};
 
 //TODO: Maybe write a derive macro
 /// A trait similar to druid::Lens that represents data which is not always present
@@ -160,7 +157,10 @@ where
     }
 
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, _data: &T, env: &Env) -> Size {
-        self.widget.layout(ctx, bc, &self.current_data, env)
+        let size = self.widget.layout(ctx, bc, &self.current_data, env);
+        ctx.set_baseline_offset(self.widget.baseline_offset());
+        self.widget.set_origin(ctx, &self.current_data, env, Point::ORIGIN);
+        size
     }
 
     fn paint(&mut self, ctx: &mut PaintCtx, _data: &T, env: &Env) {

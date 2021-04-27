@@ -1,6 +1,6 @@
 use druid::widget::{Flex, Radio, TextBox};
 use druid::{AppLauncher, Data, UnitPoint, Widget, WidgetExt, WindowDesc};
-use druid_widget_nursery::prism::DisablePrismWrap;
+use druid_widget_nursery::prism::{DisablePrismWrap, Closures};
 
 #[derive(Data, Clone, PartialEq)]
 enum TestData {
@@ -15,7 +15,7 @@ fn main_widget() -> impl Widget<TestData> {
         .with_child(Radio::new("Variant B", TestData::B(String::from("hi"))))
         .with_child(Radio::new("Variant C", TestData::C));
 
-    let partial = DisablePrismWrap::with_closures(
+    let partial = DisablePrismWrap::new(
         TextBox::new(),
         String::new(),
         Closures(
@@ -26,7 +26,7 @@ fn main_widget() -> impl Widget<TestData> {
                     None
                 }
             },
-            TestData::B,
+            |data: &mut TestData, inner|*data = TestData::B(inner),
         )
     );
 
