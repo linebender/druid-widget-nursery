@@ -20,8 +20,8 @@ fn main_widget() -> impl Widget<TestData> {
         String::new(),
         Closures(
             |outer: &TestData| {
-                if let TestData::B(str) = outer {
-                    Some(str.clone())
+                if let TestData::B(inner) = outer {
+                    Some(inner.clone())
                 } else {
                     None
                 }
