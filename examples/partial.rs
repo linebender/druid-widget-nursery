@@ -1,7 +1,6 @@
-use druid::widget::{Flex, Radio};
-// use druid::widget::TextBox;
+use druid::widget::{Flex, Radio, TextBox};
 use druid::{AppLauncher, Data, UnitPoint, Widget, WidgetExt, WindowDesc};
-// use druid_widget_nursery::partial::PrismWrap;
+use druid_widget_nursery::prism::{Closures, DisablePrismWrap};
 
 #[derive(Data, Clone, PartialEq)]
 enum TestData {
@@ -16,23 +15,25 @@ fn main_widget() -> impl Widget<TestData> {
         .with_child(Radio::new("Variant B", TestData::B(String::from("hi"))))
         .with_child(Radio::new("Variant C", TestData::C));
 
-    // let partial = PrismWrap::with_closures(
-    //     TextBox::new(),
-    //     String::new(),
-    //     |outer: &TestData| {
-    //         if let TestData::B(str) = outer {
-    //             Some(str.clone())
-    //         } else {
-    //             None
-    //         }
-    //     },
-    //     TestData::B,
-    // );
+    let partial = DisablePrismWrap::new(
+        TextBox::new(),
+        String::new(),
+        Closures(
+            |outer: &TestData| {
+                if let TestData::B(inner) = outer {
+                    Some(inner.clone())
+                } else {
+                    None
+                }
+            },
+            |data: &mut TestData, inner| *data = TestData::B(inner),
+        ),
+    );
 
     Flex::column()
         .with_child(selections)
         .with_spacer(30.0)
-        //.with_child(partial)
+        .with_child(partial)
         .padding(5.0)
         .align_horizontal(UnitPoint::CENTER)
 }
