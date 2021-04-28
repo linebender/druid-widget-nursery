@@ -152,6 +152,8 @@ where
                     fresh.insert((id_getter)(list.get(i).unwrap()), i);
                 }
 
+                // TODO: Detect duplicate keys
+
                 // Remove
                 for i in (0..old_list.len()).rev() {
                     let id = (id_getter)(&old_list.get(i).unwrap());
