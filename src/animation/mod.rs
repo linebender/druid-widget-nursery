@@ -1,3 +1,4 @@
+mod animated_value;
 mod animator;
 mod context;
 mod curve;
@@ -5,13 +6,12 @@ mod state;
 mod storage;
 #[cfg(test)]
 mod test;
-mod animated_value;
 
+pub use animated_value::{Animated, Interpolate};
 pub use animator::Animator;
 pub use context::AnimationCtx;
 pub use curve::{AnimationCurve, CustomCurve, SimpleCurve};
 pub use storage::AnimationId;
-pub use animated_value::{Animated, Interpolate};
 
 use druid::Data;
 use std::collections::{HashMap, VecDeque};
