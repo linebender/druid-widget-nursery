@@ -34,6 +34,30 @@ fn main_widget() -> impl Widget<AppState> {
             AppState::windows,
             Box::new(|window: &WindowData| window.id),
             Box::new(|_window: &WindowData| Window),
+            Box::new(|widgets, ctx, bc, data: &AppState, env| {
+                for i in 0..widgets.len() {
+                    let widget = widgets[i].widget();
+                    let widget_data = &data.windows;
+
+                    let _widget_size = widget.layout(
+                        ctx,
+                        &BoxConstraints::tight((10., 10.).into()),
+                        widget_data,
+                        env,
+                    );
+                    let bc_max = bc.max();
+                    widget.set_origin(
+                        ctx,
+                        widget_data,
+                        env,
+                        (
+                            i as f64 * 0.01 * bc_max.width,
+                            i as f64 * 0.01 * bc_max.height,
+                        )
+                            .into(),
+                    );
+                }
+            }),
         ))),
     }
 }

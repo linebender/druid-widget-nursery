@@ -5,10 +5,18 @@ use druid::{
 };
 use std::{hash::Hash, marker::PhantomData, vec::Vec};
 
-struct RepeaterChild<U, I> {
-    widget:
-        WidgetPod<im::Vector<U>, LensWrap<im::Vector<U>, U, ListItemLens<U>, Box<dyn Widget<U>>>>,
+type RepeaterChildWidget<U> =
+    WidgetPod<im::Vector<U>, LensWrap<im::Vector<U>, U, ListItemLens<U>, Box<dyn Widget<U>>>>;
+
+pub struct RepeaterChild<U, I> {
+    widget: RepeaterChildWidget<U>,
     id: I,
+}
+
+impl<U, I> RepeaterChild<U, I> {
+    pub fn widget(&mut self) -> &mut RepeaterChildWidget<U> {
+        &mut self.widget
+    }
 }
 
 pub struct ListItemLens<U> {
@@ -42,11 +50,15 @@ where
     }
 }
 
+type LayoutChildrenCallback<T, U, I> =
+    Box<dyn Fn(&mut Vec<RepeaterChild<U, I>>, &mut LayoutCtx, &BoxConstraints, &T, &Env) -> ()>;
+
 pub struct Repeater<T, U, I, L, W> {
     children: Vec<RepeaterChild<U, I>>,
     list_lens: L,
     id_getter: Box<dyn Fn(&U) -> I>,
     child_generator: Box<dyn Fn(&U) -> W>,
+    layout_children: LayoutChildrenCallback<T, U, I>,
     phantom_t: PhantomData<T>,
     phantom_i: PhantomData<I>,
     phantom_w: PhantomData<W>,
@@ -60,6 +72,7 @@ where
         list_lens: L,
         id_getter: Box<dyn Fn(&U) -> I>,
         child_generator: Box<dyn Fn(&U) -> W>,
+        layout_children: LayoutChildrenCallback<T, U, I>,
     ) -> Self {
         // let a = |U| {1}
 
@@ -68,6 +81,7 @@ where
             list_lens,
             id_getter,
             child_generator,
+            layout_children,
             phantom_t: PhantomData,
             phantom_i: PhantomData,
             phantom_w: PhantomData,
@@ -199,13 +213,7 @@ where
     }
 
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> Size {
-        // TODO
-        for child in &mut self.children {
-            self.list_lens.with(data, |data| {
-                let size = child.widget.layout(ctx, bc, data, env);
-                child.widget.set_layout_rect(ctx, data, env, size.to_rect());
-            });
-        }
+        (self.layout_children)(&mut self.children, ctx, bc, data, env);
 
         bc.max()
     }
