@@ -9,6 +9,7 @@ use druid::{
 use druid_widget_nursery::Repeater;
 
 const CLOSE_WINDOW: Selector<u64> = Selector::new("repeater-example.close-window");
+const BRING_TO_FRONT: Selector<u64> = Selector::new("repeater-example.bring-to-front");
 
 #[derive(Clone, Data)]
 pub struct WindowData {
@@ -82,6 +83,8 @@ impl Widget<WindowData> for Window {
             // close button
             if (e.pos.x - 14.).powi(2) + (e.pos.y - 14.).powi(2) <= 144. {
                 ctx.submit_notification(CLOSE_WINDOW.with(data.id));
+            } else {
+                ctx.submit_notification(BRING_TO_FRONT.with(data.id));
             }
         }
     }
@@ -117,8 +120,8 @@ impl Widget<WindowData> for Window {
     fn paint(&mut self, ctx: &mut PaintCtx, _data: &WindowData, _env: &Env) {
         let size = ctx.size();
         let rect = size.to_rounded_rect(8.);
-        ctx.fill(rect, &Color::rgba(1., 1., 1., 1.));
-        ctx.stroke(rect, &Color::rgba(0., 0., 0., 1.), 1.);
+        ctx.fill(rect, &Color::Rgba32(0xf6f6f6ff));
+        ctx.stroke(rect, &Color::Rgba32(0x050c09ff), 1.);
 
         let button_size = 12.;
         let button_padding = 8.;
@@ -175,6 +178,7 @@ impl Widget<AppState> for RepeaterExample {
                 if notification.is(CLOSE_WINDOW) {
                     let id = notification.get(CLOSE_WINDOW).unwrap();
                     let mut index_to_remove = 0usize;
+                    println!("close {}", id);
                     for i in 0..data.windows.len() {
                         if data.windows[i].id == *id {
                             index_to_remove = i;
@@ -182,6 +186,20 @@ impl Widget<AppState> for RepeaterExample {
                         }
                     }
                     data.windows.remove(index_to_remove);
+                    ctx.set_handled();
+                } else if notification.is(BRING_TO_FRONT) {
+                    let id = notification.get(BRING_TO_FRONT).unwrap();
+                    let mut index_to_reposition = 0usize;
+                    println!("bring {} to front", id);
+                    for i in 0..data.windows.len() {
+                        if data.windows[i].id == *id {
+                            index_to_reposition = i;
+                            break;
+                        }
+                    }
+                    let window = data.windows.remove(index_to_reposition);
+                    data.windows.push_back(window);
+                    ctx.set_handled();
                 }
             }
             _ => {}

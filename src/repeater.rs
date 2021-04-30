@@ -112,23 +112,19 @@ where
     }
 
     fn update(&mut self, ctx: &mut UpdateCtx, old_data: &T, data: &T, env: &Env) {
-        for child in &mut self.children {
-            self.list_lens
-                .with(data, |data| child.widget.update(ctx, data, env));
-        }
-
         let list_lens = &self.list_lens;
         let id_getter = &self.id_getter;
         let children = &mut self.children;
         let child_generator = &self.child_generator;
 
+        let mut will_diff = false;
+
         list_lens.with(old_data, |old_list| {
             list_lens.with(data, |list| {
                 // Before we start, check if there are any differences
-                let mut should_diff = false;
 
                 if old_list.len() != list.len() {
-                    should_diff = true;
+                    will_diff = true;
                 } else {
                     // If the lists have the same length, loop through and
                     // check equality on each ID
@@ -136,13 +132,13 @@ where
                         if !(id_getter)(old_list.get(i).unwrap())
                             .same(&(id_getter)(list.get(i).unwrap()))
                         {
-                            should_diff = true;
+                            will_diff = true;
                             break;
                         }
                     }
                 }
 
-                if !should_diff {
+                if !will_diff {
                     return;
                 }
 
@@ -210,6 +206,14 @@ where
                 }
             });
         });
+
+        for child in &mut self.children {
+            if !child.widget.is_initialized() {
+                continue;
+            }
+            self.list_lens
+                .with(data, |data| child.widget.update(ctx, data, env));
+        }
     }
 
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> Size {
