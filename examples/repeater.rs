@@ -2,10 +2,13 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use druid::{
     im, AppLauncher, BoxConstraints, Color, Data, Env, Event, EventCtx, LayoutCtx, Lens, LifeCycle,
-    LifeCycleCtx, PaintCtx, Point, RenderContext, Size, UpdateCtx, Widget, WidgetPod, WindowDesc,
+    LifeCycleCtx, LinearGradient, PaintCtx, Point, Rect, RenderContext, Selector, Size, UnitPoint,
+    UpdateCtx, Widget, WidgetPod, WindowDesc,
 };
 
 use druid_widget_nursery::Repeater;
+
+const CLOSE_WINDOW: Selector<u64> = Selector::new("repeater-example.close-window");
 
 #[derive(Clone, Data)]
 pub struct WindowData {
@@ -34,27 +37,23 @@ fn main_widget() -> impl Widget<AppState> {
             AppState::windows,
             Box::new(|window: &WindowData| window.id),
             Box::new(|_window: &WindowData| Window),
-            Box::new(|widgets, ctx, bc, data: &AppState, env| {
+            Box::new(|widgets, ctx, _bc, data: &AppState, env| {
                 for i in 0..widgets.len() {
                     let widget = widgets[i].widget();
                     let widget_data = &data.windows;
+                    let window = &widget_data[i];
 
                     let _widget_size = widget.layout(
                         ctx,
-                        &BoxConstraints::tight((10., 10.).into()),
+                        &BoxConstraints::tight((window.size.width, window.size.height).into()),
                         widget_data,
                         env,
                     );
-                    let bc_max = bc.max();
                     widget.set_origin(
                         ctx,
                         widget_data,
                         env,
-                        (
-                            i as f64 * 0.01 * bc_max.width,
-                            i as f64 * 0.01 * bc_max.height,
-                        )
-                            .into(),
+                        (window.origin.x, window.origin.y).into(),
                     );
                 }
             }),
@@ -76,7 +75,16 @@ pub fn main() {
 pub struct Window;
 
 impl Widget<WindowData> for Window {
-    fn event(&mut self, _ctx: &mut EventCtx, _event: &Event, _data: &mut WindowData, _env: &Env) {}
+    fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut WindowData, _env: &Env) {
+        if let Event::MouseDown(e) = event {
+            ctx.set_handled();
+
+            // close button
+            if (e.pos.x - 14.).powi(2) + (e.pos.y - 14.).powi(2) <= 144. {
+                ctx.submit_notification(CLOSE_WINDOW.with(data.id));
+            }
+        }
+    }
 
     fn lifecycle(
         &mut self,
@@ -108,8 +116,35 @@ impl Widget<WindowData> for Window {
 
     fn paint(&mut self, ctx: &mut PaintCtx, _data: &WindowData, _env: &Env) {
         let size = ctx.size();
-        let rect = size.to_rect();
-        ctx.fill(rect, &Color::rgba(1., 1., 1., 0.1));
+        let rect = size.to_rounded_rect(8.);
+        ctx.fill(rect, &Color::rgba(1., 1., 1., 1.));
+        ctx.stroke(rect, &Color::rgba(0., 0., 0., 1.), 1.);
+
+        let button_size = 12.;
+        let button_padding = 8.;
+
+        // Window buttons
+        let red_button =
+            Rect::from_origin_size((button_padding, button_padding), (button_size, button_size))
+                .to_ellipse();
+        ctx.fill(red_button, &Color::Rgba32(0xeb514aff));
+        ctx.stroke(red_button, &Color::Rgba32(0xd14138ff), 0.5);
+
+        let yellow_button = Rect::from_origin_size(
+            (button_size + button_padding * 2., button_padding),
+            (button_size, button_size),
+        )
+        .to_ellipse();
+        ctx.fill(yellow_button, &Color::Rgba32(0xf3bd50ff));
+        ctx.stroke(yellow_button, &Color::Rgba32(0xd7a13fff), 0.5);
+
+        let green_button = Rect::from_origin_size(
+            (button_size * 2. + button_padding * 3., button_padding),
+            (button_size, button_size),
+        )
+        .to_ellipse();
+        ctx.fill(green_button, &Color::Rgba32(0x479d36ff));
+        ctx.stroke(green_button, &Color::Rgba32(0x3f822bff), 0.5);
     }
 }
 
@@ -121,16 +156,35 @@ impl Widget<AppState> for RepeaterExample {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut AppState, env: &Env) {
         self.content.event(ctx, event, data, env);
 
-        if let Event::MouseDown(_) = event {
-            let start = SystemTime::now();
-            let since_the_epoch = start
-                .duration_since(UNIX_EPOCH)
-                .expect("Time went backwards");
-            data.windows.push_back(WindowData {
-                id: since_the_epoch.as_millis() as u64,
-                origin: Point::new(0., 0.),
-                size: Size::new(100., 100.),
-            });
+        match event {
+            Event::MouseDown(e) => {
+                if ctx.is_handled() {
+                    return;
+                }
+                let start = SystemTime::now();
+                let since_the_epoch = start
+                    .duration_since(UNIX_EPOCH)
+                    .expect("Time went backwards");
+                data.windows.push_back(WindowData {
+                    id: since_the_epoch.as_millis() as u64,
+                    origin: Point::new(e.pos.x, e.pos.y),
+                    size: Size::new(300., 300.),
+                });
+            }
+            Event::Notification(notification) => {
+                if notification.is(CLOSE_WINDOW) {
+                    let id = notification.get(CLOSE_WINDOW).unwrap();
+                    let mut index_to_remove = 0usize;
+                    for i in 0..data.windows.len() {
+                        if data.windows[i].id == *id {
+                            index_to_remove = i;
+                            break;
+                        }
+                    }
+                    data.windows.remove(index_to_remove);
+                }
+            }
+            _ => {}
         }
     }
 
@@ -156,6 +210,18 @@ impl Widget<AppState> for RepeaterExample {
     }
 
     fn paint(&mut self, ctx: &mut PaintCtx, data: &AppState, env: &Env) {
+        let rect = ctx.size().to_rect();
+        let gradient = LinearGradient::new(
+            UnitPoint::LEFT,
+            UnitPoint::RIGHT,
+            (
+                Color::Rgba32(0x8a2387ff),
+                Color::Rgba32(0xe94057ff),
+                Color::Rgba32(0xf27121ff),
+            ),
+        );
+        ctx.fill(rect, &gradient);
+
         self.content.paint(ctx, data, env);
     }
 }
