@@ -41,21 +41,15 @@ fn main_widget() -> impl Widget<AppState> {
             Box::new(|widgets, ctx, _bc, data: &AppState, env| {
                 for i in 0..widgets.len() {
                     let widget = widgets[i].widget();
-                    let widget_data = &data.windows;
-                    let window = &widget_data[i];
+                    let window = &data.windows[i];
 
                     let _widget_size = widget.layout(
                         ctx,
                         &BoxConstraints::tight((window.size.width, window.size.height).into()),
-                        widget_data,
+                        window,
                         env,
                     );
-                    widget.set_origin(
-                        ctx,
-                        widget_data,
-                        env,
-                        (window.origin.x, window.origin.y).into(),
-                    );
+                    widget.set_origin(ctx, window, env, (window.origin.x, window.origin.y).into());
                 }
             }),
         ))),
@@ -168,7 +162,7 @@ impl Widget<AppState> for RepeaterExample {
                 let since_the_epoch = start
                     .duration_since(UNIX_EPOCH)
                     .expect("Time went backwards");
-                data.windows.push_back(WindowData {
+                data.windows.push_front(WindowData {
                     id: since_the_epoch.as_millis() as u64,
                     origin: Point::new(e.pos.x, e.pos.y),
                     size: Size::new(300., 300.),
@@ -178,7 +172,6 @@ impl Widget<AppState> for RepeaterExample {
                 if notification.is(CLOSE_WINDOW) {
                     let id = notification.get(CLOSE_WINDOW).unwrap();
                     let mut index_to_remove = 0usize;
-                    println!("close {}", id);
                     for i in 0..data.windows.len() {
                         if data.windows[i].id == *id {
                             index_to_remove = i;
@@ -190,7 +183,6 @@ impl Widget<AppState> for RepeaterExample {
                 } else if notification.is(BRING_TO_FRONT) {
                     let id = notification.get(BRING_TO_FRONT).unwrap();
                     let mut index_to_reposition = 0usize;
-                    println!("bring {} to front", id);
                     for i in 0..data.windows.len() {
                         if data.windows[i].id == *id {
                             index_to_reposition = i;
@@ -198,7 +190,7 @@ impl Widget<AppState> for RepeaterExample {
                         }
                     }
                     let window = data.windows.remove(index_to_reposition);
-                    data.windows.push_back(window);
+                    data.windows.push_front(window);
                     ctx.set_handled();
                 }
             }
