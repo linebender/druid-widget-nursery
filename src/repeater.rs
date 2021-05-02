@@ -108,6 +108,22 @@ where
     }
 
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
+        if let LifeCycle::WidgetAdded = event {
+            let children = &mut self.children;
+            let child_generator = &self.child_generator;
+            let id_getter = &self.id_getter;
+            self.list_lens.with(data, |data| {
+                for i in 0..data.len() {
+                    let item = &data[i];
+                    children.push(RepeaterChild {
+                        widget: WidgetPod::new(Box::new((child_generator)(item))),
+                        id: (id_getter)(item),
+                        lens: ListItemLens::<U>::new(i),
+                    });
+                }
+            });
+            ctx.children_changed();
+        }
         for child in &mut self.children {
             let lens = &child.lens;
             let widget = &mut child.widget;
