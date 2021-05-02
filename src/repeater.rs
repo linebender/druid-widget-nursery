@@ -1,8 +1,8 @@
+use druid::widget::prelude::*;
 use druid::{
     im::{self, HashMap, HashSet},
     Data, Lens, Widget, WidgetPod,
 };
-use druid::{widget::prelude::*};
 use std::{hash::Hash, marker::PhantomData, vec::Vec};
 
 type RepeaterChildWidget<U> = WidgetPod<U, Box<dyn Widget<U>>>;
@@ -59,7 +59,6 @@ pub struct Repeater<T, U, I, L, W> {
     id_getter: Box<dyn Fn(&U) -> I>,
     child_generator: Box<dyn Fn(&U) -> W>,
     layout_children: LayoutChildrenCallback<T, U, I>,
-    requested_update: bool,
     phantom_t: PhantomData<T>,
     phantom_i: PhantomData<I>,
     phantom_w: PhantomData<W>,
@@ -83,7 +82,6 @@ where
             id_getter,
             child_generator,
             layout_children,
-            requested_update: false,
             phantom_t: PhantomData,
             phantom_i: PhantomData,
             phantom_w: PhantomData,
@@ -100,14 +98,12 @@ where
     W: Widget<U> + 'static,
 {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
-        if !self.requested_update {
-            for child in &mut self.children {
-                let lens = &child.lens;
-                let widget = &mut child.widget;
-                self.list_lens.with_mut(data, |data| {
-                    lens.with_mut(data, |data| widget.event(ctx, event, data, env))
-                });
-            }
+        for child in &mut self.children {
+            let lens = &child.lens;
+            let widget = &mut child.widget;
+            self.list_lens.with_mut(data, |data| {
+                lens.with_mut(data, |data| widget.event(ctx, event, data, env))
+            });
         }
     }
 
@@ -129,97 +125,91 @@ where
 
         let mut will_diff = false;
 
-        // If we've requested an update, skip this step - the lists should be
-        // identical
-        if !self.requested_update {
-            list_lens.with(old_data, |old_list| {
-                list_lens.with(data, |list| {
-                    // Before we start, check if there are any differences
+        list_lens.with(old_data, |old_list| {
+            list_lens.with(data, |list| {
+                // Before we start, check if there are any differences
 
-                    if old_list.len() != list.len() {
-                        will_diff = true;
-                    } else {
-                        // If the lists have the same length, loop through and
-                        // check equality on each ID
-                        for i in 0..list.len() {
-                            if !(id_getter)(old_list.get(i).unwrap())
-                                .same(&(id_getter)(list.get(i).unwrap()))
-                            {
-                                will_diff = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    if !will_diff {
-                        return;
-                    }
-
-                    // Diffing has three stages: remove, add and sort. For each, it
-                    // figures out what of each operation must be performed to
-                    // transform old_list into list, and performs those on the
-                    // widget list.
-
-                    // If we didn't add or remove anything, this will remain false.
-                    let mut children_changed = false;
-
-                    // Start
-                    let mut stale = HashSet::new();
-                    for list_item in old_list {
-                        stale.insert((id_getter)(list_item));
-                    }
-
-                    // Target (key is ID, value is target index)
-                    let mut fresh = HashMap::new();
+                if old_list.len() != list.len() {
+                    will_diff = true;
+                } else {
+                    // If the lists have the same length, loop through and
+                    // check equality on each ID
                     for i in 0..list.len() {
-                        fresh.insert((id_getter)(list.get(i).unwrap()), i);
-                    }
-
-                    // TODO: Detect duplicate keys
-
-                    // Remove
-                    for i in (0..old_list.len()).rev() {
-                        let id = (id_getter)(&old_list.get(i).unwrap());
-                        if !fresh.contains_key(&id) {
-                            children.remove(i);
-                            children_changed = true;
+                        if !(id_getter)(old_list.get(i).unwrap())
+                            .same(&(id_getter)(list.get(i).unwrap()))
+                        {
+                            will_diff = true;
+                            break;
                         }
                     }
+                }
 
-                    // Add
-                    for item in list {
-                        let id = (id_getter)(item);
-                        if !stale.contains(&id) {
-                            let lens = ListItemLens::<U>::new(0);
+                if !will_diff {
+                    return;
+                }
 
-                            children.push(RepeaterChild {
-                                widget: WidgetPod::new(Box::new((child_generator)(&item))),
-                                id,
-                                lens,
-                            });
+                // Diffing has three stages: remove, add and sort. For each, it
+                // figures out what of each operation must be performed to
+                // transform old_list into list, and performs those on the
+                // widget list.
 
-                            children_changed = true;
-                        }
+                // If we didn't add or remove anything, this will remain false.
+                let mut children_changed = false;
+
+                // Start
+                let mut stale = HashSet::new();
+                for list_item in old_list {
+                    stale.insert((id_getter)(list_item));
+                }
+
+                // Target (key is ID, value is target index)
+                let mut fresh = HashMap::new();
+                for i in 0..list.len() {
+                    fresh.insert((id_getter)(list.get(i).unwrap()), i);
+                }
+
+                // TODO: Detect duplicate keys
+
+                // Remove
+                for i in (0..old_list.len()).rev() {
+                    let id = (id_getter)(&old_list.get(i).unwrap());
+                    if !fresh.contains_key(&id) {
+                        children.remove(i);
+                        children_changed = true;
                     }
+                }
 
-                    // Sort by expected index
-                    children.sort_unstable_by(|a, b| fresh.get(&a.id).cmp(&fresh.get(&b.id)));
+                // Add
+                for item in list {
+                    let id = (id_getter)(item);
+                    if !stale.contains(&id) {
+                        let lens = ListItemLens::<U>::new(0);
 
-                    // Update the lens indices
-                    for i in 0..children.len() {
-                        children[i].lens.index = i;
+                        children.push(RepeaterChild {
+                            widget: WidgetPod::new(Box::new((child_generator)(&item))),
+                            id,
+                            lens,
+                        });
+
+                        children_changed = true;
                     }
+                }
 
-                    if children_changed {
-                        ctx.children_changed();
-                    } else {
-                        ctx.request_layout();
-                    }
-                });
+                // Sort by expected index
+                children.sort_unstable_by(|a, b| fresh.get(&a.id).cmp(&fresh.get(&b.id)));
+
+                // Update the lens indices
+                for i in 0..children.len() {
+                    children[i].lens.index = i;
+                }
+
+                if children_changed {
+                    ctx.children_changed();
+                } else {
+                    ctx.request_layout();
+                }
             });
-        } else {
-            self.requested_update = false;
-        }
+        });
 
         for child in &mut self.children {
             if !child.widget.is_initialized() {
@@ -241,7 +231,6 @@ where
 
     fn paint(&mut self, ctx: &mut PaintCtx, data: &T, env: &Env) {
         for i in (0..self.children.len()).rev() {
-        // for child in (&mut self.children) {
             let child = &mut self.children[i];
             let lens = &child.lens;
             let widget = &mut child.widget;
