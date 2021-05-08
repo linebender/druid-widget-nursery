@@ -93,10 +93,12 @@ impl<T: Data + PartialEq> Widget<T> for ListSelect<T> {
     }
 }
 
+type ListSelectAction<T> = Box<dyn Fn(&mut EventCtx, &mut T, &Env) + 'static>;
+
 // A Controller to handle arrow key in the list selection widget.
 struct ListSelectController<T> {
     variants: Vec<T>,
-    action: Option<Box<dyn Fn(&mut EventCtx, &mut T, &Env) + 'static>>,
+    action: Option<ListSelectAction<T>>,
 }
 
 impl<T: Data + PartialEq> ListSelectController<T> {

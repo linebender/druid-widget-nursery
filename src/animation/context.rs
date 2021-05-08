@@ -44,8 +44,8 @@ impl AnimationCtx<'_> {
             _ => AnimationCtx {
                 content: AnimationCtxContent::Full(AnimationCtxFull {
                     focus,
-                    animations,
                     additive,
+                    animations,
                 }),
             },
         }
