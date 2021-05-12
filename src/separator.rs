@@ -20,7 +20,6 @@ use druid::{theme, Color, KeyOrValue};
 
 /// A separator widget.
 pub struct Separator {
-    size: KeyOrValue<f64>,
     width: KeyOrValue<f64>,
     color: KeyOrValue<Color>,
     orientation: Orientation,
@@ -35,7 +34,6 @@ pub enum Orientation {
 impl Default for Separator {
     fn default() -> Self {
         Separator {
-            size: theme::BUTTON_BORDER_WIDTH.into(),
             width: theme::BUTTON_BORDER_WIDTH.into(),
             color: theme::BORDER_LIGHT.into(),
             orientation: Orientation::Horizontal,
