@@ -51,7 +51,7 @@ where
 }
 
 type LayoutChildrenCallback<T, U, I> =
-    Box<dyn Fn(&mut Vec<RepeaterChild<U, I>>, &mut LayoutCtx, &BoxConstraints, &T, &Env) -> ()>;
+    Box<dyn Fn(&mut Vec<RepeaterChild<U, I>>, &mut LayoutCtx, &BoxConstraints, &T, &Env)>;
 
 pub struct Repeater<T, U, I, L, W> {
     children: Vec<RepeaterChild<U, I>>,
@@ -215,8 +215,8 @@ where
                 children.sort_unstable_by(|a, b| fresh.get(&a.id).cmp(&fresh.get(&b.id)));
 
                 // Update the lens indices
-                for i in 0..children.len() {
-                    children[i].lens.index = i;
+                for (i, item) in children.iter_mut().enumerate() {
+                    item.lens.index = i;
                 }
 
                 if children_changed {
