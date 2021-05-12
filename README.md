@@ -59,6 +59,7 @@ Maybe you have made your own collection of widgets that aren't general enough to
 
  - [`druid-graphs`]: An alpha quality library for drawing graphs as widgets, taking inspiration from [`matplotlib`]. Currently only supports a few graph types, collaboration welcome! Works well with [`druid-lens-compose`].
  - [`druid_table`] : A table/datagrid widget (also has some interpolation/visualisation stuff currently). Uses [`druid_bindings`]
+ - [`druid-enums`]: A widget for viewing enums, which displays different widgets depending on the variant of its data.
 
 [optimistic merging]: http://hintjens.com/blog:106
 [xi zulip]: https://xi.zulipchat.com/
@@ -67,3 +68,4 @@ Maybe you have made your own collection of widgets that aren't general enough to
 [`druid-lens-compose`]: https://github.com/derekdreery/druid-lens-compose
 [`druid_table`]: https://github.com/rjwittams/druid_table/
 [`druid_bindings`]: https://github.com/rjwittams/druid_bindings
+[`druid-enums`]: https://github.com/Finnerale/druid-enums
