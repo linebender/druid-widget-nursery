@@ -31,6 +31,12 @@ impl AppState {
     }
 }
 
+impl Default for AppState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 fn main_widget() -> impl Widget<AppState> {
     // TODO: Builder pattern
     RepeaterExample {
@@ -39,8 +45,8 @@ fn main_widget() -> impl Widget<AppState> {
             Box::new(|window: &WindowData| window.id),
             Box::new(|_window: &WindowData| Window),
             Box::new(|widgets, ctx, _bc, data: &AppState, env| {
-                for i in 0..widgets.len() {
-                    let widget = widgets[i].widget();
+                for (i, widget_container) in widgets.iter_mut().enumerate() {
+                    let widget = widget_container.widget();
                     let window = &data.windows[i];
 
                     let _widget_size = widget.layout(
@@ -63,7 +69,7 @@ pub fn main() {
 
     AppLauncher::with_window(main_window)
         .log_to_console()
-        .launch(AppState::new())
+        .launch(AppState::default())
         .expect("Failed to launch application");
 }
 
