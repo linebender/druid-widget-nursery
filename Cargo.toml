@@ -11,7 +11,8 @@ hot-reload = ["libloading", "notify5", "rand"]
 
 [dependencies.druid]
 git = "https://github.com/linebender/druid"
-rev = "452328c" # update this when upgrading to newer druid
+rev = "a73120c" # update this when upgrading to newer druid
+features = ["im"]
 # and update examples/hot_reload/Cargo.toml as well
 
 [dependencies]
@@ -38,6 +39,10 @@ required-features = ["async", "tokio/time"]
 
 [[example]]
 name = "animator"
+
+[[example]]
+name = "repeater"
+required-features = ["druid/im"]
 
 [workspace]
 members = ["examples/hot-reload"]

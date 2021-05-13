@@ -29,6 +29,7 @@ pub mod navigator;
 mod on_monitor;
 pub mod prism;
 mod progress_bar;
+mod repeater;
 mod separator;
 pub mod theme_loader;
 mod tooltip;
@@ -49,9 +50,9 @@ pub use list_select::ListSelect;
 pub use multi_value::{MultiCheckbox, MultiRadio};
 pub use on_monitor::{OnMonitor, OnMonitorExt};
 pub use progress_bar::ProgressBar;
+pub use repeater::{Repeater, RepeaterChild};
 pub use separator::{Orientation, Separator};
 pub use tooltip::{TooltipController, TooltipExt};
-
 pub use tree::{Tree, TreeNode, Wedge};
 
 #[cfg(feature = "async")]
