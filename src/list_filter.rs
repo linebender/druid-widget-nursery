@@ -55,10 +55,12 @@ impl<T: Data, I: ListIter<T>> ListIter<T> for FilterIter<I> {
     }
 }
 
+type FilterUpdate<I, D> = dyn Fn(&mut Vector<usize>, usize, &I, Range<usize>, &D);
+
 /// A widget which filters a list for its inner widget.
 pub struct ListFilter<D, T, I> {
     accepted: Vector<usize>,
-    filter_update: Box<dyn Fn(&mut Vector<usize>, usize, &I, Range<usize>, &D)>,
+    filter_update: Box<FilterUpdate<I, D>>,
     inner: Box<dyn Widget<FilterIter<I>>>,
     phantom: PhantomData<T>,
 }
