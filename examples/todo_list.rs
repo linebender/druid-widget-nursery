@@ -1,8 +1,8 @@
 use druid::im::Vector;
-use druid::{ArcStr, Widget, WidgetExt, AppLauncher, UnitPoint};
-use druid::widget::{Flex, Checkbox, Label, Radio, List, TextBox, Button, CrossAxisAlignment};
+use druid::widget::{Button, Checkbox, CrossAxisAlignment, Flex, Label, List, Radio, TextBox};
+use druid::{AppLauncher, ArcStr, UnitPoint, Widget, WidgetExt};
+use druid::{Data, Lens, WindowDesc};
 use druid_widget_nursery::ListFilter;
-use druid::{WindowDesc, Data, Lens};
 use std::sync::Arc;
 
 #[derive(Clone, Data, Lens)]
@@ -21,7 +21,7 @@ struct AppData {
 fn item_ui() -> impl Widget<ListItem> {
     Flex::row()
         .with_child(Checkbox::new(" ").lens(ListItem::finished))
-        .with_child(Label::dynamic(|data: &ListItem, _|data.name.to_string()))
+        .with_child(Label::dynamic(|data: &ListItem, _| data.name.to_string()))
 }
 
 fn main_ui() -> impl Widget<AppData> {
@@ -37,27 +37,36 @@ fn main_ui() -> impl Widget<AppData> {
         .with_child(TextBox::new().lens(AppData::pending))
         .with_child(
             Button::new("Add")
-                .on_click(|_, data: &mut AppData, _|{
-                    data.elements.push_back(ListItem {name: Arc::from(&*data.pending), finished: false});
+                .on_click(|_, data: &mut AppData, _| {
+                    data.elements.push_back(ListItem {
+                        name: Arc::from(&*data.pending),
+                        finished: false,
+                    });
                     data.pending.clear();
                 })
-                .disabled_if(|data: &AppData, _|data.pending.is_empty())
+                .disabled_if(|data: &AppData, _| data.pending.is_empty()),
         );
 
     Flex::column()
         .with_child(filter)
         .with_default_spacer()
-        .with_child(ListFilter::new(
-            List::new(item_ui),
-            |element: &ListItem, filter_option: &Option<bool>|
-                filter_option.clone().map_or(true, |x|element.finished == x)
-        ).lens(druid::lens::Map::new(
-            |data: &AppData|(data.elements.clone(), data.filtered),
-            |data: &mut AppData, inner |{
-                data.elements = inner.0;
-                data.filtered = inner.1;
-            })
-        ))
+        .with_child(
+            ListFilter::new(
+                List::new(item_ui),
+                |element: &ListItem, filter_option: &Option<bool>| {
+                    filter_option
+                        .clone()
+                        .map_or(true, |x| element.finished == x)
+                },
+            )
+            .lens(druid::lens::Map::new(
+                |data: &AppData| (data.elements.clone(), data.filtered),
+                |data: &mut AppData, inner| {
+                    data.elements = inner.0;
+                    data.filtered = inner.1;
+                },
+            )),
+        )
         .with_default_spacer()
         .with_child(new_element)
         .cross_axis_alignment(CrossAxisAlignment::Center)
@@ -71,6 +80,7 @@ fn main() {
         .launch(AppData {
             pending: String::new(),
             filtered: None,
-            elements: Default::default()
-        }).unwrap()
+            elements: Default::default(),
+        })
+        .unwrap()
 }
