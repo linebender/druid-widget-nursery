@@ -52,7 +52,7 @@ fn main_ui() -> impl Widget<AppData> {
             |element: &ListItem, filter_option: &Option<bool>|
                 filter_option.clone().map_or(true, |x|element.finished == x)
         ).lens(druid::lens::Map::new(
-            |data: &AppData|(data.elements.clone(), data.filtered.clone()),
+            |data: &AppData|(data.elements.clone(), data.filtered),
             |data: &mut AppData, inner |{
                 data.elements = inner.0;
                 data.filtered = inner.1;
