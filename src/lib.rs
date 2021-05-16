@@ -33,6 +33,7 @@ mod separator;
 pub mod theme_loader;
 mod tooltip;
 mod tree;
+pub mod splits;
 
 #[cfg(feature = "async")]
 mod future_widget;

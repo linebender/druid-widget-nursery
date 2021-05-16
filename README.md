@@ -32,6 +32,7 @@ If you add a new widget, please add its name and a short summary here.
  - LazySwitcher : a widget like Switcher but the inner widget are created lazily on demand.
  - TooltipController : a convenient way to pop up text tooltips on mouse hover
  - OnMonitor : a helper widget for keeping subwindows from going outside the monitor bounds
+ - Splits : Multiple resizable splits
 
 
 ## ProgressBar Improvements
