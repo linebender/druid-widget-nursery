@@ -98,7 +98,8 @@ fn other_thread(sink: ExtEventSink, rx: Receiver<Request>) {
     });
 }
 
-pub type FutureWidgetAction<T> = Box<dyn FnOnce(&T, &Env) -> BoxFuture<'static, Box<dyn Any + Send>>>;
+pub type FutureWidgetAction<T> =
+    Box<dyn FnOnce(&T, &Env) -> BoxFuture<'static, Box<dyn Any + Send>>>;
 pub type FutureWidgetDone<T, U> = Box<dyn FnOnce(Box<U>, &mut T, &Env) -> Box<dyn Widget<T>>>;
 
 pub struct FutureWidget<T, U> {

@@ -40,12 +40,14 @@ mod future_widget;
 
 #[cfg(feature = "hot-reload")]
 pub mod hot_reload;
+mod list_filter;
 
 pub use canvas::{Canvas, CanvasLayout, CanvasWrap};
 pub use computed::ComputedWidget;
 pub use dropdown::{Dropdown, DROP};
 pub use dropdown_select::DropdownSelect;
 pub use dynamic_sized_box::DynamicSizedBox;
+pub use list_filter::{FilterIter, ListFilter};
 pub use list_select::ListSelect;
 pub use multi_value::{MultiCheckbox, MultiRadio};
 pub use on_monitor::{OnMonitor, OnMonitorExt};
