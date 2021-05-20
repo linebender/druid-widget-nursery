@@ -40,5 +40,7 @@ required-features = ["async", "tokio/time"]
 [[example]]
 name = "animator"
 
+[[example]]
+name = "splits"
 [workspace]
 members = ["examples/hot-reload"]
