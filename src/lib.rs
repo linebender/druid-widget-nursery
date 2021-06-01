@@ -24,6 +24,8 @@ mod dropdown_select;
 mod dynamic_sized_box;
 pub mod enum_switcher;
 mod list_select;
+#[macro_use]
+mod macros;
 mod multi_value;
 pub mod navigator;
 mod on_monitor;
