@@ -54,9 +54,7 @@ fn main_ui() -> impl Widget<AppData> {
             ListFilter::new(
                 List::new(item_ui),
                 |element: &ListItem, filter_option: &Option<bool>| {
-                    filter_option
-                        .clone()
-                        .map_or(true, |x| element.finished == x)
+                    (*filter_option).map_or(true, |x| element.finished == x)
                 },
             )
             .lens(druid::lens::Map::new(
