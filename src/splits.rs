@@ -1,8 +1,11 @@
 use std::cmp::Ordering;
 
-use druid::{Cursor, widget::prelude::*};
-use druid::{BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Point, Rect, Size, UpdateCtx, Widget, WidgetPod, theme};
 use druid::widget::{Axis, ListIter};
+use druid::{
+    theme, BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx,
+    PaintCtx, Point, Rect, Size, UpdateCtx, Widget, WidgetPod,
+};
+use druid::{widget::prelude::*, Cursor};
 use log::trace;
 
 /// Split meet List, with resizable width/height, use like a List
@@ -19,7 +22,7 @@ pub struct Splits<T> {
 
 impl<T: Data> Splits<T> {
     pub fn new<W: Widget<T> + 'static>(closure: impl Fn() -> W + 'static) -> Self {
-        Splits { 
+        Splits {
             closure: Box::new(move || Box::new(closure())),
             children: Vec::new(),
             axis: Axis::Vertical,
@@ -39,13 +42,13 @@ impl<T: Data> Splits<T> {
     fn update_child_count(&mut self, data: &impl ListIter<T>, _env: &Env, index: i8) -> bool {
         let len = self.children.len();
         match len.cmp(&data.data_len()) {
-            Ordering::Greater => { 
+            Ordering::Greater => {
                 if index >= 0 && (index as usize) < self.children.len() {
                     self.children.remove(index as usize);
                     self.major_pos_vec.truncate(data.data_len());
                     // TODO: recalculate positions after removal
                 }
-            },
+            }
             Ordering::Less => data.for_each(|_, i| {
                 if i >= len {
                     let child = WidgetPod::new((self.closure)());
@@ -90,10 +93,7 @@ impl<T: Data> Splits<T> {
             let bar_end = pos;
             let bar_start_point: Point = self.axis.pack(bar_start, 0.).into();
             let bar_end_point: Point = self.axis.pack(*bar_end, minor).into();
-            let bar_rect = Rect::from_points(
-                bar_start_point,
-                bar_end_point,
-            );
+            let bar_rect = Rect::from_points(bar_start_point, bar_end_point);
             ctx.fill(bar_rect, &splitter_color);
         });
     }
@@ -141,12 +141,7 @@ impl<T: Data> Splits<T> {
 }
 
 // Copy of Axis.constraints() because is crate only
-fn axis_constraints(
-    axis: Axis,
-    bc: &BoxConstraints,
-    min_major: f64,
-    major: f64,
-) -> BoxConstraints {
+fn axis_constraints(axis: Axis, bc: &BoxConstraints, min_major: f64, major: f64) -> BoxConstraints {
     match axis {
         Axis::Horizontal => BoxConstraints::new(
             Size::new(min_major, bc.min().height),
@@ -169,46 +164,45 @@ impl<C: Data, T: ListIter<C>> Widget<T> for Splits<C> {
         });
 
         if self.draggable {
-             match event {
-                 Event::MouseDown(mouse) => {
-                     if mouse.button.is_left() {
-                         let bar_idx = self.bar_hit_test(mouse.pos);
-                         if bar_idx >= 0 {
-                             self.bar_selected = bar_idx;
-                             ctx.set_active(true);
-                             ctx.set_handled();
-                         }
-                     }
-                 }
-                 Event::MouseUp(mouse) => {
-                     if mouse.button.is_left() && ctx.is_active() {
-                         ctx.set_active(false);
-                         self.update_bar_pos(mouse.pos);
-                         ctx.request_paint();
-                         self.bar_selected = 0;
-                     }
-                 }
-                 Event::MouseMove(mouse) => {
-                     if ctx.is_active() {
-                         self.update_bar_pos(mouse.pos);
-                         ctx.request_layout();
-                     }
-        
-                     if ctx.is_hot() || ctx.is_active() {
-                         if self.bar_hit_test(mouse.pos) >= 0 {
-                             match self.axis {
-                                 Axis::Horizontal => ctx.set_cursor(&Cursor::ResizeLeftRight),
-                                 Axis::Vertical => ctx.set_cursor(&Cursor::ResizeUpDown),
-                             }
-                         } else {
-                             ctx.clear_cursor();
-                         }
-                     }
-                 }
-                 _ => {}
-             }
-        }
+            match event {
+                Event::MouseDown(mouse) => {
+                    if mouse.button.is_left() {
+                        let bar_idx = self.bar_hit_test(mouse.pos);
+                        if bar_idx >= 0 {
+                            self.bar_selected = bar_idx;
+                            ctx.set_active(true);
+                            ctx.set_handled();
+                        }
+                    }
+                }
+                Event::MouseUp(mouse) => {
+                    if mouse.button.is_left() && ctx.is_active() {
+                        ctx.set_active(false);
+                        self.update_bar_pos(mouse.pos);
+                        ctx.request_paint();
+                        self.bar_selected = 0;
+                    }
+                }
+                Event::MouseMove(mouse) => {
+                    if ctx.is_active() {
+                        self.update_bar_pos(mouse.pos);
+                        ctx.request_layout();
+                    }
 
+                    if ctx.is_hot() || ctx.is_active() {
+                        if self.bar_hit_test(mouse.pos) >= 0 {
+                            match self.axis {
+                                Axis::Horizontal => ctx.set_cursor(&Cursor::ResizeLeftRight),
+                                Axis::Vertical => ctx.set_cursor(&Cursor::ResizeUpDown),
+                            }
+                        } else {
+                            ctx.clear_cursor();
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
     }
 
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
@@ -269,13 +263,13 @@ impl<C: Data, T: ListIter<C>> Widget<T> for Splits<C> {
                     return;
                 }
             };
-            
+
             let child_pos: Point = axis.pack(major_pos, 0.).into();
             let last_pos = major_pos;
 
             major_pos = match major_pos_vec_iter.next() {
                 Some(p) => *p,
-                None => { 
+                None => {
                     return;
                 }
             };
@@ -306,4 +300,3 @@ impl<C: Data, T: ListIter<C>> Widget<T> for Splits<C> {
         });
     }
 }
-

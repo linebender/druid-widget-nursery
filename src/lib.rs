@@ -32,10 +32,10 @@ mod on_monitor;
 pub mod prism;
 mod progress_bar;
 mod separator;
+pub mod splits;
 pub mod theme_loader;
 mod tooltip;
 mod tree;
-pub mod splits;
 
 #[cfg(feature = "async")]
 mod future_widget;
