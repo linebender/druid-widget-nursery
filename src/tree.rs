@@ -24,13 +24,15 @@ use druid::theme;
 use druid::widget::Label;
 use druid::{
     BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx,
-    Point, UpdateCtx, Widget, WidgetPod,
+    Point, Selector, UpdateCtx, Widget, WidgetPod,
 };
+
+pub const TREE_CHILD_CREATED: Selector<()> = Selector::new("druid-widget-nursery.tree.child_created");
 
 /// A tree widget for a collection of items organized in a hierachical way.
 pub struct Tree<T>
 where
-    T: TreeNode + Data + Default,
+    T: TreeNode,
 {
     /// The root node of this tree
     root_node: TreeNodeWidget<T>,
@@ -38,7 +40,10 @@ where
 
 /// A tree node, with methods providing its own label and its children.
 /// This is the data expected by the tree widget.
-pub trait TreeNode {
+pub trait TreeNode
+where
+    Self: Data,
+{
     /// Returns how many children are below this node. It could be zero if this is a leaf.
     fn children_count(&self) -> usize;
 
@@ -135,13 +140,13 @@ impl Widget<bool> for Wedge {
     }
 }
 
-type WidgetFactoryCallback<T> = Arc<Box<dyn Fn(&T) -> Box<dyn Widget<T>>>>;
+type WidgetFactoryCallback<T> = Arc<Box<dyn Fn() -> Box<dyn Widget<T>>>>;
 
 /// An internal widget used to display a single node and its children
 /// This is used recursively to build the tree.
 struct TreeNodeWidget<T>
 where
-    T: TreeNode + Data + Default,
+    T: TreeNode,
 {
     // The "wedge" widget,
     wedge: WidgetPod<bool, Wedge>,
@@ -161,18 +166,12 @@ where
     make_widget: WidgetFactoryCallback<T>,
 }
 
-impl<T: TreeNode + Data + Default> TreeNodeWidget<T> {
-    /// Create an empty default tree node widget
-    fn default(make_widget: WidgetFactoryCallback<T>) -> Self {
-        let default_node = T::default();
-        Self::from_node(&default_node, make_widget)
-    }
-
+impl<T: TreeNode> TreeNodeWidget<T> {
     /// Create a TreeNodeWidget from a TreeNode.
-    fn from_node(node: &T, make_widget: WidgetFactoryCallback<T>) -> Self {
+    fn new(make_widget: WidgetFactoryCallback<T>) -> Self {
         TreeNodeWidget {
             wedge: WidgetPod::new(Wedge::new()),
-            widget: WidgetPod::new(Box::new((make_widget)(node))),
+            widget: WidgetPod::new(Box::new((make_widget)())),
             expanded: false,
             children: BTreeMap::new(),
             make_widget,
@@ -187,12 +186,9 @@ impl<T: TreeNode + Data + Default> TreeNodeWidget<T> {
             for index in 0..data.children_count() {
                 new_children |= !self.children.contains_key(&index);
                 let make_widget = self.make_widget.clone();
-                self.children.entry(index).or_insert_with(|| {
-                    WidgetPod::new(TreeNodeWidget::from_node(
-                        data.get_child(index),
-                        make_widget,
-                    ))
-                });
+                self.children
+                    .entry(index)
+                    .or_insert_with(|| WidgetPod::new(TreeNodeWidget::new(make_widget)));
             }
         }
         self.expanded = expanded;
@@ -200,16 +196,20 @@ impl<T: TreeNode + Data + Default> TreeNodeWidget<T> {
     }
 
     /// Build the widget for this node, from the provided data
-    fn make_widget(&mut self, data: &T) {
-        self.widget = WidgetPod::new((self.make_widget)(data));
+    fn make_widget(&mut self) {
+        self.widget = WidgetPod::new((self.make_widget)());
     }
 }
 
-impl<T: TreeNode + Data + Default> Widget<T> for TreeNodeWidget<T> {
+impl<T: TreeNode> Widget<T> for TreeNodeWidget<T>
+where
+    T: TreeNode,
+{
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
-        // We first propagate the event down to the label and children nodes,
-        // as those may change if this is an "expand" event
+        // eprintln!("{:?}", event);
         self.widget.event(ctx, event, data, env);
+
+        // FIXME: we shoudldn't pass notification DOWN the tree, should we ?
         for (index, child_widget_node) in self.children.iter_mut() {
             let child_tree_node = data.get_child_mut(*index);
             child_widget_node.event(ctx, event, child_tree_node, env);
@@ -220,17 +220,26 @@ impl<T: TreeNode + Data + Default> Widget<T> for TreeNodeWidget<T> {
         self.wedge.event(ctx, event, &mut wegde_expanded, env);
 
         // Handle possible creation of new children nodes
-        if let Event::MouseUp(_) = event {
-            if wegde_expanded != self.expanded {
-                // The wedge widget has decided to change the expanded/collapsed state of the node,
-                // handle it by expanding/collapsing children nodes as required.
-                ctx.request_layout();
-                self.expanded = wegde_expanded;
-                if self.expand(data, wegde_expanded) {
-                    // New children were created, inform the context.
+        match event {
+            Event::MouseUp(_) => {
+                if wegde_expanded != self.expanded {
+                    // The wedge widget has decided to change the expanded/collapsed state of the node,
+                    // handle it by expanding/collapsing children nodes as required.
+                    ctx.request_layout();
+                    self.expanded = wegde_expanded;
+                    if self.expand(data, wegde_expanded) {
+                        // New children were created, inform the context.
+                        ctx.children_changed();
+                    }
+                }
+            }
+            Event::Notification(notif) => {
+                if notif.is(TREE_CHILD_CREATED) {
+                    if self.expand(data, wegde_expanded) {}
                     ctx.children_changed();
                 }
             }
+            _ => (),
         }
     }
 
@@ -243,7 +252,25 @@ impl<T: TreeNode + Data + Default> Widget<T> for TreeNodeWidget<T> {
         }
     }
 
-    fn update(&mut self, _ctx: &mut UpdateCtx, _old_data: &T, _data: &T, _env: &Env) {}
+    fn update(&mut self, ctx: &mut UpdateCtx, old_data: &T, data: &T, env: &Env) {
+        if !old_data.same(data) {
+            // if env.get(Env::DEBUG_WIDGET) {
+            //     // eprintln!("data {:?}", data.children_count());
+            //     eprintln!("Update");
+            //     eprintln!("{:?}", data);
+            //     eprintln!("{:?}", old_data);
+            // }
+            self.wedge.update(ctx, &self.expanded, env);
+            self.widget.update(ctx, data, env);
+            for (index, child_widget_node) in self.children.iter_mut() {
+                let child_tree_node = data.get_child(*index);
+                // let old_child_tree_node = old_data.get_child(*index);
+                child_widget_node.update(ctx, child_tree_node, env);
+            }
+            ctx.request_layout();
+            ctx.children_changed();
+        }
+    }
 
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> Size {
         let basic_size = env.get(theme::BASIC_WIDGET_HEIGHT);
@@ -266,7 +293,7 @@ impl<T: TreeNode + Data + Default> Widget<T> for TreeNodeWidget<T> {
             ctx,
             &BoxConstraints::new(
                 Size::new(min_width, basic_size),
-                Size::new(max_width, basic_size),
+                Size::new(max_width, basic_size + 100.),
             ),
             data,
             env,
@@ -330,38 +357,38 @@ impl<T: TreeNode + Data + Default> Widget<T> for TreeNodeWidget<T> {
 }
 
 /// Tree Implementation
-impl<T: TreeNode + Data + Default> Tree<T> {
+impl<T: TreeNode> Tree<T> {
     /// Create a new Tree widget
-    pub fn new<W: Widget<T> + 'static>(make_widget: impl Fn(&T) -> W + 'static) -> Self {
+    pub fn new<W: Widget<T> + 'static>(make_widget: impl Fn() -> W + 'static) -> Self {
         let boxed_closure: WidgetFactoryCallback<T> =
-            Arc::new(Box::new(move |n: &T| Box::new(make_widget(n))));
+            Arc::new(Box::new(move || Box::new(make_widget())));
         Tree {
-            root_node: TreeNodeWidget::default(boxed_closure),
+            root_node: TreeNodeWidget::new(boxed_closure),
         }
     }
 }
 
 /// Default tree implementation, supplying Label if the nodes implement the Display trait
-impl<T: TreeNode + Data + Default + Display> Default for Tree<T> {
+impl<T: TreeNode + Display> Default for Tree<T> {
     fn default() -> Self {
-        let boxed_closure: WidgetFactoryCallback<T> = Arc::new(Box::new(move |n: &T| {
-            Box::new(Label::new(format!("{}", n)))
+        let boxed_closure: WidgetFactoryCallback<T> = Arc::new(Box::new(|| {
+            Box::new(Label::dynamic(|data: &T, _env| format!("{}", data)))
         }));
         Tree {
-            root_node: TreeNodeWidget::default(boxed_closure),
+            root_node: TreeNodeWidget::new(boxed_closure),
         }
     }
 }
 
 // Implement the Widget trait for Tree
-impl<T: TreeNode + Data + Default> Widget<T> for Tree<T> {
+impl<T: TreeNode> Widget<T> for Tree<T> {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
         self.root_node.event(ctx, event, data, env);
     }
 
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
         if let LifeCycle::WidgetAdded = event {
-            self.root_node.make_widget(data);
+            self.root_node.make_widget();
             // Always expand the first level
             if self.root_node.expand(data, true) {
                 ctx.children_changed();

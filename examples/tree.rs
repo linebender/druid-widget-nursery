@@ -14,30 +14,51 @@
 
 //! Demos basic tree widget and tree manipulations.
 use std::fmt;
-use std::vec::Vec;
 
-use druid::widget::{Label, Scroll};
-use druid::{AppLauncher, Data, Lens, LocalizedString, Widget, WindowDesc};
-use druid_widget_nursery::{Tree, TreeNode};
+use druid::im::Vector;
+use druid::widget::{Button, Either, Flex, Label, Scroll, TextBox};
+use druid::{AppLauncher, Data, Lens, LocalizedString, Widget, WidgetExt, WindowDesc};
+use druid_widget_nursery::{Tree, TreeNode, TREE_CHILD_CREATED};
 
-#[derive(Clone, Lens)]
+#[derive(Clone, Lens, Debug, Data)]
 struct Taxonomy {
     name: String,
-    children: Vec<Taxonomy>,
+    editing: bool,
+    children: Vector<Taxonomy>,
 }
+
+// I'm not sure but it seems that Data for im::Vector implementation is broken (or I don't
+// use Vectors correctly...
+// impl Data for Taxonomy {
+//     fn same(&self, other: &Self) -> bool {
+//         self.name == other.name
+//             && self.editing == other.editing
+//             && self.children.len() == other.children.len()
+//             && self
+//                 .children
+//                 .iter()
+//                 .zip(other.children.iter())
+//                 .all(|(a, b)| a.same(b))
+//     }
+// }
 
 /// We use Taxonomy as a tree node, implementing both the Data and TreeNode traits.
 impl Taxonomy {
     fn new(name: &'static str) -> Self {
         Taxonomy {
             name: name.to_string(),
-            children: Vec::new(),
+            editing: false,
+            children: Vector::new(),
         }
     }
 
     fn add_child(mut self, child: Self) -> Self {
-        self.children.push(child);
+        self.children.push_back(child);
         self
+    }
+
+    fn ref_add_child(&mut self, child: Self) {
+        self.children.push_back(child);
     }
 }
 
@@ -45,20 +66,9 @@ impl Default for Taxonomy {
     fn default() -> Self {
         Taxonomy {
             name: "Life".to_string(),
-            children: Vec::new(),
+            editing: false,
+            children: Vector::new(),
         }
-    }
-}
-
-impl Data for Taxonomy {
-    fn same(&self, other: &Self) -> bool {
-        self.name.same(&other.name)
-            && self.children.len() == other.children.len()
-            && self
-                .children
-                .iter()
-                .zip(other.children.iter())
-                .all(|(a, b)| a.same(b))
     }
 }
 
@@ -93,38 +103,9 @@ pub fn main() {
         .add_child(
             Taxonomy::new("Animalia")
                 .add_child(
-                    Taxonomy::new("Mammalia")
-                        .add_child(
-                            Taxonomy::new("Primates")
-                                .add_child(
-                                    Taxonomy::new("Homo")
-                                        .add_child(Taxonomy::new("Homo sapiens"))
-                                        .add_child(Taxonomy::new("Homo troglodytes")),
-                                )
-                                .add_child(Taxonomy::new("Simia"))
-                                .add_child(
-                                    Taxonomy::new("Lemur")
-                                        .add_child(Taxonomy::new("Lemur tardigradus"))
-                                        .add_child(Taxonomy::new("Lemur catta"))
-                                        .add_child(Taxonomy::new("Lemur volans")),
-                                )
-                                .add_child(Taxonomy::new("Vespertilio")),
-                        )
-                        .add_child(Taxonomy::new("Bruta"))
-                        .add_child(Taxonomy::new("Ferae"))
-                        .add_child(Taxonomy::new("Bestiae"))
-                        .add_child(Taxonomy::new("Glires"))
-                        .add_child(Taxonomy::new("Pecora"))
-                        .add_child(Taxonomy::new("Belluae"))
-                        .add_child(Taxonomy::new("Cete")),
-                )
-                .add_child(
                     Taxonomy::new("Aves")
                         .add_child(Taxonomy::new("Accipitres"))
                         .add_child(Taxonomy::new("Picae"))
-                        .add_child(Taxonomy::new("Anseres"))
-                        .add_child(Taxonomy::new("Grallae"))
-                        .add_child(Taxonomy::new("Gallinae"))
                         .add_child(Taxonomy::new("Passeres")),
                 )
                 .add_child(
@@ -134,30 +115,17 @@ pub fn main() {
                         .add_child(Taxonomy::new("Nantes")),
                 )
                 .add_child(Taxonomy::new("Pisces"))
-                .add_child(Taxonomy::new("Insecta"))
-                .add_child(
-                    Taxonomy::new("Vermes")
-                        .add_child(Taxonomy::new("Intestina"))
-                        .add_child(Taxonomy::new("Mollusca"))
-                        .add_child(Taxonomy::new("Testacea"))
-                        .add_child(Taxonomy::new("Lithophyta"))
-                        .add_child(Taxonomy::new("Zoophyta")),
-                ),
+                .add_child(Taxonomy::new("Insecta")),
         )
         .add_child(
             Taxonomy::new("Vegetalia")
                 .add_child(Taxonomy::new("Monandria"))
                 .add_child(Taxonomy::new("Diandria"))
-                .add_child(Taxonomy::new("Triandria"))
-                .add_child(Taxonomy::new("Tetrandria"))
-                .add_child(Taxonomy::new("Pentandria"))
-                .add_child(Taxonomy::new("Hexandria"))
                 .add_child(Taxonomy::new("Heptandria")),
         )
         .add_child(
             Taxonomy::new("Mineralia")
                 .add_child(Taxonomy::new("Petræ"))
-                .add_child(Taxonomy::new("Mineræ"))
                 .add_child(Taxonomy::new("Fossilia"))
                 .add_child(Taxonomy::new("Vitamentra")),
         );
@@ -170,13 +138,39 @@ pub fn main() {
 }
 
 fn ui_builder() -> impl Widget<Taxonomy> {
-    Scroll::new(Tree::new(|t: &Taxonomy| Label::new(t.name.as_str())))
+    Scroll::new(
+        Tree::new(|| {
+            Either::new(
+                |data, _env| (*data).editing,
+                Flex::row()
+                    .with_child(
+                        TextBox::new()
+                            .with_placeholder("new item")
+                            .lens(Taxonomy::name),
+                    )
+                    .with_child(
+                        Button::new("Save").on_click(|_ctx, data: &mut Taxonomy, _env| {
+                            data.editing = false;
+                        }),
+                    ),
+                Flex::row()
+                    .with_child(Label::dynamic(|data: &Taxonomy, _env| data.name.clone()))
+                    .with_child(Button::new("+").on_click(|ctx, data: &mut Taxonomy, _env| {
+                        data.ref_add_child({
+                            let mut child = Taxonomy::new("");
+                            child.editing = true;
+                            child
+                        });
+                        // The Tree widget must be notified about the change
+                        ctx.submit_notification(TREE_CHILD_CREATED);
+                    }))
+                    .with_child(Button::new("Edit").on_click(|ctx, data: &mut Taxonomy, _env| {
+                        data.editing = true;
+                        // The Tree widget must be notified about the change
+                        ctx.submit_notification(TREE_CHILD_CREATED);
+                    })
+                    ),
+            )
+        }), // .debug_widget(),
+    )
 }
-
-//fn ui_builder_2() -> impl Widget<Taxonomy> {
-//    let mut flex = Flex::row().cross_axis_alignment(CrossAxisAlignment::Start);
-//    flex.add_child(Scroll::new(Tree::default().padding(8.0)));
-//    flex.add_child(Scroll::new(Tree::new(|_| TextBox::new().lens(Taxonomy::name))).padding(8.0));
-//    flex.add_child(Scroll::new(Tree::new(|t: &Taxonomy| Label::new(t.name.as_str()))).padding(8.0));
-//    flex
-//}
