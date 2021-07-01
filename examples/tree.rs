@@ -27,22 +27,7 @@ struct Taxonomy {
     children: Vector<Taxonomy>,
 }
 
-// I'm not sure but it seems that Data for im::Vector implementation is broken (or I don't
-// use Vectors correctly...
-// impl Data for Taxonomy {
-//     fn same(&self, other: &Self) -> bool {
-//         self.name == other.name
-//             && self.editing == other.editing
-//             && self.children.len() == other.children.len()
-//             && self
-//                 .children
-//                 .iter()
-//                 .zip(other.children.iter())
-//                 .all(|(a, b)| a.same(b))
-//     }
-// }
-
-/// We use Taxonomy as a tree node, implementing both the Data and TreeNode traits.
+/// We use Taxonomy as a tree node, implementing the TreeNode trait.
 impl Taxonomy {
     fn new(name: &'static str) -> Self {
         Taxonomy {
@@ -59,16 +44,6 @@ impl Taxonomy {
 
     fn ref_add_child(&mut self, child: Self) {
         self.children.push_back(child);
-    }
-}
-
-impl Default for Taxonomy {
-    fn default() -> Self {
-        Taxonomy {
-            name: "Life".to_string(),
-            editing: false,
-            children: Vector::new(),
-        }
     }
 }
 
@@ -143,7 +118,10 @@ pub fn main() {
 
 fn ui_builder() -> impl Widget<Taxonomy> {
     Scroll::new(
+        // Tree takes a closure to build the tree items widgets
         Tree::new(|| {
+            // Our items are editable. If editing is true, we show a TextBox of the name,
+            // otherwise it's a Label
             Either::new(
                 |data, _env| (*data).editing,
                 Flex::row()
@@ -158,7 +136,9 @@ fn ui_builder() -> impl Widget<Taxonomy> {
                         }),
                     ),
                 Flex::row()
+                    // First, there's the Label
                     .with_child(Label::dynamic(|data: &Taxonomy, _env| data.name.clone()))
+                    // The "add child" button
                     .with_child(Button::new("+").on_click(|ctx, data: &mut Taxonomy, _env| {
                         data.ref_add_child({
                             let mut child = Taxonomy::new("");
@@ -168,17 +148,20 @@ fn ui_builder() -> impl Widget<Taxonomy> {
                         // The Tree widget must be notified about the change
                         ctx.submit_notification(TREE_CHILD_CREATED);
                     }))
+                    // The "delete node" button
                     .with_child(
-                        Button::new("Edit").on_click(|ctx, data: &mut Taxonomy, _env| {
+                        Button::new("Edit").on_click(|_ctx, data: &mut Taxonomy, _env| {
                             data.editing = true;
-                            // The Tree widget must be notified about the change
-                            ctx.submit_notification(TREE_CHILD_CREATED);
                         }),
                     )
-                    .with_child(Button::new("-").on_click(|ctx, data: &mut Taxonomy, _env| {
-                        // The Tree widget must be notified about the change
-                        ctx.submit_notification(TREE_CHILD_REMOVE);
-                    })),
+                    .with_child(
+                        Button::new("-").on_click(|ctx, _data: &mut Taxonomy, _env| {
+                            // Tell the parent to remove the item. The parent handles this notification by
+                            // 1. remove the child widget
+                            // 2. call TreeNode::rm_child from its data (the parent Taxonomy node, here)
+                            ctx.submit_notification(TREE_CHILD_REMOVE);
+                        }),
+                    ),
             )
         }), // .debug_widget(),
     )

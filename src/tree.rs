@@ -62,6 +62,7 @@ where
     where
         Self: Sized;
 
+    #[allow(unused_variables)]
     fn rm_child(&mut self, index: usize) {}
 }
 
@@ -171,12 +172,12 @@ where
 
 impl<T: TreeNode> TreeNodeWidget<T> {
     /// Create a TreeNodeWidget from a TreeNode.
-    fn new(make_widget: WidgetFactoryCallback<T>, index: usize) -> Self {
+    fn new(make_widget: WidgetFactoryCallback<T>, index: usize, expanded: bool) -> Self {
         TreeNodeWidget {
             index,
             wedge: WidgetPod::new(Wedge::new()),
             widget: WidgetPod::new(Box::new((make_widget)())),
-            expanded: false,
+            expanded,
             children: Vec::new(),
             make_widget,
         }
@@ -184,9 +185,9 @@ impl<T: TreeNode> TreeNodeWidget<T> {
 
     /// Expand or collapse the node.
     /// Returns whether new children were created.
-    fn expand(&mut self, data: &T, expanded: bool) -> bool {
-        let mut new_children = false;
-        if expanded {
+    fn update_children(&mut self, data: &T) -> bool {
+        if self.expanded {
+            let mut new_children = false;
             for index in 0..data.children_count() {
                 new_children |= index >= self.children.len();
                 match self.children.get_mut(index) {
@@ -194,12 +195,14 @@ impl<T: TreeNode> TreeNodeWidget<T> {
                     None => self.children.push(WidgetPod::new(TreeNodeWidget::new(
                         self.make_widget.clone(),
                         index,
+                        false,
                     ))),
                 }
             }
+            new_children
+        } else {
+            false
         }
-        self.expanded = expanded;
-        new_children
     }
 
     /// Build the widget for this node, from the provided data
@@ -214,31 +217,31 @@ where
 {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
         // eprintln!("{:?}", event);
-        match event {
-            Event::Notification(notif) => {
-                if notif.is(TREE_CHILD_CREATED) {
-                    self.expanded = true;
-                    self.expand(data, self.expanded);
-                    ctx.set_handled();
-                    ctx.children_changed();
-                } else if notif.is(TREE_CHILD_REMOVE) {
-                    ctx.submit_notification(TREE_CHILD_REMOVE_INTERNAL.with(self.index as i32));
-                    ctx.set_handled();
-                } else if notif.is(TREE_CHILD_REMOVE_INTERNAL) {
-                    ctx.set_handled();
-                    let index = notif.get(TREE_CHILD_REMOVE_INTERNAL).unwrap();
-                    let index = usize::try_from(*index).unwrap();
-                    self.children.remove(index);
-                    data.rm_child(usize::try_from(index).unwrap());
-                    // ctx.submit_notification(TREE_CHILD_CREATED);
-                    self.expand(data, self.expanded);
-                    ctx.set_handled();
-                    ctx.children_changed();
-                }
-                return;
+        if let Event::Notification(notif) = event {
+            if notif.is(TREE_CHILD_CREATED) {
+                self.expanded = true;
+                self.update_children(data);
+                ctx.set_handled();
+                ctx.children_changed();
+            } else if notif.is(TREE_CHILD_REMOVE) {
+                // we were comanded to remove ourselves. Let's tell our parent.
+                ctx.submit_notification(TREE_CHILD_REMOVE_INTERNAL.with(self.index as i32));
+                ctx.set_handled();
+            } else if notif.is(TREE_CHILD_REMOVE_INTERNAL) {
+                // get the index to remove from the notification
+                let index =
+                    usize::try_from(*notif.get(TREE_CHILD_REMOVE_INTERNAL).unwrap()).unwrap();
+                // remove the widget and the data
+                self.children.remove(index);
+                data.rm_child(index);
+                // update our children
+                self.update_children(data);
+                ctx.set_handled();
+                ctx.children_changed();
             }
-            _ => (),
+            return;
         }
+
         self.widget.event(ctx, event, data, env);
 
         for (index, child_widget_node) in self.children.iter_mut().enumerate() {
@@ -251,20 +254,17 @@ where
         self.wedge.event(ctx, event, &mut wegde_expanded, env);
 
         // Handle possible creation of new children nodes
-        match event {
-            Event::MouseUp(_) => {
-                if wegde_expanded != self.expanded {
-                    // The wedge widget has decided to change the expanded/collapsed state of the node,
-                    // handle it by expanding/collapsing children nodes as required.
-                    ctx.request_layout();
-                    self.expanded = wegde_expanded;
-                    if self.expand(data, wegde_expanded) {
-                        // New children were created, inform the context.
-                        ctx.children_changed();
-                    }
+        if let Event::MouseUp(_) = event {
+            if wegde_expanded != self.expanded {
+                // The wedge widget has decided to change the expanded/collapsed state of the node,
+                // handle it by expanding/collapsing children nodes as required.
+                ctx.request_layout();
+                self.expanded = wegde_expanded;
+                if self.update_children(data) {
+                    // New children were created, inform the context.
+                    ctx.children_changed();
                 }
             }
-            _ => (),
         }
     }
 
@@ -279,12 +279,6 @@ where
 
     fn update(&mut self, ctx: &mut UpdateCtx, old_data: &T, data: &T, env: &Env) {
         if !old_data.same(data) {
-            // if env.get(Env::DEBUG_WIDGET) {
-            //     // eprintln!("data {:?}", data.children_count());
-            //     eprintln!("Update");
-            //     eprintln!("{:?}", data);
-            //     eprintln!("{:?}", old_data);
-            // }
             self.wedge.update(ctx, &self.expanded, env);
             self.widget.update(ctx, data, env);
             for (index, child_widget_node) in self.children.iter_mut().enumerate() {
@@ -297,6 +291,7 @@ where
         }
     }
 
+    // TODO: the height calculation seems to ignore the inner widget (at least on X11). issue #61
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> Size {
         let basic_size = env.get(theme::BASIC_WIDGET_HEIGHT);
         let indent = env.get(theme::BASIC_WIDGET_HEIGHT); // For a lack of a better definition
@@ -318,7 +313,7 @@ where
             ctx,
             &BoxConstraints::new(
                 Size::new(min_width, basic_size),
-                Size::new(max_width, basic_size + 100.),
+                Size::new(max_width, basic_size),
             ),
             data,
             env,
@@ -388,7 +383,7 @@ impl<T: TreeNode> Tree<T> {
         let boxed_closure: WidgetFactoryCallback<T> =
             Arc::new(Box::new(move || Box::new(make_widget())));
         Tree {
-            root_node: TreeNodeWidget::new(boxed_closure, 0),
+            root_node: TreeNodeWidget::new(boxed_closure, 0, true),
         }
     }
 }
@@ -400,7 +395,7 @@ impl<T: TreeNode + Display> Default for Tree<T> {
             Box::new(Label::dynamic(|data: &T, _env| format!("{}", data)))
         }));
         Tree {
-            root_node: TreeNodeWidget::new(boxed_closure, 0),
+            root_node: TreeNodeWidget::new(boxed_closure, 0, true),
         }
     }
 }
@@ -415,7 +410,7 @@ impl<T: TreeNode> Widget<T> for Tree<T> {
         if let LifeCycle::WidgetAdded = event {
             self.root_node.make_widget();
             // Always expand the first level
-            if self.root_node.expand(data, true) {
+            if self.root_node.update_children(data) {
                 ctx.children_changed();
             }
         }
