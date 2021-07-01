@@ -18,7 +18,7 @@ use std::fmt;
 use druid::im::Vector;
 use druid::widget::{Button, Either, Flex, Label, Scroll, TextBox};
 use druid::{AppLauncher, Data, Lens, LocalizedString, Widget, WidgetExt, WindowDesc};
-use druid_widget_nursery::{Tree, TreeNode, TREE_CHILD_CREATED};
+use druid_widget_nursery::{Tree, TreeNode, TREE_CHILD_CREATED, TREE_CHILD_REMOVE};
 
 #[derive(Clone, Lens, Debug, Data)]
 struct Taxonomy {
@@ -83,6 +83,10 @@ impl TreeNode for Taxonomy {
 
     fn get_child_mut(&mut self, index: usize) -> &mut Taxonomy {
         &mut self.children[index]
+    }
+
+    fn rm_child(&mut self, index: usize) {
+        self.children.remove(index);
     }
 }
 
@@ -164,12 +168,17 @@ fn ui_builder() -> impl Widget<Taxonomy> {
                         // The Tree widget must be notified about the change
                         ctx.submit_notification(TREE_CHILD_CREATED);
                     }))
-                    .with_child(Button::new("Edit").on_click(|ctx, data: &mut Taxonomy, _env| {
-                        data.editing = true;
+                    .with_child(
+                        Button::new("Edit").on_click(|ctx, data: &mut Taxonomy, _env| {
+                            data.editing = true;
+                            // The Tree widget must be notified about the change
+                            ctx.submit_notification(TREE_CHILD_CREATED);
+                        }),
+                    )
+                    .with_child(Button::new("-").on_click(|ctx, data: &mut Taxonomy, _env| {
                         // The Tree widget must be notified about the change
-                        ctx.submit_notification(TREE_CHILD_CREATED);
-                    })
-                    ),
+                        ctx.submit_notification(TREE_CHILD_REMOVE);
+                    })),
             )
         }), // .debug_widget(),
     )

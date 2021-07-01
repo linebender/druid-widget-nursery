@@ -14,7 +14,7 @@
 
 //! A tree widget.
 
-use std::collections::BTreeMap;
+use std::convert::TryFrom;
 use std::fmt::Display;
 use std::sync::Arc;
 
@@ -27,7 +27,12 @@ use druid::{
     Point, Selector, UpdateCtx, Widget, WidgetPod,
 };
 
-pub const TREE_CHILD_CREATED: Selector<()> = Selector::new("druid-widget-nursery.tree.child_created");
+pub const TREE_CHILD_CREATED: Selector<()> =
+    Selector::new("druid-widget-nursery.tree.child_created");
+
+pub const TREE_CHILD_REMOVE: Selector<()> = Selector::new("druid-widget-nursery.tree.child_remove");
+const TREE_CHILD_REMOVE_INTERNAL: Selector<i32> =
+    Selector::new("druid-widget-nursery.tree.child_remove_internal");
 
 /// A tree widget for a collection of items organized in a hierachical way.
 pub struct Tree<T>
@@ -56,6 +61,8 @@ where
     fn get_child_mut(&mut self, index: usize) -> &mut Self
     where
         Self: Sized;
+
+    fn rm_child(&mut self, index: usize) {}
 }
 
 /// Wedge is an arbitrary name for the arrow-like icon marking whether a node is expanded or collapsed.
@@ -148,32 +155,29 @@ struct TreeNodeWidget<T>
 where
     T: TreeNode,
 {
+    // the index of the widget in its parent
+    index: usize,
     // The "wedge" widget,
     wedge: WidgetPod<bool, Wedge>,
-
     /// The label for this node
     widget: WidgetPod<T, Box<dyn Widget<T>>>,
-
     /// Whether the node is expanded or collapsed
     expanded: bool,
-
     /// The children of this tree node widget
-    /// A B-Tree is used in prevision for the case where only a subset of visible nodes
-    /// are lazily instanciated
-    children: BTreeMap<usize, WidgetPod<T, Self>>,
-
+    children: Vec<WidgetPod<T, Self>>,
     /// A factory closure for building widgets for the children nodes
     make_widget: WidgetFactoryCallback<T>,
 }
 
 impl<T: TreeNode> TreeNodeWidget<T> {
     /// Create a TreeNodeWidget from a TreeNode.
-    fn new(make_widget: WidgetFactoryCallback<T>) -> Self {
+    fn new(make_widget: WidgetFactoryCallback<T>, index: usize) -> Self {
         TreeNodeWidget {
+            index,
             wedge: WidgetPod::new(Wedge::new()),
             widget: WidgetPod::new(Box::new((make_widget)())),
             expanded: false,
-            children: BTreeMap::new(),
+            children: Vec::new(),
             make_widget,
         }
     }
@@ -184,11 +188,14 @@ impl<T: TreeNode> TreeNodeWidget<T> {
         let mut new_children = false;
         if expanded {
             for index in 0..data.children_count() {
-                new_children |= !self.children.contains_key(&index);
-                let make_widget = self.make_widget.clone();
-                self.children
-                    .entry(index)
-                    .or_insert_with(|| WidgetPod::new(TreeNodeWidget::new(make_widget)));
+                new_children |= index >= self.children.len();
+                match self.children.get_mut(index) {
+                    Some(c) => c.widget_mut().index = index,
+                    None => self.children.push(WidgetPod::new(TreeNodeWidget::new(
+                        self.make_widget.clone(),
+                        index,
+                    ))),
+                }
             }
         }
         self.expanded = expanded;
@@ -207,11 +214,35 @@ where
 {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
         // eprintln!("{:?}", event);
+        match event {
+            Event::Notification(notif) => {
+                if notif.is(TREE_CHILD_CREATED) {
+                    self.expanded = true;
+                    self.expand(data, self.expanded);
+                    ctx.set_handled();
+                    ctx.children_changed();
+                } else if notif.is(TREE_CHILD_REMOVE) {
+                    ctx.submit_notification(TREE_CHILD_REMOVE_INTERNAL.with(self.index as i32));
+                    ctx.set_handled();
+                } else if notif.is(TREE_CHILD_REMOVE_INTERNAL) {
+                    ctx.set_handled();
+                    let index = notif.get(TREE_CHILD_REMOVE_INTERNAL).unwrap();
+                    let index = usize::try_from(*index).unwrap();
+                    self.children.remove(index);
+                    data.rm_child(usize::try_from(index).unwrap());
+                    // ctx.submit_notification(TREE_CHILD_CREATED);
+                    self.expand(data, self.expanded);
+                    ctx.set_handled();
+                    ctx.children_changed();
+                }
+                return;
+            }
+            _ => (),
+        }
         self.widget.event(ctx, event, data, env);
 
-        // FIXME: we shoudldn't pass notification DOWN the tree, should we ?
-        for (index, child_widget_node) in self.children.iter_mut() {
-            let child_tree_node = data.get_child_mut(*index);
+        for (index, child_widget_node) in self.children.iter_mut().enumerate() {
+            let child_tree_node = data.get_child_mut(index);
             child_widget_node.event(ctx, event, child_tree_node, env);
         }
 
@@ -233,12 +264,6 @@ where
                     }
                 }
             }
-            Event::Notification(notif) => {
-                if notif.is(TREE_CHILD_CREATED) {
-                    if self.expand(data, wegde_expanded) {}
-                    ctx.children_changed();
-                }
-            }
             _ => (),
         }
     }
@@ -246,8 +271,8 @@ where
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
         self.wedge.lifecycle(ctx, event, &self.expanded, env);
         self.widget.lifecycle(ctx, event, data, env);
-        for (index, child_widget_node) in self.children.iter_mut() {
-            let child_tree_node = data.get_child(*index);
+        for (index, child_widget_node) in self.children.iter_mut().enumerate() {
+            let child_tree_node = data.get_child(index);
             child_widget_node.lifecycle(ctx, event, child_tree_node, env);
         }
     }
@@ -262,8 +287,8 @@ where
             // }
             self.wedge.update(ctx, &self.expanded, env);
             self.widget.update(ctx, data, env);
-            for (index, child_widget_node) in self.children.iter_mut() {
-                let child_tree_node = data.get_child(*index);
+            for (index, child_widget_node) in self.children.iter_mut().enumerate() {
+                let child_tree_node = data.get_child(index);
                 // let old_child_tree_node = old_data.get_child(*index);
                 child_widget_node.update(ctx, child_tree_node, env);
             }
@@ -315,16 +340,16 @@ where
             max_width -= indent;
 
             let mut next_index: usize = 0;
-            for (index, child_widget_node) in self.children.iter_mut() {
+            for (index, child_widget_node) in self.children.iter_mut().enumerate() {
                 // In case we have lazily instanciated children nodes,
                 // we may skip some indices. This catches up the correct height.
-                if *index != next_index {
-                    size.height += (*index - next_index) as f64 * basic_size;
+                if index != next_index {
+                    size.height += (index - next_index) as f64 * basic_size;
                 }
-                next_index = *index + 1;
+                next_index = index + 1;
 
                 // Layout and position a child node
-                let child_tree_node = data.get_child(*index);
+                let child_tree_node = data.get_child(index);
                 let child_bc = BoxConstraints::new(
                     Size::new(min_width, 0.0),
                     Size::new(max_width, f64::INFINITY),
@@ -348,8 +373,8 @@ where
         }
         self.widget.paint(ctx, data, env);
         if self.expanded {
-            for (index, child_widget_node) in self.children.iter_mut() {
-                let child_tree_node = data.get_child(*index);
+            for (index, child_widget_node) in self.children.iter_mut().enumerate() {
+                let child_tree_node = data.get_child(index);
                 child_widget_node.paint(ctx, child_tree_node, env);
             }
         }
@@ -363,7 +388,7 @@ impl<T: TreeNode> Tree<T> {
         let boxed_closure: WidgetFactoryCallback<T> =
             Arc::new(Box::new(move || Box::new(make_widget())));
         Tree {
-            root_node: TreeNodeWidget::new(boxed_closure),
+            root_node: TreeNodeWidget::new(boxed_closure, 0),
         }
     }
 }
@@ -375,7 +400,7 @@ impl<T: TreeNode + Display> Default for Tree<T> {
             Box::new(Label::dynamic(|data: &T, _env| format!("{}", data)))
         }));
         Tree {
-            root_node: TreeNodeWidget::new(boxed_closure),
+            root_node: TreeNodeWidget::new(boxed_closure, 0),
         }
     }
 }
