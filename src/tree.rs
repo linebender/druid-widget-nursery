@@ -24,15 +24,17 @@ use druid::theme;
 use druid::widget::Label;
 use druid::{
     BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx,
-    Point, Selector, UpdateCtx, Widget, WidgetPod,
+    Point, UpdateCtx, Widget, WidgetPod,
 };
 
-pub const TREE_CHILD_CREATED: Selector<()> =
-    Selector::new("druid-widget-nursery.tree.child_created");
+use crate::selectors;
 
-pub const TREE_CHILD_REMOVE: Selector<()> = Selector::new("druid-widget-nursery.tree.child_remove");
-const TREE_CHILD_REMOVE_INTERNAL: Selector<i32> =
-    Selector::new("druid-widget-nursery.tree.child_remove_internal");
+selectors! {
+    TREE_CHILD_CREATED,
+    TREE_CHILD_REMOVE,
+    TREE_CHILD_REMOVE_INTERNAL: i32,
+    TREE_OPEN_PARENT,
+}
 
 /// A tree widget for a collection of items organized in a hierachical way.
 pub struct Tree<T>
@@ -219,6 +221,11 @@ where
         // eprintln!("{:?}", event);
         if let Event::Notification(notif) = event {
             if notif.is(TREE_CHILD_CREATED) {
+                // self.expanded = true;
+                self.update_children(data);
+                ctx.set_handled();
+                ctx.children_changed();
+            } else if notif.is(TREE_OPEN_PARENT) {
                 self.expanded = true;
                 self.update_children(data);
                 ctx.set_handled();
@@ -283,7 +290,6 @@ where
             self.widget.update(ctx, data, env);
             for (index, child_widget_node) in self.children.iter_mut().enumerate() {
                 let child_tree_node = data.get_child(index);
-                // let old_child_tree_node = old_data.get_child(*index);
                 child_widget_node.update(ctx, child_tree_node, env);
             }
             ctx.request_layout();
@@ -383,7 +389,7 @@ impl<T: TreeNode> Tree<T> {
         let boxed_closure: WidgetFactoryCallback<T> =
             Arc::new(Box::new(move || Box::new(make_widget())));
         Tree {
-            root_node: TreeNodeWidget::new(boxed_closure, 0, true),
+            root_node: TreeNodeWidget::new(boxed_closure, 0, false),
         }
     }
 }
@@ -395,7 +401,7 @@ impl<T: TreeNode + Display> Default for Tree<T> {
             Box::new(Label::dynamic(|data: &T, _env| format!("{}", data)))
         }));
         Tree {
-            root_node: TreeNodeWidget::new(boxed_closure, 0, true),
+            root_node: TreeNodeWidget::new(boxed_closure, 0, false),
         }
     }
 }
@@ -403,16 +409,13 @@ impl<T: TreeNode + Display> Default for Tree<T> {
 // Implement the Widget trait for Tree
 impl<T: TreeNode> Widget<T> for Tree<T> {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
+        // eprintln!("{:?}", event);
         self.root_node.event(ctx, event, data, env);
     }
 
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
         if let LifeCycle::WidgetAdded = event {
             self.root_node.make_widget();
-            // Always expand the first level
-            if self.root_node.update_children(data) {
-                ctx.children_changed();
-            }
         }
         self.root_node.lifecycle(ctx, event, data, env);
     }

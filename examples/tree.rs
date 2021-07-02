@@ -18,7 +18,7 @@ use std::fmt;
 use druid::im::Vector;
 use druid::widget::{Button, Either, Flex, Label, Scroll, TextBox};
 use druid::{AppLauncher, Data, Lens, LocalizedString, Widget, WidgetExt, WindowDesc};
-use druid_widget_nursery::{Tree, TreeNode, TREE_CHILD_CREATED, TREE_CHILD_REMOVE};
+use druid_widget_nursery::{Tree, TreeNode, TREE_CHILD_REMOVE, TREE_OPEN_PARENT};
 
 #[derive(Clone, Lens, Debug, Data)]
 struct Taxonomy {
@@ -146,7 +146,7 @@ fn ui_builder() -> impl Widget<Taxonomy> {
                             child
                         });
                         // The Tree widget must be notified about the change
-                        ctx.submit_notification(TREE_CHILD_CREATED);
+                        ctx.submit_notification(TREE_OPEN_PARENT);
                     }))
                     // The "delete node" button
                     .with_child(
@@ -163,6 +163,6 @@ fn ui_builder() -> impl Widget<Taxonomy> {
                         }),
                     ),
             )
-        }), // .debug_widget(),
+        }),
     )
 }
