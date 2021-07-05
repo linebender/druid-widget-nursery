@@ -20,7 +20,7 @@ use druid::widget::{Button, Either, Flex, Label, Scroll, TextBox};
 use druid::{AppLauncher, Data, Lens, LocalizedString, Widget, WidgetExt, WindowDesc};
 use druid_widget_nursery::{Tree, TreeNode, TREE_CHILD_REMOVE, TREE_OPEN_PARENT};
 
-#[derive(Clone, Lens, Debug, Data)]
+#[derive(Clone, Lens, Debug)]
 struct Taxonomy {
     name: String,
     editing: bool,
@@ -44,6 +44,19 @@ impl Taxonomy {
 
     fn ref_add_child(&mut self, child: Self) {
         self.children.push_back(child);
+    }
+}
+
+impl Data for Taxonomy {
+    fn same(&self, other: &Self) -> bool {
+        self.name == other.name
+            && self.editing == other.editing
+            && self.children.len() == other.children.len()
+            && self
+                .children
+                .iter()
+                .zip(other.children.iter())
+                .all(|(a, b)| a.same(b))
     }
 }
 
@@ -120,8 +133,11 @@ fn ui_builder() -> impl Widget<Taxonomy> {
     Scroll::new(
         // Tree takes a closure to build the tree items widgets
         Tree::new(|| {
-            // Our items are editable. If editing is true, we show a TextBox of the name,
-            // otherwise it's a Label
+            // Our items are editable. If `Taxonomy::editing` is `true`, we show the name in a
+            // TextBox, otherwise it's a Label. This implementation of the inner widget is naive and
+            // doesn't allow a more polished UI, e.g. we can't give the focus to the TextBox
+            // when it's showed. This would require a custom widget which is beyond the scope
+            // of this demo.
             Either::new(
                 |data, _env| (*data).editing,
                 Flex::row()

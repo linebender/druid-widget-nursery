@@ -226,9 +226,9 @@ where
                 ctx.set_handled();
                 ctx.children_changed();
             } else if notif.is(TREE_OPEN_PARENT) {
+                ctx.set_handled();
                 self.expanded = true;
                 self.update_children(data);
-                ctx.set_handled();
                 ctx.children_changed();
             } else if notif.is(TREE_CHILD_REMOVE) {
                 // we were comanded to remove ourselves. Let's tell our parent.
@@ -276,6 +276,7 @@ where
     }
 
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
+        // eprintln!("{:?}", event);
         self.wedge.lifecycle(ctx, event, &self.expanded, env);
         self.widget.lifecycle(ctx, event, data, env);
         for (index, child_widget_node) in self.children.iter_mut().enumerate() {
@@ -286,6 +287,9 @@ where
 
     fn update(&mut self, ctx: &mut UpdateCtx, old_data: &T, data: &T, env: &Env) {
         if !old_data.same(data) {
+            // eprintln!("not same");
+            // eprintln!("{:?}", old_data);
+            // eprintln!("{:?}", data);
             self.wedge.update(ctx, &self.expanded, env);
             self.widget.update(ctx, data, env);
             for (index, child_widget_node) in self.children.iter_mut().enumerate() {
