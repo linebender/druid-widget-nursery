@@ -138,6 +138,12 @@ struct MyOpener<T> {
     phantom: PhantomData<T>,
 }
 
+impl<T> MyOpener<T> {
+    fn label(open: bool) -> String {
+        if open { "📂" } else { "📁" }.to_owned()
+    }
+}
+
 impl<T> Widget<(bool, T)> for MyOpener<T> {
     fn event(&mut self, _ctx: &mut EventCtx, _event: &Event, _data: &mut (bool, T), _env: &Env) {}
 
@@ -148,14 +154,14 @@ impl<T> Widget<(bool, T)> for MyOpener<T> {
         data: &(bool, T),
         env: &Env,
     ) {
-        let label = if data.0 { "V" } else { ">" };
-        self.label.lifecycle(ctx, event, &label.to_owned(), env);
+        let label = MyOpener::<T>::label(data.0);
+        self.label.lifecycle(ctx, event, &label, env);
     }
 
     fn update(&mut self, ctx: &mut UpdateCtx, old_data: &(bool, T), data: &(bool, T), env: &Env) {
         if old_data.0 != data.0 {
-            let label = if data.0 { "V" } else { ">" };
-            self.label.update(ctx, &label.to_owned(), env);
+            let label = MyOpener::<T>::label(data.0);
+            self.label.update(ctx, &label, env);
         }
     }
 
@@ -166,14 +172,14 @@ impl<T> Widget<(bool, T)> for MyOpener<T> {
         data: &(bool, T),
         env: &Env,
     ) -> Size {
-        let label = &(if data.0 { "V" } else { ">" }).to_owned();
-        self.label.set_origin(ctx, label, env, Point::ORIGIN);
-        self.label.layout(ctx, bc, label, env)
+        let label = MyOpener::<T>::label(data.0);
+        self.label.set_origin(ctx, &label, env, Point::ORIGIN);
+        self.label.layout(ctx, bc, &label, env)
     }
 
     fn paint(&mut self, ctx: &mut PaintCtx, data: &(bool, T), env: &Env) {
-        let label = if data.0 { "V" } else { ">" };
-        self.label.paint(ctx, &label.to_owned(), env)
+        let label = MyOpener::<T>::label(data.0);
+        self.label.paint(ctx, &label, env)
     }
 }
 

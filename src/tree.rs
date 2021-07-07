@@ -342,12 +342,12 @@ where
         if wedge_expanded != self.expanded {
             // The opener widget has decided to change the expanded/collapsed state of the node,
             // handle it by expanding/collapsing children nodes as required.
-            ctx.request_layout();
             self.expanded = wedge_expanded;
             if self.update_children(data) {
                 // New children were created, inform the context.
                 ctx.children_changed();
             }
+            ctx.request_layout();
             ctx.request_update();
         }
     }
@@ -364,20 +364,30 @@ where
     }
 
     fn update(&mut self, ctx: &mut UpdateCtx, old_data: &T, data: &T, env: &Env) {
-        eprintln!("update_widget");
-        self.opener.update(ctx, &(self.expanded, data.clone()), env);
+        // eprintln!("update_widget {}", self.expanded);
+        self.opener.update(
+            ctx,
+            &(self.expanded, data.clone()),
+            // &(self.expanded, data.clone()),
+            env,
+        );
+
+        // the data may not change but the update may comme from explicit request_update() call in
+        // if an node is open/closed.
+        // TODO: is this a good idea? should we push the open state on the application state (thus
+        //       forcing the user to handle somehow the opening state, like list_filter does with
+        //       the filtered indices list)
         if !old_data.same(data) {
             eprintln!("not same");
             eprintln!("{:?}", old_data);
             eprintln!("{:?}", data);
             self.widget.update(ctx, data, env);
-            for (index, child_widget_node) in self.children.iter_mut().enumerate() {
-                let child_tree_node = data.get_child(index);
-                child_widget_node.update(ctx, child_tree_node, env);
-            }
-            ctx.request_layout();
-            ctx.children_changed();
         }
+        for (index, child_widget_node) in self.children.iter_mut().enumerate() {
+            let child_tree_node = data.get_child(index);
+            child_widget_node.update(ctx, child_tree_node, env);
+        }
+        ctx.children_changed();
     }
 
     // TODO: the height calculation seems to ignore the inner widget (at least on X11). issue #61
