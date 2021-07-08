@@ -34,6 +34,7 @@ If you add a new widget, please add its name and a short summary here.
  - OnMonitor : a helper widget for keeping subwindows from going outside the monitor bounds
  - Splits : Multiple resizable splits
  - ListFilter : a widget which filters a list for its inner widget.
+ - TitleBar : a widget that is treated as a window's titlebar.
 
 
 ## ProgressBar Improvements
