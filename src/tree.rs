@@ -34,6 +34,7 @@ selectors! {
     TREE_CHILD_CREATED,
     TREE_CHILD_REMOVE,
     TREE_CHILD_REMOVE_INTERNAL: i32,
+    TREE_OPEN,
     TREE_OPEN_PARENT,
 }
 
@@ -56,14 +57,14 @@ where
     fn children_count(&self) -> usize;
 
     /// Returns a reference to the node's child at the given index
-    fn get_child(&self, index: usize) -> &Self
-    where
-        Self: Sized;
+    fn get_child(&self, index: usize) -> &Self;
 
     /// Returns a mutable reference to the node's child at the given index
-    fn get_child_mut(&mut self, index: usize) -> &mut Self
-    where
-        Self: Sized;
+    fn get_child_mut(&mut self, index: usize) -> &mut Self;
+
+    fn is_branch(&self) -> bool {
+        self.children_count() > 0
+    }
 
     #[allow(unused_variables)]
     fn rm_child(&mut self, index: usize) {}
@@ -73,7 +74,6 @@ pub struct Opener<T> {
     widget: WidgetPod<(bool, T), Box<dyn Widget<(bool, T)>>>,
 }
 
-// Is "Chevron" a better name?
 impl<T> Opener<T> {
     pub fn new(widget: Box<dyn Widget<(bool, T)>>) -> Opener<T> {
         Opener {
@@ -81,15 +81,6 @@ impl<T> Opener<T> {
         }
     }
 }
-
-// impl<T> Default for Opener<T> {
-//     fn default() -> Self {
-//         let wedge = Wedge {
-//             phantom: PhantomData,
-//         };
-//         Self::new(Box::new(wedge))
-//     }
-// }
 
 pub struct Wedge<T> {
     phantom: PhantomData<T>,
@@ -178,7 +169,7 @@ where
             }
             _ => (),
         }
-        // self.widget.event(ctx, event, data, _env);
+        self.widget.event(ctx, event, data, _env);
     }
 
     fn lifecycle(
@@ -303,7 +294,7 @@ where
                 self.update_children(data);
                 ctx.set_handled();
                 ctx.children_changed();
-            } else if notif.is(TREE_OPEN_PARENT) {
+            } else if notif.is(TREE_OPEN) {
                 ctx.set_handled();
                 self.expanded = true;
                 self.update_children(data);
@@ -326,7 +317,6 @@ where
             }
             return;
         }
-
         self.widget.event(ctx, event, data, env);
 
         for (index, child_widget_node) in self.children.iter_mut().enumerate() {
@@ -462,17 +452,17 @@ where
     }
 
     fn paint(&mut self, ctx: &mut PaintCtx, data: &T, env: &Env) {
-        if data.children_count() > 0 {
-            // we paint the opener only if there are children to expand
+        if data.is_branch() {
             self.opener.paint(ctx, &(self.expanded, data.clone()), env);
-        }
-        self.widget.paint(ctx, data, env);
-        if self.expanded {
-            for (index, child_widget_node) in self.children.iter_mut().enumerate() {
-                let child_tree_node = data.get_child(index);
-                child_widget_node.paint(ctx, child_tree_node, env);
+            self.widget.paint(ctx, data, env);
+            if self.expanded {
+                for (index, child_widget_node) in self.children.iter_mut().enumerate() {
+                    let child_tree_node = data.get_child(index);
+                    child_widget_node.paint(ctx, child_tree_node, env);
+                }
             }
         }
+        self.widget.paint(ctx, data, env);
     }
 }
 
