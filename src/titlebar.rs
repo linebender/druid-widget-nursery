@@ -75,11 +75,8 @@ impl<T: Data> TitleBar<T> {
 impl<T:Data> Widget<T> for TitleBar<T> {
     fn event(&mut self, ctx: &mut druid::EventCtx, event: &druid::Event, data: &mut T, env: &druid::Env) {
         // On any mousemove event in this tell the window to handle the titlebar. 
-        match event {
-            Event::MouseMove(_) => {
-                ctx.window().handle_titlebar(true);
-            }
-            _ => (),
+        if let Event::MouseMove(_) = event {
+            ctx.window().handle_titlebar(true);
         }
         self.inner.event(ctx, event, data, env);
     }
