@@ -12,7 +12,7 @@ use druid::{Data, Event, Widget};
 /// This only works on windows due to it's use of [`handle_titlebar`](<https://docs.rs/druid-shell/0.7.0/druid_shell/struct.WindowHandle.html#method.handle_titlebar>)
 ///
 /// ## Example
-/// ```
+/// ```ignore
 /// use druid::widget::{Button, Flex, Label};
 /// use druid::{AppLauncher, Application, Widget, WidgetExt, WindowDesc};
 /// use druid_widget_nursery::TitleBar;
