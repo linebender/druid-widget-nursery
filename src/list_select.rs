@@ -128,8 +128,10 @@ impl<T: Data + PartialEq> Controller<T, Flex<T>> for ListSelectController<T> {
         let mut selected = false;
 
         if let Event::MouseDown(_) = event {
-            selected = true;
             ctx.request_focus();
+        }
+        if let Event::MouseUp(_) = event {
+            selected = ctx.is_hot() && ctx.has_focus();
         }
         if let Event::KeyDown(key_event) = event {
             match key_event.key {
