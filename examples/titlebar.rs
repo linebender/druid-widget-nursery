@@ -2,6 +2,8 @@ use druid::widget::{Button, Flex, Label};
 use druid::{AppLauncher, Application, Widget, WidgetExt, WindowDesc};
 use druid_widget_nursery::TitleBar;
 
+// TitleBar only works on windows.
+
 fn build_titlebar() -> impl Widget<u32> {
     // Make a row of buttons and title for the titlebar.
     Flex::row()
