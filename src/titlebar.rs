@@ -7,7 +7,9 @@ use druid::{Data, Event, Widget};
 /// Presumably, this is because clicking means you are now dragging the window, 
 /// not interacting with it.
 ///
-/// It uses the layout of it's inner widget.
+/// It uses the layout of its inner widget.
+///
+/// This only works on windows due to it's use of [`handle_titlebar`](<https://docs.rs/druid-shell/0.7.0/druid_shell/struct.WindowHandle.html#method.handle_titlebar>)
 ///
 /// ## Example
 /// ```
