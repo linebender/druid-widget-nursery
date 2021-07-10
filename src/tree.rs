@@ -36,6 +36,8 @@ selectors! {
     TREE_CHILD_REMOVE_INTERNAL: i32,
     TREE_OPEN,
     TREE_OPEN_PARENT,
+    TREE_CHILD_SHOW,
+    TREE_CHILD_HIDE,
 }
 
 /// A tree widget for a collection of items organized in a hierachical way.
@@ -290,15 +292,26 @@ where
         // eprintln!("{:?}", event);
         if let Event::Notification(notif) = event {
             if notif.is(TREE_CHILD_CREATED) {
-                // self.expanded = true;
-                self.update_children(data);
                 ctx.set_handled();
+                self.update_children(data);
+                if self.expanded {
+                    for child_widget_node in self.children.iter_mut() {
+                        // TODO: this is not true except for the new child. `updage_children` should tell
+                        // which child was added/removed...
+                        ctx.submit_command(TREE_CHILD_SHOW.to(child_widget_node.id()))
+                    }
+                }
                 ctx.children_changed();
             } else if notif.is(TREE_OPEN) {
                 ctx.set_handled();
-                self.expanded = true;
-                self.update_children(data);
-                ctx.children_changed();
+                if !self.expanded {
+                    self.expanded = true;
+                    self.update_children(data);
+                    ctx.children_changed();
+                    for child_widget_node in self.children.iter_mut() {
+                        ctx.submit_command(TREE_CHILD_SHOW.to(child_widget_node.id()))
+                    }
+                }
             } else if notif.is(TREE_CHILD_REMOVE) {
                 // we were comanded to remove ourselves. Let's tell our parent.
                 ctx.submit_notification(TREE_CHILD_REMOVE_INTERNAL.with(self.index as i32));
@@ -337,6 +350,16 @@ where
                 // New children were created, inform the context.
                 ctx.children_changed();
             }
+
+            let cmd = if wedge_expanded {
+                TREE_CHILD_SHOW
+            } else {
+                TREE_CHILD_HIDE
+            };
+            for child_widget_node in self.children.iter_mut() {
+                ctx.submit_command(cmd.to(child_widget_node.id()))
+            }
+
             ctx.request_layout();
             ctx.request_update();
         }
@@ -363,7 +386,7 @@ where
         );
 
         // the data may not change but the update may comme from explicit request_update() call in
-        // if an node is open/closed.
+        // if an node is open/closed...
         // TODO: is this a good idea? should we push the open state on the application state (thus
         //       forcing the user to handle somehow the opening state, like list_filter does with
         //       the filtered indices list)
@@ -373,6 +396,7 @@ where
             eprintln!("{:?}", data);
             self.widget.update(ctx, data, env);
         }
+        // ...that's why we have to rebuild the widget tree for each and every event... :/
         for (index, child_widget_node) in self.children.iter_mut().enumerate() {
             let child_tree_node = data.get_child(index);
             child_widget_node.update(ctx, child_tree_node, env);

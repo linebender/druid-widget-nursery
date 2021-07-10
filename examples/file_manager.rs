@@ -23,13 +23,19 @@ use druid::{
     LifeCycleCtx, LocalizedString, Menu, MenuItem, PaintCtx, Point, Target, UpdateCtx, Widget,
     WidgetExt, WidgetId, WidgetPod, WindowDesc,
 };
-use druid_widget_nursery::tree::{Tree, TreeNode, TREE_CHILD_REMOVE, TREE_OPEN, TREE_OPEN_PARENT};
+use druid_widget_nursery::tree::{
+    Tree, TreeNode, TREE_CHILD_CREATED, TREE_CHILD_REMOVE, TREE_CHILD_SHOW, TREE_OPEN,
+    TREE_OPEN_PARENT,
+};
 
 use druid_widget_nursery::selectors;
 
 selectors! {
     FOCUS_EDIT_BOX,
     NEW_FILE,
+    NEW_DIR,
+    RENAME,
+    DELETE,
 }
 
 #[derive(Clone, Debug)]
@@ -120,18 +126,18 @@ impl TreeNode for FSNode {
     }
 }
 
-struct MyOpener<T> {
+struct FSOpener<T> {
     label: WidgetPod<String, Label<String>>,
     phantom: PhantomData<T>,
 }
 
-impl<T> MyOpener<T> {
+impl<T> FSOpener<T> {
     fn label(open: bool) -> String {
         if open { "📂" } else { "📁" }.to_owned()
     }
 }
 
-impl<T> Widget<(bool, T)> for MyOpener<T> {
+impl<T> Widget<(bool, T)> for FSOpener<T> {
     fn event(&mut self, _ctx: &mut EventCtx, _event: &Event, _data: &mut (bool, T), _env: &Env) {}
 
     fn lifecycle(
@@ -141,13 +147,13 @@ impl<T> Widget<(bool, T)> for MyOpener<T> {
         data: &(bool, T),
         env: &Env,
     ) {
-        let label = MyOpener::<T>::label(data.0);
+        let label = FSOpener::<T>::label(data.0);
         self.label.lifecycle(ctx, event, &label, env);
     }
 
     fn update(&mut self, ctx: &mut UpdateCtx, old_data: &(bool, T), data: &(bool, T), env: &Env) {
         if old_data.0 != data.0 {
-            let label = MyOpener::<T>::label(data.0);
+            let label = FSOpener::<T>::label(data.0);
             self.label.update(ctx, &label, env);
         }
     }
@@ -159,125 +165,45 @@ impl<T> Widget<(bool, T)> for MyOpener<T> {
         data: &(bool, T),
         env: &Env,
     ) -> Size {
-        let label = MyOpener::<T>::label(data.0);
+        let label = FSOpener::<T>::label(data.0);
         self.label.set_origin(ctx, &label, env, Point::ORIGIN);
         self.label.layout(ctx, bc, &label, env)
     }
 
     fn paint(&mut self, ctx: &mut PaintCtx, data: &(bool, T), env: &Env) {
-        let label = MyOpener::<T>::label(data.0);
+        let label = FSOpener::<T>::label(data.0);
         self.label.paint(ctx, &label, env)
     }
 }
 
 fn make_context_menu(widget_id: WidgetId) -> Menu<FSNode> {
-    Menu::empty().entry(MenuItem::new(LocalizedString::new("New File")).on_activate(
-        move |ctx, data: &mut FSNode, _env| {
-            ctx.submit_command(NEW_FILE.to(Target::Widget(widget_id)));
-            eprintln!("submit New child to {:?}", widget_id);
-            // data.ref_add_child({
-            //     let mut child = FSNode::new("");
-            //     child.editing = true;
-            //     child
-            // });
-            // // The Tree widget must be notified about the change
-            // ctx.submit_command(TREE_OPEN_PARENT.to(Target::Widget(widget_id)));
-        },
-    ))
-    // .entry(MenuItem::new(LocalizedString::new("Delete")).on_activate(
-    //     |_ctx, data: &mut FSNode, _env| data.menu_count = data.menu_count.saturating_sub(1),
-    // ))
+    Menu::empty()
+        .entry(MenuItem::new(LocalizedString::new("New File")).on_activate(
+            move |ctx, _data: &mut FSNode, _env| {
+                ctx.submit_command(NEW_FILE.to(Target::Widget(widget_id)));
+            },
+        ))
+        .entry(
+            MenuItem::new(LocalizedString::new("New Sub Directory")).on_activate(
+                move |ctx, _data: &mut FSNode, _env| {
+                    ctx.submit_command(NEW_DIR.to(Target::Widget(widget_id)));
+                },
+            ),
+        )
+        .entry(MenuItem::new(LocalizedString::new("Delete")).on_activate(
+            move |ctx, _data: &mut FSNode, _env| {
+                ctx.submit_command(DELETE.to(Target::Widget(widget_id)));
+            },
+        ))
+        .entry(MenuItem::new(LocalizedString::new("Rename")).on_activate(
+            move |ctx, _data: &mut FSNode, _env| {
+                ctx.submit_command(RENAME.to(Target::Widget(widget_id)));
+            },
+        ))
     // .entry(
     //     MenuItem::new(LocalizedString::new("Rename"))
     //         .on_activate(|_ctx, data: &mut FSNode, _env| data.glow_hot = !data.glow_hot),
     // )
-}
-
-struct TreeItemController;
-
-impl<W: Widget<FSNode>> Controller<FSNode, W> for TreeItemController {
-    fn event(
-        &mut self,
-        child: &mut W,
-        ctx: &mut EventCtx,
-        event: &Event,
-        data: &mut FSNode,
-        env: &Env,
-    ) {
-        let new_event = match event {
-            Event::MouseDown(ref mouse) if mouse.button.is_right() => {
-                ctx.show_context_menu(make_context_menu(child.id().unwrap()), mouse.pos);
-                None
-            }
-            Event::Command(cmd) if cmd.is(TREE_OPEN_PARENT) => {
-                eprintln!("{:?}", cmd);
-                if let Target::Widget(id) = cmd.target() {
-                    if id == child.id().unwrap() {
-                        eprintln!("submit_notification");
-                        ctx.submit_notification(TREE_OPEN);
-                        ctx.submit_command(FOCUS_EDIT_BOX.to(Target::Widget(child.id().unwrap())));
-                        ctx.children_changed();
-                        ctx.request_update();
-                        ctx.set_handled();
-                        None
-                    } else {
-                        Some(event.clone())
-                    }
-                } else {
-                    Some(event.clone())
-                }
-            }
-            Event::Command(cmd) if cmd.is(FOCUS_EDIT_BOX) => {
-                Some(Event::Command(FOCUS_EDIT_BOX.to(Target::Auto)))
-            }
-            _ => Some(event.clone()),
-        };
-        if let Some(evt) = new_event {
-            child.event(ctx, &evt, data, env)
-        }
-    }
-}
-
-struct EditItemController;
-
-impl<W: Widget<FSNode>> Controller<FSNode, W> for EditItemController {
-    fn event(
-        &mut self,
-        child: &mut W,
-        ctx: &mut EventCtx,
-        event: &Event,
-        data: &mut FSNode,
-        env: &Env,
-    ) {
-        match event {
-            Event::Command(cmd) if cmd.is(FOCUS_EDIT_BOX) => {
-                eprintln!("coucou {:?} {}", cmd, data.editing);
-                // if data.editing {
-                eprintln!("{:?}", data);
-                eprintln!("set_focus...");
-                ctx.set_focus(child.id().unwrap());
-                ctx.request_update();
-                // }
-            }
-            _ => child.event(ctx, event, data, env),
-        }
-    }
-
-    fn update(
-        &mut self,
-        child: &mut W,
-        ctx: &mut UpdateCtx,
-        old_data: &FSNode,
-        data: &FSNode,
-        env: &Env,
-    ) {
-        eprintln!("_______________ update _____________");
-        if !ctx.has_focus() {
-            eprintln!("_______________ no focus _____________");
-            ctx.submit_command(FOCUS_EDIT_BOX.to(Target::Widget(child.id().unwrap())));
-        }
-        child.update(ctx, old_data, data, env)
-    }
 }
 
 pub struct FSNodeWidget {
@@ -319,17 +245,17 @@ impl FSNodeWidget {
                         String::from(data.name.as_ref())
                     }))
                     // The "delete node" button
-                    .with_child(
-                        Button::new("Edit").on_click(|_ctx, data: &mut FSNode, _env| {
-                            data.editing = true;
-                        }),
-                    )
-                    .with_child(Button::new("-").on_click(|ctx, _data: &mut FSNode, _env| {
-                        // Tell the parent to remove the item. The parent handles this notification by
-                        // 1. remove the child widget
-                        // 2. call TreeNode::rm_child from its data (the parent FSNode node, here)
-                        ctx.submit_notification(TREE_CHILD_REMOVE);
-                    })),
+                    // .with_child(
+                    //     Button::new("Edit").on_click(|_ctx, data: &mut FSNode, _env| {
+                    //         data.editing = true;
+                    //     }),
+                    // )
+                    // .with_child(Button::new("-").on_click(|ctx, _data: &mut FSNode, _env| {
+                    //     // Tell the parent to remove the item. The parent handles this notification by
+                    //     // 1. remove the child widget
+                    //     // 2. call TreeNode::rm_child from its data (the parent FSNode node, here)
+                    //     ctx.submit_notification(TREE_CHILD_REMOVE);
+                    // })),
             ),
             editing: false,
         }
@@ -338,32 +264,59 @@ impl FSNodeWidget {
 
 impl Widget<FSNode> for FSNodeWidget {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut FSNode, env: &Env) {
-        eprintln!("+++++++++++ {:?}", event);
-        if self.editing {
-            ctx.set_focus(self.edit_widget_id);
-        }
+        // if self.editing {
+        //     ctx.set_focus(self.edit_widget_id);
+        // }
 
         let new_event = match event {
             Event::MouseDown(ref mouse) if mouse.button.is_right() => {
-                eprintln!("mousedown... {:?}", self.id);
+                eprintln!("mousedown... {:?}", ctx.widget_id());
                 if !self.editing {
-                    ctx.show_context_menu(make_context_menu(self.id), mouse.pos);
+                    ctx.show_context_menu(make_context_menu(ctx.widget_id()), mouse.pos);
                     None
                 } else {
                     Some(event.clone())
                 }
             }
+            Event::Command(cmd) if cmd.is(TREE_CHILD_SHOW) => {
+                eprintln!("-------- show -------- {:?}", ctx.widget_id());
+                if self.editing {
+                    ctx.set_focus(self.edit_widget_id);
+                }
+                None
+            }
             Event::Command(cmd) if cmd.is(NEW_FILE) => {
-                eprintln!("-------- new file -------- {:?}", self.id);
-                eprintln!("{:?}", cmd);
+                eprintln!("-------- new file -------- {:?}", ctx.widget_id());
                 data.ref_add_child({
                     let mut child = FSNode::new("");
                     child.editing = true;
                     child
                 });
-                ctx.children_changed();
+                ctx.submit_notification(TREE_CHILD_CREATED);
                 ctx.submit_notification(TREE_OPEN);
-                Some(event.clone())
+                None
+            }
+            Event::Command(cmd) if cmd.is(NEW_DIR) => {
+                eprintln!("-------- new dir -------- {:?}", ctx.widget_id());
+                data.ref_add_child({
+                    let mut child = FSNode::new_dir("");
+                    child.editing = true;
+                    child
+                });
+                ctx.submit_notification(TREE_CHILD_CREATED);
+                ctx.submit_notification(TREE_OPEN);
+                None
+            }
+            Event::Command(cmd) if cmd.is(DELETE) => {
+                eprintln!("-------- delete -------- {:?}", ctx.widget_id());
+                ctx.submit_notification(TREE_CHILD_REMOVE);
+                None
+            }
+            Event::Command(cmd) if cmd.is(RENAME) => {
+                eprintln!("-------- delete -------- {:?}", ctx.widget_id());
+                data.editing = true;
+                ctx.set_focus(self.edit_widget_id);
+                None
             }
             _ => Some(event.clone()),
         };
@@ -432,52 +385,11 @@ fn ui_builder() -> impl Widget<FSNode> {
         // Our items are editable. If editing is true, we show a TextBox of the name,
         // otherwise it's a Label
         FSNodeWidget::new()
-        // ControllerHost::new(
-        //     Either::new(
-        //         |data, _env| (*data).editing,
-        //         Flex::row()
-        //             .with_child(ControllerHost::new(
-        //                 TextBox::new()
-        //                     .with_placeholder("new item")
-        //                     .with_id(WidgetId::next())
-        //                     .lens(druid::lens::Map::new(
-        //                         |data: &FSNode| String::from(data.name.as_ref()),
-        //                         |data: &mut FSNode, name| data.name = ArcStr::from(name),
-        //                     )),
-        //                 EditItemController,
-        //             ))
-        //             .with_child(
-        //                 Button::new("Save").on_click(|_ctx, data: &mut FSNode, _env| {
-        //                     data.editing = false;
-        //                 }),
-        //             ),
-        //         Flex::row()
-        //             // First, there's the Label
-        //             .with_child(Label::dynamic(|data: &FSNode, _env| {
-        //                 String::from(data.name.as_ref())
-        //             }))
-        //             // The "delete node" button
-        //             .with_child(
-        //                 Button::new("Edit").on_click(|_ctx, data: &mut FSNode, _env| {
-        //                     data.editing = true;
-        //                 }),
-        //             )
-        //             .with_child(Button::new("-").on_click(|ctx, _data: &mut FSNode, _env| {
-        //                 // Tell the parent to remove the item. The parent handles this notification by
-        //                 // 1. remove the child widget
-        //                 // 2. call TreeNode::rm_child from its data (the parent FSNode node, here)
-        //                 ctx.submit_notification(TREE_CHILD_REMOVE);
-        //             })),
-        //     )
-        //     .with_id(WidgetId::next()),
-        //     TreeItemController,
-        // )
     })
-    .with_opener(|| MyOpener {
+    .with_opener(|| FSOpener {
         label: WidgetPod::new(Label::dynamic(|st: &String, _| st.clone())),
         phantom: PhantomData,
     });
-    // WidgetPod::new(tree)
     Scroll::new(tree).debug_widget_id()
 }
 
