@@ -36,6 +36,7 @@ pub mod splits;
 pub mod theme_loader;
 mod tooltip;
 mod tree;
+mod titlebar;
 
 #[cfg(feature = "async")]
 mod future_widget;
@@ -56,6 +57,7 @@ pub use on_monitor::{OnMonitor, OnMonitorExt};
 pub use progress_bar::ProgressBar;
 pub use separator::{Orientation, Separator};
 pub use tooltip::{TooltipController, TooltipExt};
+pub use titlebar::TitleBar;
 
 pub use tree::{Tree, TreeNode, Wedge, TREE_CHILD_CREATED, TREE_CHILD_REMOVE, TREE_OPEN_PARENT};
 
