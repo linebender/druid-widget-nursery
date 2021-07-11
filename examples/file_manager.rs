@@ -73,6 +73,7 @@ impl Display for FileType {
 struct FSNode {
     name: ArcStr,
     editing: bool,
+    // #[data(ignore)]
     children: Vector<Arc<FSNode>>,
     node_type: FSNodeType,
     filetype: FileType,
@@ -468,8 +469,7 @@ fn ui_builder() -> impl Widget<FSNode> {
         label: WidgetPod::new(Label::dynamic(|st: &String, _| st.clone())),
         filetype: FileType::Unknown,
     });
-    Scroll::new(tree)
-    //.debug_widget_id()
+    Scroll::new(tree).debug_widget_id()
 }
 
 pub fn main() {
