@@ -28,7 +28,7 @@ use druid::{
     WidgetExt, WidgetId, WidgetPod, WindowDesc,
 };
 use druid_widget_nursery::tree::{
-    Tree, TreeNode, TREE_CHILD_CREATED, TREE_CHILD_REMOVE, TREE_CHILD_SHOW, TREE_OPEN,
+    Tree, TreeNode, TREE_CHILD_CREATED, TREE_CHILD_SHOW, TREE_NODE_REMOVE, TREE_OPEN,
 };
 
 use druid_widget_nursery::selectors;
@@ -75,7 +75,7 @@ struct FSNode {
     editing: bool,
     children: Vector<Arc<FSNode>>,
     node_type: FSNodeType,
-    filetype: Option<FileType>,
+    filetype: FileType,
     open_: bool,
 }
 
@@ -87,7 +87,7 @@ impl FSNode {
             editing: false,
             children: Vector::new(),
             node_type: FSNodeType::File,
-            filetype: None,
+            filetype: FileType::Unknown,
             open_: false,
         }
     }
@@ -98,7 +98,7 @@ impl FSNode {
             editing: false,
             children: Vector::new(),
             node_type: FSNodeType::Directory,
-            filetype: None,
+            filetype: FileType::Unknown,
             open_: false,
         }
     }
@@ -117,9 +117,13 @@ impl FSNode {
             });
     }
 
+    fn update(&mut self) {
+        self.sort();
+    }
+
     fn add_child(mut self, child: Self) -> Self {
         self.children.push_back(Arc::new(child));
-        self.sort();
+        self.update();
         self
     }
 
@@ -127,29 +131,22 @@ impl FSNode {
         self.children.push_back(Arc::new(child));
     }
 
-    fn get_filetype(&mut self) -> FileType {
+    fn get_filetype(&mut self) {
         use FileType::*;
-        match &self.filetype {
-            Some(ft) => ft.clone(),
-            None => {
-                let ft = {
-                    let fname = self.name.to_string();
-                    let ext = Path::new(&fname).extension().and_then(OsStr::to_str);
-                    match ext {
-                        None => Unknown,
-                        Some(ext) => match ext {
-                            "rs" => Rust,
-                            "py" => Python,
-                            "toml" => Toml,
-                            _ => Unknown,
-                        },
-                    }
-                };
-                self.filetype = Some(ft.clone());
-                eprintln!("{:?}", ft);
-                ft
+        self.filetype = {
+            let fname = self.name.to_string();
+            let ext = Path::new(&fname).extension().and_then(OsStr::to_str);
+            match ext {
+                None => Unknown,
+                Some(ext) => match ext {
+                    "rs" => Rust,
+                    "py" => Python,
+                    "toml" => Toml,
+                    _ => Unknown,
+                },
             }
-        }
+        };
+        eprintln!("{:?}", self.filetype);
     }
 }
 
@@ -199,56 +196,32 @@ struct FSOpener {
 }
 
 impl FSOpener {
-    fn label(&self, open: bool, branch: bool) -> String {
-        if branch {
-            if open { "📂" } else { "📁" }.to_owned()
+    fn label(&self, data: &FSNode) -> String {
+        if data.is_branch() {
+            if data.is_open() { "📂" } else { "📁" }.to_owned()
         } else {
             format!("{}", self.filetype)
         }
     }
 }
 
-impl Widget<(bool, FSNode)> for FSOpener {
-    fn event(
-        &mut self,
-        _ctx: &mut EventCtx,
-        _event: &Event,
-        _data: &mut (bool, FSNode),
-        _env: &Env,
-    ) {
-    }
+impl Widget<FSNode> for FSOpener {
+    fn event(&mut self, _ctx: &mut EventCtx, _event: &Event, _data: &mut FSNode, _env: &Env) {}
 
-    fn lifecycle(
-        &mut self,
-        ctx: &mut LifeCycleCtx,
-        event: &LifeCycle,
-        data: &(bool, FSNode),
-        env: &Env,
-    ) {
-        let label = self.label(data.0, data.1.is_branch());
+    fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &FSNode, env: &Env) {
+        let label = self.label(data);
         self.label.lifecycle(ctx, event, &label, env);
     }
 
-    fn update(
-        &mut self,
-        ctx: &mut UpdateCtx,
-        old_data: &(bool, FSNode),
-        data: &(bool, FSNode),
-        env: &Env,
-    ) {
-        if old_data.0 != data.0 {
-            let label = self.label(data.0, data.1.is_branch());
+    fn update(&mut self, ctx: &mut UpdateCtx, old_data: &FSNode, data: &FSNode, env: &Env) {
+        if old_data.is_open() != data.is_open() {
+            let label = self.label(data);
             self.label.update(ctx, &label, env);
         }
-        if !data.1.is_branch() {
-            match &data.1.filetype {
-                None => self.filetype = FileType::Unknown,
-                Some(ft) => {
-                    if ft != &self.filetype {
-                        self.filetype = ft.clone();
-                        self.label.update(ctx, &self.label(data.0, false), env);
-                    }
-                }
+        if !data.is_branch() {
+            if data.filetype != self.filetype {
+                self.filetype = data.filetype.clone();
+                self.label.update(ctx, &self.label(data), env);
             }
         }
     }
@@ -257,21 +230,21 @@ impl Widget<(bool, FSNode)> for FSOpener {
         &mut self,
         ctx: &mut LayoutCtx,
         bc: &BoxConstraints,
-        data: &(bool, FSNode),
+        data: &FSNode,
         env: &Env,
     ) -> Size {
-        let label = self.label(data.0, data.1.is_branch());
+        let label = self.label(data);
         self.label.set_origin(ctx, &label, env, Point::ORIGIN);
         self.label.layout(ctx, bc, &label, env)
     }
 
-    fn paint(&mut self, ctx: &mut PaintCtx, data: &(bool, FSNode), env: &Env) {
-        let label = self.label(data.0, data.1.is_branch());
+    fn paint(&mut self, ctx: &mut PaintCtx, data: &FSNode, env: &Env) {
+        let label = self.label(data);
         self.label.paint(ctx, &label, env)
     }
 }
 
-fn make_context_menu(widget_id: WidgetId) -> Menu<FSNode> {
+fn make_dir_context_menu(widget_id: WidgetId) -> Menu<FSNode> {
     Menu::empty()
         .entry(MenuItem::new(LocalizedString::new("New File")).on_activate(
             move |ctx, _data: &mut FSNode, _env| {
@@ -285,6 +258,20 @@ fn make_context_menu(widget_id: WidgetId) -> Menu<FSNode> {
                 },
             ),
         )
+        .entry(MenuItem::new(LocalizedString::new("Delete")).on_activate(
+            move |ctx, _data: &mut FSNode, _env| {
+                ctx.submit_command(DELETE.to(Target::Widget(widget_id)));
+            },
+        ))
+        .entry(MenuItem::new(LocalizedString::new("Rename")).on_activate(
+            move |ctx, _data: &mut FSNode, _env| {
+                ctx.submit_command(RENAME.to(Target::Widget(widget_id)));
+            },
+        ))
+}
+
+fn make_file_context_menu(widget_id: WidgetId) -> Menu<FSNode> {
+    Menu::empty()
         .entry(MenuItem::new(LocalizedString::new("Delete")).on_activate(
             move |ctx, _data: &mut FSNode, _env| {
                 ctx.submit_command(DELETE.to(Target::Widget(widget_id)));
@@ -321,6 +308,7 @@ impl FSNodeWidget {
                     .with_child(
                         Button::new("Save").on_click(|_ctx, data: &mut FSNode, _env| {
                             data.editing = false;
+                            data.get_filetype();
                         }),
                     ),
             ),
@@ -346,14 +334,20 @@ impl Widget<FSNode> for FSNodeWidget {
             Event::MouseDown(ref mouse) if mouse.button.is_right() => {
                 eprintln!("mousedown... {:?}", ctx.widget_id());
                 if !self.editing {
-                    ctx.show_context_menu(make_context_menu(ctx.widget_id()), mouse.pos);
+                    if data.is_branch() {
+                        ctx.show_context_menu(make_dir_context_menu(ctx.widget_id()), mouse.pos);
+                    } else {
+                        ctx.show_context_menu(make_file_context_menu(ctx.widget_id()), mouse.pos);
+                    }
                     None
                 } else {
                     Some(event)
                 }
             }
             Event::Command(cmd) if cmd.is(EDIT_FINISHED) => {
+                eprintln!("############## {:?} ##############", cmd);
                 data.get_filetype();
+                data.update();
                 None
             }
             Event::Command(cmd) if cmd.is(TREE_CHILD_SHOW) => {
@@ -388,7 +382,7 @@ impl Widget<FSNode> for FSNodeWidget {
             }
             Event::Command(cmd) if cmd.is(DELETE) => {
                 eprintln!("-------- delete -------- {:?}", ctx.widget_id());
-                ctx.submit_notification(TREE_CHILD_REMOVE);
+                ctx.submit_notification(TREE_NODE_REMOVE);
                 None
             }
             Event::Command(cmd) if cmd.is(RENAME) => {
@@ -424,12 +418,12 @@ impl Widget<FSNode> for FSNodeWidget {
 
     fn update(&mut self, ctx: &mut UpdateCtx, _old_data: &FSNode, data: &FSNode, env: &Env) {
         if data.editing != self.editing {
-            self.editing = data.editing;
             if self.editing {
                 ctx.submit_command(EDIT_FINISHED);
             } else {
                 ctx.submit_command(EDIT_STARTED);
             }
+            self.editing = data.editing;
             ctx.children_changed();
         }
         self.current_widget().update(ctx, data, env)

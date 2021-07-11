@@ -25,19 +25,20 @@ use druid::theme;
 use druid::widget::Label;
 use druid::{
     BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx,
-    Point, UpdateCtx, Widget, WidgetPod,
+    Point, Selector, UpdateCtx, Widget, WidgetPod,
 };
 
 use crate::selectors;
 
 selectors! {
     TREE_CHILD_CREATED,
-    TREE_CHILD_REMOVE,
+    TREE_NODE_REMOVE,
     TREE_CHILD_REMOVE_INTERNAL: i32,
     TREE_OPEN,
     TREE_OPEN_PARENT,
     TREE_CHILD_SHOW,
     TREE_CHILD_HIDE,
+    TREE_OPEN_STATE: bool,
 }
 
 /// A tree widget for a collection of items organized in a hierachical way.
@@ -80,11 +81,11 @@ pub struct Opener<T>
 where
     T: TreeNode,
 {
-    widget: WidgetPod<(bool, T), Box<dyn Widget<(bool, T)>>>,
+    widget: WidgetPod<T, Box<dyn Widget<T>>>,
 }
 
 impl<T: TreeNode> Opener<T> {
-    pub fn new(widget: Box<dyn Widget<(bool, T)>>) -> Opener<T> {
+    pub fn new(widget: Box<dyn Widget<T>>) -> Opener<T> {
         Opener {
             widget: WidgetPod::new(widget),
         }
@@ -98,40 +99,20 @@ where
     phantom: PhantomData<T>,
 }
 
-impl<T: TreeNode> Widget<(bool, T)> for Wedge<T> {
-    fn event(&mut self, _ctx: &mut EventCtx, _event: &Event, _data: &mut (bool, T), _env: &Env) {}
+impl<T: TreeNode> Widget<T> for Wedge<T> {
+    fn event(&mut self, _ctx: &mut EventCtx, _event: &Event, _data: &mut T, _env: &Env) {}
 
-    fn lifecycle(
-        &mut self,
-        _ctx: &mut LifeCycleCtx,
-        _event: &LifeCycle,
-        _data: &(bool, T),
-        _env: &Env,
-    ) {
-    }
+    fn lifecycle(&mut self, _ctx: &mut LifeCycleCtx, _event: &LifeCycle, _data: &T, _env: &Env) {}
 
-    fn update(
-        &mut self,
-        _ctx: &mut UpdateCtx,
-        _old_data: &(bool, T),
-        _data: &(bool, T),
-        _env: &Env,
-    ) {
-    }
+    fn update(&mut self, _ctx: &mut UpdateCtx, _old_data: &T, _data: &T, _env: &Env) {}
 
-    fn layout(
-        &mut self,
-        _ctx: &mut LayoutCtx,
-        bc: &BoxConstraints,
-        _data: &(bool, T),
-        env: &Env,
-    ) -> Size {
+    fn layout(&mut self, _ctx: &mut LayoutCtx, bc: &BoxConstraints, _data: &T, env: &Env) -> Size {
         let size = env.get(theme::BASIC_WIDGET_HEIGHT);
         bc.constrain(Size::new(size, size))
     }
 
-    fn paint(&mut self, ctx: &mut PaintCtx, data: &(bool, T), env: &Env) {
-        if !data.1.is_branch() {
+    fn paint(&mut self, ctx: &mut PaintCtx, data: &T, env: &Env) {
+        if !data.is_branch() {
             return ();
         }
         let stroke_color = if ctx.is_hot() {
@@ -142,7 +123,7 @@ impl<T: TreeNode> Widget<(bool, T)> for Wedge<T> {
 
         // Paint the opener
         let mut path = BezPath::new();
-        if data.0 {
+        if data.is_open() {
             // expanded: 'V' shape
             path.move_to((5.0, 7.0));
             path.line_to((9.0, 13.0));
@@ -163,11 +144,11 @@ impl<T: TreeNode> Widget<(bool, T)> for Wedge<T> {
 
 /// Implementing Widget for the Opener.
 /// This widget's data is simply a boolean telling whether is is expanded or collapsed.
-impl<T: TreeNode> Widget<(bool, T)> for Opener<T>
+impl<T: TreeNode> Widget<T> for Opener<T>
 where
     T: Data,
 {
-    fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut (bool, T), _env: &Env) {
+    fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, _env: &Env) {
         match event {
             Event::MouseDown(_) => {
                 ctx.set_active(true);
@@ -177,7 +158,7 @@ where
                 if ctx.is_active() {
                     ctx.set_active(false);
                     if ctx.is_hot() {
-                        data.0 = !data.0;
+                        data.open(!data.is_open());
                     }
                     ctx.request_paint();
                 }
@@ -187,38 +168,26 @@ where
         self.widget.event(ctx, event, data, _env);
     }
 
-    fn lifecycle(
-        &mut self,
-        ctx: &mut LifeCycleCtx,
-        event: &LifeCycle,
-        data: &(bool, T),
-        env: &Env,
-    ) {
+    fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
         self.widget.lifecycle(ctx, event, data, env);
     }
 
-    fn update(&mut self, ctx: &mut UpdateCtx, _old_data: &(bool, T), data: &(bool, T), env: &Env) {
+    fn update(&mut self, ctx: &mut UpdateCtx, _old_data: &T, data: &T, env: &Env) {
         self.widget.update(ctx, data, env)
     }
 
-    fn layout(
-        &mut self,
-        ctx: &mut LayoutCtx,
-        bc: &BoxConstraints,
-        data: &(bool, T),
-        env: &Env,
-    ) -> Size {
+    fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> Size {
         self.widget.set_origin(ctx, data, env, Point::ORIGIN);
         bc.constrain(self.widget.layout(ctx, bc, data, env))
     }
 
-    fn paint(&mut self, ctx: &mut PaintCtx, data: &(bool, T), env: &Env) {
+    fn paint(&mut self, ctx: &mut PaintCtx, data: &T, env: &Env) {
         self.widget.paint(ctx, data, env)
     }
 }
 
 type TreeItemFactory<T> = Arc<Box<dyn Fn() -> Box<dyn Widget<T>>>>;
-type OpenerFactory<T> = dyn Fn() -> Box<dyn Widget<(bool, T)>>;
+type OpenerFactory<T> = dyn Fn() -> Box<dyn Widget<T>>;
 
 fn make_wedge<T: TreeNode>() -> Wedge<T> {
     Wedge {
@@ -235,11 +204,11 @@ where
     // the index of the widget in its parent
     index: usize,
     // The "opener" widget,
-    opener: WidgetPod<(bool, T), Opener<T>>,
+    opener: WidgetPod<T, Opener<T>>,
     /// The label for this node
     widget: WidgetPod<T, Box<dyn Widget<T>>>,
     /// Whether the node is expanded or collapsed
-    expanded: bool,
+    // expanded: bool,
     /// The children of this tree node widget
     children: Vec<WidgetPod<T, Self>>,
     /// A factory closure for building widgets for the children nodes
@@ -253,7 +222,7 @@ impl<T: TreeNode> TreeNodeWidget<T> {
         make_widget: TreeItemFactory<T>,
         make_opener: Arc<Box<OpenerFactory<T>>>,
         index: usize,
-        expanded: bool,
+        // expanded: bool,
     ) -> Self {
         Self {
             index,
@@ -261,7 +230,7 @@ impl<T: TreeNode> TreeNodeWidget<T> {
                 widget: WidgetPod::new(make_opener.clone()()),
             }),
             widget: WidgetPod::new(Box::new((make_widget)())),
-            expanded,
+            // expanded,
             children: Vec::new(),
             make_widget,
             make_opener,
@@ -271,24 +240,25 @@ impl<T: TreeNode> TreeNodeWidget<T> {
     /// Expand or collapse the node.
     /// Returns whether new children were created.
     fn update_children(&mut self, data: &T) -> bool {
-        if self.expanded {
-            let mut new_children = false;
+        let mut changed = false;
+        if data.is_open() {
+            if self.children.len() > data.children_count() {
+                self.children.truncate(data.children_count());
+                changed = true;
+            }
             for index in 0..data.children_count() {
-                new_children |= index >= self.children.len();
+                changed |= index >= self.children.len();
                 match self.children.get_mut(index) {
                     Some(c) => c.widget_mut().index = index,
                     None => self.children.push(WidgetPod::new(TreeNodeWidget::new(
                         self.make_widget.clone(),
                         self.make_opener.clone(),
                         index,
-                        false,
                     ))),
                 }
             }
-            new_children
-        } else {
-            false
         }
+        changed
     }
 
     /// Build the widget for this node, from the provided data
@@ -307,7 +277,7 @@ where
             if notif.is(TREE_CHILD_CREATED) {
                 ctx.set_handled();
                 self.update_children(data);
-                if self.expanded {
+                if data.is_open() {
                     for child_widget_node in self.children.iter_mut() {
                         // TODO: this is not true except for the new child. `updage_children` should tell
                         // which child was added/removed...
@@ -317,15 +287,15 @@ where
                 ctx.children_changed();
             } else if notif.is(TREE_OPEN) {
                 ctx.set_handled();
-                if !self.expanded {
-                    self.expanded = true;
+                if !data.is_open() {
+                    data.open(true);
                     self.update_children(data);
                     ctx.children_changed();
                     for child_widget_node in self.children.iter_mut() {
                         ctx.submit_command(TREE_CHILD_SHOW.to(child_widget_node.id()))
                     }
                 }
-            } else if notif.is(TREE_CHILD_REMOVE) {
+            } else if notif.is(TREE_NODE_REMOVE) {
                 // we were comanded to remove ourselves. Let's tell our parent.
                 ctx.submit_notification(TREE_CHILD_REMOVE_INTERNAL.with(self.index as i32));
                 ctx.set_handled();
@@ -345,77 +315,65 @@ where
         }
         self.widget.event(ctx, event, data, env);
 
-        for (index, child_widget_node) in self.children.iter_mut().enumerate() {
-            data.for_child_mut(index, |data: &mut T, _index: usize| {
-                child_widget_node.event(ctx, event, data, env)
-            });
-        }
+        if data.is_branch() {
+            let before = data.is_open();
+            self.opener.event(ctx, event, data, env);
+            let expanded = data.is_open();
 
-        // Propagate the event to the opener
-        let mut opener_data = (self.expanded, data.clone());
-        self.opener.event(ctx, event, &mut opener_data, env);
-        let wedge_expanded = opener_data.0;
+            if expanded != before {
+                // The opener widget has decided to change the expanded/collapsed state of the node,
+                // handle it by expanding/collapsing children nodes as required.
 
-        if wedge_expanded != self.expanded {
-            // The opener widget has decided to change the expanded/collapsed state of the node,
-            // handle it by expanding/collapsing children nodes as required.
-            self.expanded = wedge_expanded;
-            if self.update_children(data) {
-                // New children were created, inform the context.
-                ctx.children_changed();
+                let cmd: Selector;
+                if expanded {
+                    cmd = TREE_CHILD_SHOW;
+                    if self.update_children(data) {
+                        // New children were created, inform the context.
+                        ctx.children_changed();
+                    }
+                } else {
+                    cmd = TREE_CHILD_HIDE;
+                    // self.children = vec![];
+                };
+                for child_widget_node in self.children.iter_mut() {
+                    ctx.submit_command(cmd.to(child_widget_node.id()))
+                }
+                ctx.request_layout();
+                // ctx.request_update();
             }
-
-            let cmd = if wedge_expanded {
-                TREE_CHILD_SHOW
-            } else {
-                TREE_CHILD_HIDE
-            };
-            for child_widget_node in self.children.iter_mut() {
-                ctx.submit_command(cmd.to(child_widget_node.id()))
+            if (expanded & before) | event.should_propagate_to_hidden() {
+                for (index, child_widget_node) in self.children.iter_mut().enumerate() {
+                    data.for_child_mut(index, |data: &mut T, _index: usize| {
+                        child_widget_node.event(ctx, event, data, env)
+                    });
+                }
             }
-
-            ctx.request_layout();
-            ctx.request_update();
         }
     }
 
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
         // eprintln!("{:?}", event);
-        self.opener
-            .lifecycle(ctx, event, &(self.expanded, data.clone()), env);
+        self.opener.lifecycle(ctx, event, data, env);
         self.widget.lifecycle(ctx, event, data, env);
-        for (index, child_widget_node) in self.children.iter_mut().enumerate() {
-            let child_tree_node = data.get_child(index);
-            child_widget_node.lifecycle(ctx, event, child_tree_node, env);
+        if data.is_branch() {
+            for (index, child_widget_node) in self.children.iter_mut().enumerate() {
+                let child_tree_node = data.get_child(index);
+                child_widget_node.lifecycle(ctx, event, child_tree_node, env);
+            }
         }
     }
 
     fn update(&mut self, ctx: &mut UpdateCtx, old_data: &T, data: &T, env: &Env) {
-        // eprintln!("update_widget {}", self.expanded);
-        self.opener.update(
-            ctx,
-            &(self.expanded, data.clone()),
-            // &(self.expanded, data.clone()),
-            env,
-        );
+        eprintln!("{:?}", old_data);
+        eprintln!("{:?}", data);
+        self.widget.update(ctx, data, env);
+        self.opener.update(ctx, data, env);
 
-        // the data may not change but the update may comme from explicit request_update() call in
-        // if an node is open/closed...
-        // TODO: is this a good idea? should we push the open state on the application state (thus
-        //       forcing the user to handle somehow the opening state, like list_filter does with
-        //       the filtered indices list)
-        if !old_data.same(data) {
-            eprintln!("not same");
-            eprintln!("{:?}", old_data);
-            eprintln!("{:?}", data);
-            self.widget.update(ctx, data, env);
-        }
-        // ...that's why we have to rebuild the widget tree for each and every event... :/
         for (index, child_widget_node) in self.children.iter_mut().enumerate() {
             let child_tree_node = data.get_child(index);
             child_widget_node.update(ctx, child_tree_node, env);
         }
-        ctx.children_changed();
+        // ctx.children_changed();
     }
 
     // TODO: the height calculation seems to ignore the inner widget (at least on X11). issue #61
@@ -426,15 +384,13 @@ where
         let mut max_width = bc.max().width;
 
         // Top left, the opener
-        let data2 = (self.expanded, data.clone());
         self.opener.layout(
             ctx,
             &BoxConstraints::tight(Size::new(basic_size, basic_size)),
-            &data2,
+            data,
             env,
         );
-        self.opener
-            .set_origin(ctx, &(self.expanded, data.clone()), env, Point::ORIGIN);
+        self.opener.set_origin(ctx, data, env, Point::ORIGIN);
 
         // Immediately on the right, the node widget
         let widget_size = self.widget.layout(
@@ -454,7 +410,7 @@ where
         let mut size = Size::new(indent + widget_size.width, basic_size);
 
         // Below, the children nodes, but only if expanded
-        if self.expanded && max_width > indent {
+        if data.is_open() && max_width > indent {
             if min_width > indent {
                 min_width -= min_width;
             } else {
@@ -490,15 +446,14 @@ where
     }
 
     fn paint(&mut self, ctx: &mut PaintCtx, data: &T, env: &Env) {
-        self.opener.paint(ctx, &(self.expanded, data.clone()), env);
+        self.opener.paint(ctx, data, env);
         self.widget.paint(ctx, data, env);
-        if data.is_branch() & self.expanded {
+        if data.is_branch() & data.is_open() {
             for (index, child_widget_node) in self.children.iter_mut().enumerate() {
                 let child_tree_node = data.get_child(index);
                 child_widget_node.paint(ctx, child_tree_node, env);
             }
         }
-        // self.widget.paint(ctx, data, env);
     }
 }
 
@@ -510,11 +465,11 @@ impl<T: TreeNode> Tree<T> {
         let make_opener: Arc<Box<OpenerFactory<T>>> =
             Arc::new(Box::new(|| Box::new(make_wedge::<T>())));
         Tree {
-            root_node: WidgetPod::new(TreeNodeWidget::new(make_widget, make_opener, 0, false)),
+            root_node: WidgetPod::new(TreeNodeWidget::new(make_widget, make_opener, 0)),
         }
     }
 
-    pub fn with_opener<W: Widget<(bool, T)> + 'static>(
+    pub fn with_opener<W: Widget<T> + 'static>(
         mut self,
         closure: impl Fn() -> W + 'static,
     ) -> Self {
@@ -535,7 +490,7 @@ impl<T: TreeNode + Display> Default for Tree<T> {
         let make_opener: Arc<Box<OpenerFactory<T>>> =
             Arc::new(Box::new(|| Box::new(make_wedge::<T>())));
         Tree {
-            root_node: WidgetPod::new(TreeNodeWidget::new(make_widget, make_opener, 0, false)),
+            root_node: WidgetPod::new(TreeNodeWidget::new(make_widget, make_opener, 0)),
         }
     }
 }
