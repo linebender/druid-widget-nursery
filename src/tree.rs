@@ -62,7 +62,11 @@ where
     fn get_child(&self, index: usize) -> &Self;
 
     /// Returns a mutable reference to the node's child at the given index
-    fn get_child_mut(&mut self, index: usize) -> &mut Self;
+    fn for_child_mut(&mut self, index: usize, cb: impl FnMut(&mut Self, usize));
+
+    fn open(&mut self, state: bool);
+
+    fn is_open(&self) -> bool;
 
     fn is_branch(&self) -> bool {
         self.children_count() > 0
@@ -72,11 +76,14 @@ where
     fn rm_child(&mut self, index: usize) {}
 }
 
-pub struct Opener<T> {
+pub struct Opener<T>
+where
+    T: TreeNode,
+{
     widget: WidgetPod<(bool, T), Box<dyn Widget<(bool, T)>>>,
 }
 
-impl<T> Opener<T> {
+impl<T: TreeNode> Opener<T> {
     pub fn new(widget: Box<dyn Widget<(bool, T)>>) -> Opener<T> {
         Opener {
             widget: WidgetPod::new(widget),
@@ -84,11 +91,14 @@ impl<T> Opener<T> {
     }
 }
 
-pub struct Wedge<T> {
+pub struct Wedge<T>
+where
+    T: TreeNode,
+{
     phantom: PhantomData<T>,
 }
 
-impl<T> Widget<(bool, T)> for Wedge<T> {
+impl<T: TreeNode> Widget<(bool, T)> for Wedge<T> {
     fn event(&mut self, _ctx: &mut EventCtx, _event: &Event, _data: &mut (bool, T), _env: &Env) {}
 
     fn lifecycle(
@@ -121,6 +131,9 @@ impl<T> Widget<(bool, T)> for Wedge<T> {
     }
 
     fn paint(&mut self, ctx: &mut PaintCtx, data: &(bool, T), env: &Env) {
+        if !data.1.is_branch() {
+            return ();
+        }
         let stroke_color = if ctx.is_hot() {
             env.get(theme::FOREGROUND_LIGHT)
         } else {
@@ -150,7 +163,7 @@ impl<T> Widget<(bool, T)> for Wedge<T> {
 
 /// Implementing Widget for the Opener.
 /// This widget's data is simply a boolean telling whether is is expanded or collapsed.
-impl<T> Widget<(bool, T)> for Opener<T>
+impl<T: TreeNode> Widget<(bool, T)> for Opener<T>
 where
     T: Data,
 {
@@ -207,7 +220,7 @@ where
 type TreeItemFactory<T> = Arc<Box<dyn Fn() -> Box<dyn Widget<T>>>>;
 type OpenerFactory<T> = dyn Fn() -> Box<dyn Widget<(bool, T)>>;
 
-fn make_wedge<T>() -> Wedge<T> {
+fn make_wedge<T: TreeNode>() -> Wedge<T> {
     Wedge {
         phantom: PhantomData,
     }
@@ -333,8 +346,9 @@ where
         self.widget.event(ctx, event, data, env);
 
         for (index, child_widget_node) in self.children.iter_mut().enumerate() {
-            let child_tree_node = data.get_child_mut(index);
-            child_widget_node.event(ctx, event, child_tree_node, env);
+            data.for_child_mut(index, |data: &mut T, _index: usize| {
+                child_widget_node.event(ctx, event, data, env)
+            });
         }
 
         // Propagate the event to the opener
@@ -476,17 +490,15 @@ where
     }
 
     fn paint(&mut self, ctx: &mut PaintCtx, data: &T, env: &Env) {
-        if data.is_branch() {
-            self.opener.paint(ctx, &(self.expanded, data.clone()), env);
-            self.widget.paint(ctx, data, env);
-            if self.expanded {
-                for (index, child_widget_node) in self.children.iter_mut().enumerate() {
-                    let child_tree_node = data.get_child(index);
-                    child_widget_node.paint(ctx, child_tree_node, env);
-                }
+        self.opener.paint(ctx, &(self.expanded, data.clone()), env);
+        self.widget.paint(ctx, data, env);
+        if data.is_branch() & self.expanded {
+            for (index, child_widget_node) in self.children.iter_mut().enumerate() {
+                let child_tree_node = data.get_child(index);
+                child_widget_node.paint(ctx, child_tree_node, env);
             }
         }
-        self.widget.paint(ctx, data, env);
+        // self.widget.paint(ctx, data, env);
     }
 }
 
