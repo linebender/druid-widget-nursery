@@ -28,7 +28,7 @@ use druid::{
     WidgetExt, WidgetId, WidgetPod, WindowDesc,
 };
 use druid_widget_nursery::tree::{
-    Tree, TreeNode, TREE_CHILD_CREATED, TREE_CHILD_SHOW, TREE_NODE_REMOVE, TREE_OPEN,
+    Tree, TreeNode, TREE_CHILD_CREATED, TREE_CHILD_SHOW, TREE_CHROOT, TREE_NODE_REMOVE, TREE_OPEN,
 };
 
 use druid_widget_nursery::selectors;
@@ -41,6 +41,7 @@ selectors! {
     DELETE,
     EDIT_FINISHED,
     EDIT_STARTED,
+    CHROOT,
 }
 
 #[derive(Clone, Debug, PartialEq, Data)]
@@ -78,6 +79,7 @@ struct FSNode {
     node_type: FSNodeType,
     filetype: FileType,
     open_: bool,
+    chroot_: Option<usize>,
 }
 
 /// We use FSNode as a tree node, implementing the TreeNode trait.
@@ -90,6 +92,7 @@ impl FSNode {
             node_type: FSNodeType::File,
             filetype: FileType::Unknown,
             open_: false,
+            chroot_: None,
         }
     }
 
@@ -101,6 +104,7 @@ impl FSNode {
             node_type: FSNodeType::Directory,
             filetype: FileType::Unknown,
             open_: false,
+            chroot_: None,
         }
     }
 
@@ -131,6 +135,10 @@ impl FSNode {
     fn ref_add_child(&mut self, child: Self) {
         self.children.push_back(Arc::new(child));
     }
+
+    // fn get_child_mut(&mut self, index: usize) -> &mut FSNode {
+    //     &mut self.children[index]
+    // }
 
     fn get_filetype(&mut self) {
         use FileType::*;
@@ -188,6 +196,14 @@ impl TreeNode for FSNode {
 
     fn is_open(&self) -> bool {
         self.open_
+    }
+
+    fn chroot(&mut self, idx: Option<usize>) {
+        self.chroot_ = idx;
+    }
+
+    fn get_chroot(&self) -> Option<usize> {
+        self.chroot_
     }
 }
 
@@ -269,6 +285,11 @@ fn make_dir_context_menu(widget_id: WidgetId) -> Menu<FSNode> {
                 ctx.submit_command(RENAME.to(Target::Widget(widget_id)));
             },
         ))
+        .entry(MenuItem::new(LocalizedString::new("Chroot")).on_activate(
+            move |ctx, _data: &mut FSNode, _env| {
+                ctx.submit_command(CHROOT.to(Target::Widget(widget_id)));
+            },
+        ))
 }
 
 fn make_file_context_menu(widget_id: WidgetId) -> Menu<FSNode> {
@@ -327,10 +348,6 @@ impl FSNodeWidget {
 
 impl Widget<FSNode> for FSNodeWidget {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut FSNode, env: &Env) {
-        // if self.editing {
-        //     ctx.set_focus(self.edit_widget_id);
-        // }
-
         let new_event = match event {
             Event::MouseDown(ref mouse) if mouse.button.is_right() => {
                 eprintln!("mousedown... {:?}", ctx.widget_id());
@@ -390,6 +407,10 @@ impl Widget<FSNode> for FSNodeWidget {
                 eprintln!("-------- delete -------- {:?}", ctx.widget_id());
                 data.editing = true;
                 ctx.set_focus(self.edit_widget_id);
+                None
+            }
+            Event::Command(cmd) if cmd.is(CHROOT) => {
+                ctx.submit_notification(TREE_CHROOT.with(vec![]));
                 None
             }
             _ => Some(event),
@@ -475,40 +496,30 @@ fn ui_builder() -> impl Widget<FSNode> {
 pub fn main() {
     // Create the main window
     let main_window = WindowDesc::new(ui_builder())
+        .window_size((600.0, 600.0))
         .title(LocalizedString::new("tree-demo-window-title").with_placeholder("Tree Demo"));
 
     // Set our initial data.
     // This is an extract from https://en.wikipedia.org/wiki/Linnaean_taxonomy
-    let taxonomy = FSNode::new_dir("Life")
+    let taxonomy = FSNode::new_dir("project")
         .add_child(
-            FSNode::new_dir("Animalia")
-                .add_child(
-                    FSNode::new_dir("Aves")
-                        .add_child(FSNode::new("Accipitres"))
-                        .add_child(FSNode::new("Picae"))
-                        .add_child(FSNode::new("Passeres")),
-                )
-                .add_child(
-                    FSNode::new_dir("Amphibia")
-                        .add_child(FSNode::new("Reptiles.rs"))
-                        .add_child(FSNode::new("Serpentes.py"))
-                        .add_child(FSNode::new("Serpentes.txt"))
-                        .add_child(FSNode::new("Nantes.toml")),
-                )
-                .add_child(FSNode::new_dir("Pisces"))
-                .add_child(FSNode::new("Insecta")),
+            FSNode::new_dir("src")
+                .add_child(FSNode::new("lib.rs"))
+                .add_child(FSNode::new("ui.rs"))
+                .add_child(FSNode::new_dir("backend").add_child(FSNode::new("mod.rs"))),
         )
         .add_child(
-            FSNode::new_dir("Vegetalia")
-                .add_child(FSNode::new("Monandria"))
-                .add_child(FSNode::new("Diandria"))
-                .add_child(FSNode::new("Heptandria")),
+            FSNode::new_dir("examples")
+                .add_child(FSNode::new("do_stuff.rs"))
+                .add_child(FSNode::new("do_other_stuff.rs")),
         )
+        .add_child(FSNode::new("Cargo.toml"))
+        .add_child(FSNode::new("Cargo.lock"))
         .add_child(
-            FSNode::new_dir("Mineralia")
-                .add_child(FSNode::new("Petræ"))
-                .add_child(FSNode::new("Fossilia"))
-                .add_child(FSNode::new("Vitamentra")),
+            FSNode::new_dir(".git")
+                .add_child(FSNode::new("config"))
+                .add_child(FSNode::new("HEAD"))
+                .add_child(FSNode::new("index")),
         );
 
     // start the application

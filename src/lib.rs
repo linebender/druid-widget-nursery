@@ -58,7 +58,7 @@ pub use progress_bar::ProgressBar;
 pub use separator::{Orientation, Separator};
 pub use tooltip::{TooltipController, TooltipExt};
 pub use titlebar::TitleBar;
-pub use tree::{Tree, TreeNode, Wedge, TREE_CHILD_CREATED, TREE_NODE_REMOVE, TREE_OPEN_PARENT};
+pub use tree::{Tree, TreeNode, Wedge, TREE_CHILD_CREATED, TREE_NODE_REMOVE};
 
 #[cfg(feature = "async")]
 pub use future_widget::{Delegate as AsyncDelegate, FutureWidget};
