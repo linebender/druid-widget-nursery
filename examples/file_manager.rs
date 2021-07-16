@@ -35,11 +35,15 @@ use druid_widget_nursery::tree::{
 use druid_widget_nursery::selectors;
 
 selectors! {
-    #[doc = "Set the focus to current textbox"]
+    /// Set the focus to current textbox
     FOCUS_EDIT_BOX,
+    /// Command to tell a directory to create a new file
     NEW_FILE,
+    /// Command to tell a directory to create a new subdir
     NEW_DIR,
+    /// Start a rename
     RENAME,
+    /// Delete the node
     DELETE,
     EDIT_FINISHED,
     EDIT_STARTED,
