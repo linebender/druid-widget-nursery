@@ -20,12 +20,12 @@
 macro_rules! selectors {
     (
         $(
-            $(#[$inner:ident $($args:tt)*])*
+            $(#[$attr:meta])*
             $name:ident $( : $ty:ty)?
         ),* $(,)?
     ) => {
         $(
-            $(#[$inner $($args)*])*
+            $(#[$attr])*
             pub const $name: ::druid::Selector<$($ty)?> = ::druid::Selector::new(concat!(
                 module_path!(),
                 "::",
@@ -57,12 +57,12 @@ macro_rules! selectors {
 macro_rules! keys {
     (
         $(
-            $(#[$inner:ident $($args:tt)*])*
+            $(#[$attr:meta])*
             $name:ident : $ty:ty
         ),* $(,)?
     ) => {
         $(
-            $(#[$inner $($args)*])*
+            $(#[$attr])*
             pub const $name: ::druid::Key<$ty> = ::druid::Key::new(concat!(
                 module_path!(),
                 "::",
