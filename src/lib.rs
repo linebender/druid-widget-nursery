@@ -20,7 +20,7 @@ pub mod animation;
 mod canvas;
 mod computed;
 mod dropdown;
-// mod dropdown_select;
+mod dropdown_select;
 mod dynamic_sized_box;
 pub mod enum_switcher;
 mod list_select;
@@ -37,6 +37,7 @@ pub mod theme_loader;
 mod titlebar;
 mod tooltip;
 pub mod tree;
+pub mod wedge;
 
 #[cfg(feature = "async")]
 mod future_widget;
@@ -47,18 +48,19 @@ mod list_filter;
 
 pub use canvas::{Canvas, CanvasLayout, CanvasWrap};
 pub use computed::ComputedWidget;
-// pub use dropdown::{Dropdown, DROP};
-// pub use dropdown_select::DropdownSelect;
+pub use dropdown::{Dropdown, DROP};
+pub use dropdown_select::DropdownSelect;
 pub use dynamic_sized_box::DynamicSizedBox;
 pub use list_filter::{FilterIter, ListFilter};
 pub use list_select::ListSelect;
-// pub use multi_value::{MultiCheckbox, MultiRadio};
+pub use multi_value::{MultiCheckbox, MultiRadio};
 pub use on_monitor::{OnMonitor, OnMonitorExt};
 pub use progress_bar::ProgressBar;
 pub use separator::{Orientation, Separator};
-pub use tooltip::{TooltipController, TooltipExt};
 pub use titlebar::TitleBar;
-pub use tree::{Tree, TreeNode, Wedge, TREE_CHILD_CREATED, TREE_NODE_REMOVE};
+pub use tooltip::{TooltipController, TooltipExt};
+pub use tree::{Tree, TreeNode, TREE_CHILD_CREATED, TREE_NODE_REMOVE};
+pub use wedge::Wedge;
 
 #[cfg(feature = "async")]
 pub use future_widget::{Delegate as AsyncDelegate, FutureWidget};
