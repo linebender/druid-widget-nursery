@@ -258,8 +258,9 @@ impl Widget<FSNode> for FSOpener {
         env: &Env,
     ) -> Size {
         let label = self.label(data);
+        let size = self.label.layout(ctx, bc, &label, env);
         self.label.set_origin(ctx, &label, env, Point::ORIGIN);
-        self.label.layout(ctx, bc, &label, env)
+        size
     }
 
     fn paint(&mut self, ctx: &mut PaintCtx, data: &FSNode, env: &Env) {

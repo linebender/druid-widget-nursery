@@ -190,8 +190,9 @@ where
     }
 
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> Size {
+        let size = self.widget.layout(ctx, bc, data, env);
         self.widget.set_origin(ctx, data, env, Point::ORIGIN);
-        bc.constrain(self.widget.layout(ctx, bc, data, env))
+        bc.constrain(size)
     }
 
     fn paint(&mut self, ctx: &mut PaintCtx, data: &T, env: &Env) {
@@ -610,7 +611,6 @@ impl<T: TreeNode + Display> Default for Tree<T> {
 // Implement the Widget trait for Tree
 impl<T: TreeNode> Widget<T> for Tree<T> {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
-        eprintln!("{:?}", ctx.widget_id());
         if let Event::Notification(notif) = event {
             eprintln!("############################# {:?}", event);
             if notif.is(TREE_CHROOT) {
@@ -637,7 +637,7 @@ impl<T: TreeNode> Widget<T> for Tree<T> {
 
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
         if let LifeCycle::WidgetAdded = event {
-            self.root_node.widget_mut().make_widget();
+            // self.root_node.widget_mut().make_widget();
         }
         self.chroot_up.lifecycle(ctx, event, &(), env);
         self.root_node.lifecycle(ctx, event, data, env);
@@ -649,30 +649,24 @@ impl<T: TreeNode> Widget<T> for Tree<T> {
     }
 
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> Size {
-        // self.root_node.layout(
-        //     ctx,
-        //     &BoxConstraints::new(Size::new(0.0, 0.0), Size::new(0.0, 0.0)),
-        //     data,
-        //     env,
-        // );
-        let chroot = self.chroot.clone();
-        let mut chroot_data = data;
-        for idx in &chroot {
-            chroot_data = chroot_data.get_child(*idx);
-        }
+        // let mut chroot_data = data;
+        // for idx in &chroot {
+        //     chroot_data = chroot_data.get_child(*idx);
+        // }
 
-        let origin = if chroot.len() > 0 {
-            self.chroot_up.set_origin(ctx, &(), env, Point::ORIGIN);
-            let btn_sz = self.chroot_up.layout(ctx, bc, &(), env);
-            Point::new(btn_sz.width, 0.0)
-        } else {
-            // self.chroot_up.layout(ctx, BoxConstraints::
-            Point::ORIGIN
-        };
+        // let origin = if chroot.len() > 0 {
+        //     self.chroot_up.set_origin(ctx, &(), env, Point::ORIGIN);
+        //     let btn_sz = self.chroot_up.layout(ctx, bc, &(), env);
+        //     Point::new(btn_sz.width, 0.0)
+        // } else {
+        //     // self.chroot_up.layout(ctx, BoxConstraints::
+        //     Point::ORIGIN
+        // };
+        let origin = Point::ORIGIN;
         // let root = self.get_chrooted();
         let (root, chroot_data) = Self::get_chroot_from(&mut self.root_node, data);
-        root.set_origin(ctx, chroot_data, env, origin);
         let root_size = root.layout(ctx, bc, chroot_data, env);
+        root.set_origin(ctx, chroot_data, env, origin);
         Size::new(root_size.width + origin.x, root_size.height)
     }
 
@@ -681,14 +675,14 @@ impl<T: TreeNode> Widget<T> for Tree<T> {
         // let clip_rect = ctx.size().to_rect();
         // ctx.fill(clip_rect, &background_color);
 
-        let chroot = self.chroot.clone();
-        let mut chroot_data = data;
-        for idx in &chroot {
-            chroot_data = chroot_data.get_child(*idx);
-        }
-        if chroot.len() > 0 {
-            self.chroot_up.paint(ctx, &(), env);
-        }
+        // let chroot = self.chroot.clone();
+        // let mut chroot_data = data;
+        // for idx in &chroot {
+        //     chroot_data = chroot_data.get_child(*idx);
+        // }
+        // if chroot.len() > 0 {
+        //     self.chroot_up.paint(ctx, &(), env);
+        // }
         // let root = self.get_chrooted();
         let (root, chroot_data) = Self::get_chroot_from(&mut self.root_node, data);
         root.paint(ctx, chroot_data, env);
