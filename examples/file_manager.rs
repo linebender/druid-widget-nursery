@@ -28,12 +28,14 @@ use druid::{
     WidgetExt, WidgetId, WidgetPod, WindowDesc,
 };
 use druid_widget_nursery::tree::{
-    Tree, TreeNode, TREE_CHILD_CREATED, TREE_CHILD_SHOW, TREE_CHROOT, TREE_NODE_REMOVE, TREE_OPEN,
+    Tree, TreeNode, TREE_CHILD_CREATED, TREE_CHILD_SHOW, TREE_CHROOT, TREE_NODE_REMOVE,
+    TREE_NOTIFY_PARENT, TREE_OPEN,
 };
 
 use druid_widget_nursery::selectors;
 
 selectors! {
+    #[doc = "Set the focus to current textbox"]
     FOCUS_EDIT_BOX,
     NEW_FILE,
     NEW_DIR,
@@ -42,6 +44,7 @@ selectors! {
     EDIT_FINISHED,
     EDIT_STARTED,
     CHROOT,
+    UPDATE_DIR_VIEW,
 }
 
 #[derive(Clone, Debug, PartialEq, Data)]
@@ -330,7 +333,7 @@ impl FSNodeWidget {
                     .with_child(
                         Button::new("Save").on_click(|_ctx, data: &mut FSNode, _env| {
                             data.editing = false;
-                            data.get_filetype();
+                            // data.get_filetype();
                         }),
                     ),
             ),
@@ -365,7 +368,7 @@ impl Widget<FSNode> for FSNodeWidget {
             Event::Command(cmd) if cmd.is(EDIT_FINISHED) => {
                 eprintln!("############## {:?} ##############", cmd);
                 data.get_filetype();
-                data.update();
+                ctx.submit_notification(TREE_NOTIFY_PARENT.with(UPDATE_DIR_VIEW));
                 None
             }
             Event::Command(cmd) if cmd.is(TREE_CHILD_SHOW) => {
@@ -413,6 +416,17 @@ impl Widget<FSNode> for FSNodeWidget {
                 ctx.submit_notification(TREE_CHROOT.with(vec![]));
                 None
             }
+            Event::Command(cmd) if cmd.is(TREE_NOTIFY_PARENT) => {
+                let cmd_data = cmd.get(TREE_NOTIFY_PARENT).unwrap();
+                if *cmd_data == UPDATE_DIR_VIEW {
+                    data.update();
+                    ctx.children_changed();
+                    ctx.set_handled();
+                    None
+                } else {
+                    Some(event)
+                }
+            }
             _ => Some(event),
         };
         if let Some(evt) = new_event {
@@ -441,7 +455,7 @@ impl Widget<FSNode> for FSNodeWidget {
     fn update(&mut self, ctx: &mut UpdateCtx, _old_data: &FSNode, data: &FSNode, env: &Env) {
         if data.editing != self.editing {
             if self.editing {
-                ctx.submit_command(EDIT_FINISHED);
+                ctx.submit_command(EDIT_FINISHED.to(ctx.widget_id()));
             } else {
                 ctx.submit_command(EDIT_STARTED);
             }

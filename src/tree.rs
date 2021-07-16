@@ -41,6 +41,7 @@ selectors! {
     TREE_CHROOT: Vec<usize>,
     TREE_CHROOT_UP,
     TREE_CHROOT_CHILD: usize,
+    TREE_NOTIFY_PARENT: Selector,
 }
 
 /// A tree widget for a collection of items organized in a hierachical way.
@@ -338,6 +339,20 @@ where
                 data.chroot(Some(*chroot_idx));
                 ctx.submit_notification(TREE_CHROOT_CHILD.with(self.index));
                 ctx.set_handled();
+            } else if notif.is(TREE_NOTIFY_PARENT) {
+                eprintln!("{:?}", notif);
+                if self.widget.id() != notif.source() {
+                    let notif = notif.get(TREE_NOTIFY_PARENT).unwrap();
+                    ctx.submit_command(TREE_NOTIFY_PARENT.with(notif.clone()).to(self.widget.id()));
+                    ctx.set_handled();
+                }
+                // ctx.submit_notification(TREE_CHROOT_CHILD.with(self.index));
+            } else {
+                if self.widget.id() != notif.source() {
+                    eprintln!("RESEND NOTIFICATION");
+                    self.widget.event(ctx, event, data, env);
+                    ctx.set_handled();
+                }
             }
             return;
         }
