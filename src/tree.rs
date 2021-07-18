@@ -38,9 +38,11 @@ selectors! {
     TREE_CHILD_SHOW,
     TREE_CHILD_HIDE,
     TREE_OPEN_STATE: bool,
-    TREE_CHROOT: Vec<usize>,
+    TREE_CHROOT,
     TREE_CHROOT_UP,
     TREE_CHROOT_CHILD: usize,
+    /// notify a child that it's now the chroot
+    TREE_NOTIFY_CHROOT,
     TREE_NOTIFY_PARENT: Selector,
 }
 
@@ -51,7 +53,7 @@ where
 {
     /// The root node of this tree
     root_node: WidgetPod<T, TreeNodeWidget<T>>,
-    chroot: Vec<usize>,
+    // chroot: Vec<usize>,
     chroot_up: WidgetPod<(), ControllerHost<Button<()>, Click<()>>>,
 }
 
@@ -287,8 +289,8 @@ where
 {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
         // eprintln!("{:?}", event);
-        if let Event::Notification(notif) = event {
-            if notif.is(TREE_CHILD_CREATED) {
+        let event = match event {
+            Event::Notification(notif) if notif.is(TREE_CHILD_CREATED) => {
                 ctx.set_handled();
                 self.update_children(data);
                 if data.is_open() {
@@ -299,7 +301,9 @@ where
                     }
                 }
                 ctx.children_changed();
-            } else if notif.is(TREE_OPEN) {
+                None
+            }
+            Event::Notification(notif) if notif.is(TREE_OPEN) => {
                 ctx.set_handled();
                 if !data.is_open() {
                     data.open(true);
@@ -309,11 +313,15 @@ where
                         ctx.submit_command(TREE_CHILD_SHOW.to(child_widget_node.id()))
                     }
                 }
-            } else if notif.is(TREE_NODE_REMOVE) {
+                None
+            }
+            Event::Notification(notif) if notif.is(TREE_NODE_REMOVE) => {
                 // we were comanded to remove ourselves. Let's tell our parent.
                 ctx.submit_notification(TREE_CHILD_REMOVE_INTERNAL.with(self.index as i32));
                 ctx.set_handled();
-            } else if notif.is(TREE_CHILD_REMOVE_INTERNAL) {
+                None
+            }
+            Event::Notification(notif) if notif.is(TREE_CHILD_REMOVE_INTERNAL) => {
                 // get the index to remove from the notification
                 let index =
                     usize::try_from(*notif.get(TREE_CHILD_REMOVE_INTERNAL).unwrap()).unwrap();
@@ -324,39 +332,50 @@ where
                 self.update_children(data);
                 ctx.set_handled();
                 ctx.children_changed();
-            } else if notif.is(TREE_CHROOT) {
+                None
+            }
+            Event::Notification(notif) if notif.is(TREE_CHROOT) => {
                 eprintln!("{:?}", notif);
-                // let chroot = notif.get(TREE_CHROOT).unwrap();
-                // eprintln!("{:?}", chroot);
-                // let mut new_chroot = vec![self.index];
-                // new_chroot.splice(1..1, chroot.iter().cloned());
-                // ctx.submit_notification(TREE_CHROOT.with(new_chroot));
+                data.chroot(None);
                 ctx.submit_notification(TREE_CHROOT_CHILD.with(self.index));
                 ctx.set_handled();
-            } else if notif.is(TREE_CHROOT_CHILD) {
+                None
+            }
+            Event::Notification(notif) if notif.is(TREE_CHROOT_CHILD) => {
                 eprintln!("{:?}", notif);
                 let chroot_idx = notif.get(TREE_CHROOT_CHILD).unwrap();
                 eprintln!("{:?}", chroot_idx);
                 data.chroot(Some(*chroot_idx));
                 ctx.submit_notification(TREE_CHROOT_CHILD.with(self.index));
                 ctx.set_handled();
-            } else if notif.is(TREE_NOTIFY_PARENT) {
+                None
+            }
+            Event::Command(cmd) if cmd.is(TREE_NOTIFY_CHROOT) => {
+                eprintln!("{:?}", cmd);
+                ctx.submit_command(TREE_NOTIFY_CHROOT.to(self.widget.id()));
+                ctx.set_handled();
+                None
+            }
+            Event::Notification(notif) if notif.is(TREE_CHROOT_UP) => {
+                eprintln!("{:?}", notif);
+                if let Some(_) = data.get_chroot() {
+                    data.chroot(None);
+                    ctx.set_handled();
+                }
+                None
+            }
+            Event::Notification(notif) if notif.is(TREE_NOTIFY_PARENT) => {
                 eprintln!("{:?}", notif);
                 if self.widget.id() != notif.source() {
                     let notif = notif.get(TREE_NOTIFY_PARENT).unwrap();
                     ctx.submit_command(TREE_NOTIFY_PARENT.with(notif.clone()).to(self.widget.id()));
                     ctx.set_handled();
                 }
-                // ctx.submit_notification(TREE_CHROOT_CHILD.with(self.index));
-            } else {
-                if self.widget.id() != notif.source() {
-                    eprintln!("RESEND NOTIFICATION");
-                    self.widget.event(ctx, event, data, env);
-                    ctx.set_handled();
-                }
+                None
             }
-            return;
-        }
+            _ => Some(event),
+        };
+        let event = if let Some(evt) = event { evt } else { return };
         let chrooted = data.get_chroot();
         if chrooted.is_none() | event.should_propagate_to_hidden() {
             self.widget.event(ctx, event, data, env);
@@ -433,10 +452,7 @@ where
     }
 
     fn update(&mut self, ctx: &mut UpdateCtx, old_data: &T, data: &T, env: &Env) {
-        eprintln!(
-            "NNNNNNNNNOOOOOOOOOOODDDDDDDDDDDEEEEEEEEE {:?}",
-            ctx.widget_id()
-        );
+        eprintln!("{:?}", ctx.widget_id());
         eprintln!("{:?}", old_data);
         eprintln!("{:?}", data);
         self.widget.update(ctx, data, env);
@@ -550,8 +566,8 @@ impl<T: TreeNode> Tree<T> {
             Arc::new(Box::new(|| Box::new(make_wedge::<T>())));
         Tree {
             root_node: WidgetPod::new(TreeNodeWidget::new(make_widget, make_opener, 0)),
-            chroot: vec![],
-            chroot_up: WidgetPod::new(Button::new("..".to_owned()).on_click(|ctx, data, env| {
+            // chroot: vec![],
+            chroot_up: WidgetPod::new(Button::new("..".to_owned()).on_click(|ctx, _data, _env| {
                 ctx.submit_notification(TREE_CHROOT_UP);
             })),
         }
@@ -568,15 +584,15 @@ impl<T: TreeNode> Tree<T> {
         self
     }
 
-    fn get_chrooted<'a>(&'a mut self) -> &mut WidgetPod<T, TreeNodeWidget<T>> {
-        let mut root_node = &mut self.root_node;
-        if self.chroot.len() > 0 {
-            for idx in &self.chroot {
-                root_node = &mut root_node.widget_mut().children[*idx];
-            }
-        }
-        root_node
-    }
+    // fn get_chrooted<'a>(&'a mut self) -> &mut WidgetPod<T, TreeNodeWidget<T>> {
+    //     let mut root_node = &mut self.root_node;
+    //     if self.chroot.len() > 0 {
+    //         for idx in &self.chroot {
+    //             root_node = &mut root_node.widget_mut().children[*idx];
+    //         }
+    //     }
+    //     root_node
+    // }
 
     fn get_chroot_from<'a>(
         widget: &'a mut WidgetPod<T, TreeNodeWidget<T>>,
@@ -602,7 +618,7 @@ impl<T: TreeNode + Display> Default for Tree<T> {
             Arc::new(Box::new(|| Box::new(make_wedge::<T>())));
         Tree {
             root_node: WidgetPod::new(TreeNodeWidget::new(make_widget, make_opener, 0)),
-            chroot: vec![],
+            // chroot: vec![],
             chroot_up: WidgetPod::new(Button::new("..".to_owned()).on_click(|ctx, data, env| {})),
         }
     }
@@ -614,9 +630,9 @@ impl<T: TreeNode> Widget<T> for Tree<T> {
         if let Event::Notification(notif) = event {
             eprintln!("############################# {:?}", event);
             if notif.is(TREE_CHROOT) {
-                eprintln!("tree... {:?}", notif);
-                self.chroot = notif.get(TREE_CHROOT).unwrap()[1..].to_vec();
-                eprintln!("{:?}", self.chroot);
+                // eprintln!("tree... {:?}", notif);
+                // self.chroot = notif.get(TREE_CHROOT).unwrap()[1..].to_vec();
+                // eprintln!("{:?}", self.chroot);
                 ctx.set_handled();
                 ctx.children_changed();
             }
@@ -625,9 +641,11 @@ impl<T: TreeNode> Widget<T> for Tree<T> {
                 ctx.children_changed();
             }
             if notif.is(TREE_CHROOT_UP) {
-                self.chroot.pop();
+                // self.chroot.pop();
                 ctx.set_handled();
                 ctx.children_changed();
+                let (chroot, _) = Tree::get_chroot_from(&mut self.root_node, data);
+                ctx.submit_command(TREE_NOTIFY_CHROOT);
             }
             return;
         }
@@ -644,7 +662,6 @@ impl<T: TreeNode> Widget<T> for Tree<T> {
     }
 
     fn update(&mut self, ctx: &mut UpdateCtx, _old_data: &T, data: &T, env: &Env) {
-        eprintln!("RRRRRRRRRRRRRRRRRRRRROOOOOOOOOTTTT{:?}", ctx.widget_id());
         self.root_node.update(ctx, data, env);
     }
 

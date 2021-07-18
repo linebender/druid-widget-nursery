@@ -28,8 +28,8 @@ use druid::{
     WidgetExt, WidgetId, WidgetPod, WindowDesc,
 };
 use druid_widget_nursery::tree::{
-    Tree, TreeNode, TREE_CHILD_CREATED, TREE_CHILD_SHOW, TREE_CHROOT, TREE_NODE_REMOVE,
-    TREE_NOTIFY_PARENT, TREE_OPEN,
+    Tree, TreeNode, TREE_CHILD_CREATED, TREE_CHILD_SHOW, TREE_CHROOT, TREE_CHROOT_UP,
+    TREE_NODE_REMOVE, TREE_NOTIFY_PARENT, TREE_OPEN,
 };
 
 use druid_widget_nursery::selectors;
@@ -327,6 +327,9 @@ impl FSNodeWidget {
         let edit_widget = TextBox::new()
             .with_placeholder("new item")
             .with_id(WidgetId::next());
+        let chroot_up = Button::new("↖️").on_click(|ctx, _, _| {
+            ctx.submit_notification(TREE_CHROOT_UP);
+        });
         FSNodeWidget {
             edit_widget_id: edit_widget.id().unwrap().clone(),
             edit_branch: WidgetPod::new(
@@ -344,6 +347,7 @@ impl FSNodeWidget {
             ),
             normal_branch: WidgetPod::new(
                 Flex::row()
+                    .with_child(chroot_up)
                     // First, there's the Label
                     .with_child(Label::dynamic(|data: &FSNode, _env| {
                         String::from(data.name.as_ref())
@@ -418,7 +422,7 @@ impl Widget<FSNode> for FSNodeWidget {
                 None
             }
             Event::Command(cmd) if cmd.is(CHROOT) => {
-                ctx.submit_notification(TREE_CHROOT.with(vec![]));
+                ctx.submit_notification(TREE_CHROOT);
                 None
             }
             Event::Command(cmd) if cmd.is(TREE_NOTIFY_PARENT) => {
