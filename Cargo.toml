@@ -10,10 +10,10 @@ async = ["tokio/rt", "futures", "flume"]
 hot-reload = ["libloading", "notify5", "rand"]
 
 [dependencies.druid]
-# git = "https://github.com/linebender/druid"
+git = "https://github.com/linebender/druid"
 # rev = "f19ddf1" # update this when upgrading to newer druid
-# rev = "399c454"
-path = "../../projects/druid/druid"
+rev = "399c454"
+# path = "../../projects/druid/druid"
 features = ["im"]
 # and update examples/hot_reload/Cargo.toml as well
 
