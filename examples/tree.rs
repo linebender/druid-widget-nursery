@@ -12,19 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Demos basic tree widget and tree manipulations.
+//! Demos the most basic tree widget. See the file_manager example for a full demo.
 use std::fmt;
 
 use druid::im::Vector;
-use druid::widget::{Button, Either, Flex, Label, Scroll, TextBox};
-use druid::{AppLauncher, Data, Lens, LocalizedString, Widget, WidgetExt, WindowDesc};
-use druid_widget_nursery::{Tree, TreeNode, TREE_CHILD_REMOVE, TREE_OPEN_PARENT};
+use druid::{AppLauncher, Data, Lens, LocalizedString, Widget, WindowDesc};
+use druid_widget_nursery::{Tree, TreeNode};
 
 #[derive(Clone, Lens, Debug)]
 struct Taxonomy {
     name: String,
     editing: bool,
     children: Vector<Taxonomy>,
+    open_: bool,
 }
 
 /// We use Taxonomy as a tree node, implementing the TreeNode trait.
@@ -34,6 +34,7 @@ impl Taxonomy {
             name: name.to_string(),
             editing: false,
             children: Vector::new(),
+            open_: false,
         }
     }
 
@@ -41,15 +42,21 @@ impl Taxonomy {
         self.children.push_back(child);
         self
     }
-
-    fn ref_add_child(&mut self, child: Self) {
-        self.children.push_back(child);
-    }
 }
 
 impl Data for Taxonomy {
+    // If we derive simply derive `Data`, the children Vector is changed at every
+    // event pass (as Vector updates its children pointers in its implementation
+    // of `iter_mut(), regardless of the actual sameness of the data). We have to explicitly
+    // check the sameness of children nodes.
+    //
+    // The other workaround is to use a `Vector<Arc<Taxonomy>>` at the expense
+    // of a more complex `for_child_mut()` implementation (being able to use imutable children  was
+    // the main argument in favor of `for_child_mut(&self, index, callback)`vs the former simpler
+    // `get_child_mut(&self, index)`. This workaround is implemented in the `file_manager` example.
     fn same(&self, other: &Self) -> bool {
-        self.name == other.name
+        self.open_ == other.open_
+            && self.name == other.name
             && self.editing == other.editing
             && self.children.len() == other.children.len()
             && self
@@ -69,12 +76,16 @@ impl TreeNode for Taxonomy {
         &self.children[index]
     }
 
-    fn get_child_mut(&mut self, index: usize) -> &mut Taxonomy {
-        &mut self.children[index]
+    fn for_child_mut(&mut self, index: usize, mut cb: impl FnMut(&mut Self, usize)) {
+        cb(&mut self.children[index], index);
     }
 
-    fn rm_child(&mut self, index: usize) {
-        self.children.remove(index);
+    fn open(&mut self, state: bool) {
+        self.open_ = state;
+    }
+
+    fn is_open(&self) -> bool {
+        self.open_
     }
 }
 
@@ -84,12 +95,17 @@ impl fmt::Display for Taxonomy {
     }
 }
 
+fn ui_builder() -> impl Widget<Taxonomy> {
+    // Taxonomy implements Display. We can use the default tree.
+    Tree::default()
+}
+
 pub fn main() {
     // Create the main window
     let main_window = WindowDesc::new(ui_builder())
         .title(LocalizedString::new("tree-demo-window-title").with_placeholder("Tree Demo"));
 
-    // Set our initial data.
+    // Set our data.
     // This is an extract from https://en.wikipedia.org/wiki/Linnaean_taxonomy
     let taxonomy = Taxonomy::new("Life")
         .add_child(
@@ -127,58 +143,4 @@ pub fn main() {
         .log_to_console()
         .launch(taxonomy)
         .expect("launch failed");
-}
-
-fn ui_builder() -> impl Widget<Taxonomy> {
-    Scroll::new(
-        // Tree takes a closure to build the tree items widgets
-        Tree::new(|| {
-            // Our items are editable. If `Taxonomy::editing` is `true`, we show the name in a
-            // TextBox, otherwise it's a Label. This implementation of the inner widget is naive and
-            // doesn't allow a more polished UI, e.g. we can't give the focus to the TextBox
-            // when it's showed. This would require a custom widget which is beyond the scope
-            // of this demo.
-            Either::new(
-                |data, _env| (*data).editing,
-                Flex::row()
-                    .with_child(
-                        TextBox::new()
-                            .with_placeholder("new item")
-                            .lens(Taxonomy::name),
-                    )
-                    .with_child(
-                        Button::new("Save").on_click(|_ctx, data: &mut Taxonomy, _env| {
-                            data.editing = false;
-                        }),
-                    ),
-                Flex::row()
-                    // First, there's the Label
-                    .with_child(Label::dynamic(|data: &Taxonomy, _env| data.name.clone()))
-                    // The "add child" button
-                    .with_child(Button::new("+").on_click(|ctx, data: &mut Taxonomy, _env| {
-                        data.ref_add_child({
-                            let mut child = Taxonomy::new("");
-                            child.editing = true;
-                            child
-                        });
-                        // The Tree widget must be notified about the change
-                        ctx.submit_notification(TREE_OPEN_PARENT);
-                    }))
-                    // The "delete node" button
-                    .with_child(
-                        Button::new("Edit").on_click(|_ctx, data: &mut Taxonomy, _env| {
-                            data.editing = true;
-                        }),
-                    )
-                    .with_child(
-                        Button::new("-").on_click(|ctx, _data: &mut Taxonomy, _env| {
-                            // Tell the parent to remove the item. The parent handles this notification by
-                            // 1. remove the child widget
-                            // 2. call TreeNode::rm_child from its data (the parent Taxonomy node, here)
-                            ctx.submit_notification(TREE_CHILD_REMOVE);
-                        }),
-                    ),
-            )
-        }),
-    )
 }

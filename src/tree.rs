@@ -17,6 +17,7 @@
 use std::convert::TryFrom;
 use std::fmt::Display;
 use std::marker::PhantomData;
+use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 
 use druid::kurbo::{BezPath, Size};
@@ -25,10 +26,17 @@ use druid::theme;
 use druid::widget::{Button, Click, ControllerHost, Label};
 use druid::{
     BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx,
-    Point, Selector, UpdateCtx, Widget, WidgetPod,
+    Point, Selector, UpdateCtx, Widget, WidgetId, WidgetPod,
 };
 
 use crate::selectors;
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ChrootStatus {
+    YES,
+    NO,
+    ROOT,
+}
 
 selectors! {
     TREE_CHILD_CREATED,
@@ -42,7 +50,7 @@ selectors! {
     TREE_CHROOT_UP,
     TREE_CHROOT_CHILD: usize,
     /// notify a child that it's now the chroot
-    TREE_NOTIFY_CHROOT,
+    TREE_NOTIFY_CHROOT: ChrootStatus,
     TREE_NOTIFY_PARENT: Selector,
 }
 
@@ -53,8 +61,8 @@ where
 {
     /// The root node of this tree
     root_node: WidgetPod<T, TreeNodeWidget<T>>,
-    // chroot: Vec<usize>,
-    chroot_up: WidgetPod<(), ControllerHost<Button<()>, Click<()>>>,
+    chroot: WidgetId,
+    // chroot_up: WidgetPod<(), ControllerHost<Button<()>, Click<()>>>,
 }
 
 /// A tree node, with methods providing its own label and its children.
@@ -95,11 +103,52 @@ pub struct Opener<T>
 where
     T: TreeNode,
 {
-    widget: WidgetPod<T, Box<dyn Widget<T>>>,
+    widget: WidgetPod<T, Box<dyn OpenerWidget<T>>>,
+}
+
+pub trait OpenerWidget<T>
+where
+    T: TreeNode,
+    Self: Widget<T>,
+{
+    #[allow(unused_variables)]
+    fn set_open(&mut self, ctx: &mut EventCtx, data: &mut T) {
+        data.open(!data.is_open());
+    }
+}
+
+impl<T> Widget<T> for Box<dyn OpenerWidget<T>> {
+    fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
+        self.deref_mut().event(ctx, event, data, env)
+    }
+
+    fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
+        self.deref_mut().lifecycle(ctx, event, data, env);
+    }
+
+    fn update(&mut self, ctx: &mut UpdateCtx, old_data: &T, data: &T, env: &Env) {
+        self.deref_mut().update(ctx, old_data, data, env);
+    }
+
+    fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> Size {
+        self.deref_mut().layout(ctx, bc, data, env)
+    }
+
+    fn paint(&mut self, ctx: &mut PaintCtx, data: &T, env: &Env) {
+        self.deref_mut().paint(ctx, data, env);
+    }
+
+    fn id(&self) -> Option<WidgetId> {
+        self.deref().id()
+    }
+
+    fn type_name(&self) -> &'static str {
+        self.deref().type_name()
+    }
 }
 
 impl<T: TreeNode> Opener<T> {
-    pub fn new(widget: Box<dyn Widget<T>>) -> Opener<T> {
+    pub fn new(widget: Box<dyn OpenerWidget<T>>) -> Opener<T> {
         Opener {
             widget: WidgetPod::new(widget),
         }
@@ -112,6 +161,8 @@ where
 {
     phantom: PhantomData<T>,
 }
+
+impl<T: TreeNode> OpenerWidget<T> for Wedge<T> {}
 
 impl<T: TreeNode> Widget<T> for Wedge<T> {
     fn event(&mut self, _ctx: &mut EventCtx, _event: &Event, _data: &mut T, _env: &Env) {}
@@ -169,11 +220,11 @@ where
                 ctx.request_paint();
             }
             Event::MouseUp(_) => {
-                eprintln!("mouse up!!!!!!!!!!!");
+                // eprintln!("mouse up!!!!!!!!!!!");
                 if ctx.is_active() {
                     ctx.set_active(false);
                     if ctx.is_hot() {
-                        data.open(!data.is_open());
+                        self.widget.widget_mut().set_open(ctx, data);
                     }
                     ctx.request_paint();
                 }
@@ -203,7 +254,7 @@ where
 }
 
 type TreeItemFactory<T> = Arc<Box<dyn Fn() -> Box<dyn Widget<T>>>>;
-type OpenerFactory<T> = dyn Fn() -> Box<dyn Widget<T>>;
+type OpenerFactory<T> = dyn Fn() -> Box<dyn OpenerWidget<T>>;
 
 fn make_wedge<T: TreeNode>() -> Wedge<T> {
     Wedge {
@@ -288,7 +339,10 @@ where
     T: TreeNode,
 {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
-        // eprintln!("{:?}", event);
+        // match event {
+        //     Event::MouseMove(_) => (),
+        //     _ => eprintln!("{:?} {:?}", ctx.widget_id(), event),
+        // }
         let event = match event {
             Event::Notification(notif) if notif.is(TREE_CHILD_CREATED) => {
                 ctx.set_handled();
@@ -335,14 +389,14 @@ where
                 None
             }
             Event::Notification(notif) if notif.is(TREE_CHROOT) => {
-                eprintln!("{:?}", notif);
+                // eprintln!("{:?}", notif);
                 data.chroot(None);
                 ctx.submit_notification(TREE_CHROOT_CHILD.with(self.index));
                 ctx.set_handled();
                 None
             }
             Event::Notification(notif) if notif.is(TREE_CHROOT_CHILD) => {
-                eprintln!("{:?}", notif);
+                // eprintln!("{:?}", notif);
                 let chroot_idx = notif.get(TREE_CHROOT_CHILD).unwrap();
                 eprintln!("{:?}", chroot_idx);
                 data.chroot(Some(*chroot_idx));
@@ -351,13 +405,16 @@ where
                 None
             }
             Event::Command(cmd) if cmd.is(TREE_NOTIFY_CHROOT) => {
-                eprintln!("{:?}", cmd);
-                ctx.submit_command(TREE_NOTIFY_CHROOT.to(self.widget.id()));
+                // eprintln!("{:?}", cmd);
+                ctx.submit_command(cmd.clone().to(self.widget.id()));
+                ctx.submit_command(cmd.clone().to(self.opener.id()));
+                ctx.children_changed();
+                ctx.request_paint();
                 ctx.set_handled();
                 None
             }
             Event::Notification(notif) if notif.is(TREE_CHROOT_UP) => {
-                eprintln!("{:?}", notif);
+                // eprintln!("{:?}", notif);
                 if let Some(_) = data.get_chroot() {
                     data.chroot(None);
                     ctx.set_handled();
@@ -365,7 +422,7 @@ where
                 None
             }
             Event::Notification(notif) if notif.is(TREE_NOTIFY_PARENT) => {
-                eprintln!("{:?}", notif);
+                // eprintln!("{:?}", notif);
                 if self.widget.id() != notif.source() {
                     let notif = notif.get(TREE_NOTIFY_PARENT).unwrap();
                     ctx.submit_command(TREE_NOTIFY_PARENT.with(notif.clone()).to(self.widget.id()));
@@ -382,6 +439,8 @@ where
         }
 
         if data.is_branch() {
+            // send the event to the opener if the widget is visible or the event also targets
+            // hidden widgets.
             let before = data.is_open();
             if chrooted.is_none() | event.should_propagate_to_hidden() {
                 self.opener.event(ctx, event, data, env);
@@ -395,6 +454,7 @@ where
                 let cmd: Selector;
                 if expanded {
                     cmd = TREE_CHILD_SHOW;
+                    // create child widgets if needed.
                     if self.update_children(data) {
                         // New children were created, inform the context.
                         ctx.children_changed();
@@ -408,25 +468,31 @@ where
                 }
                 ctx.request_layout();
             }
+            // Forward to children nodes
             if event.should_propagate_to_hidden() {
+                // forward inconditionaly
                 for (index, child_widget_node) in self.children.iter_mut().enumerate() {
                     data.for_child_mut(index, |data: &mut T, _index: usize| {
-                        child_widget_node.event(ctx, event, data, env)
+                        if child_widget_node.is_initialized() {
+                            child_widget_node.event(ctx, event, data, env)
+                        }
                     });
                 }
             } else if expanded & before {
-                if chrooted.is_none() {
-                    for (index, child_widget_node) in self.children.iter_mut().enumerate() {
-                        data.for_child_mut(index, |data: &mut T, _index: usize| {
+                match chrooted {
+                    None => {
+                        for (index, child_widget_node) in self.children.iter_mut().enumerate() {
+                            data.for_child_mut(index, |data: &mut T, _index: usize| {
+                                child_widget_node.event(ctx, event, data, env)
+                            });
+                        }
+                    }
+                    Some(idx) => {
+                        let child_widget_node = &mut self.children[idx];
+                        data.for_child_mut(idx, |data: &mut T, _index: usize| {
                             child_widget_node.event(ctx, event, data, env)
                         });
                     }
-                } else {
-                    let idx = chrooted.unwrap();
-                    let child_widget_node = &mut self.children[idx];
-                    data.for_child_mut(idx, |data: &mut T, _index: usize| {
-                        child_widget_node.event(ctx, event, data, env)
-                    });
                 }
             }
         }
@@ -452,9 +518,9 @@ where
     }
 
     fn update(&mut self, ctx: &mut UpdateCtx, old_data: &T, data: &T, env: &Env) {
-        eprintln!("{:?}", ctx.widget_id());
-        eprintln!("{:?}", old_data);
-        eprintln!("{:?}", data);
+        // eprintln!("{:?}", ctx.widget_id());
+        // eprintln!("{:?}", old_data);
+        // eprintln!("{:?}", data);
         self.widget.update(ctx, data, env);
         self.opener.update(ctx, data, env);
 
@@ -473,7 +539,11 @@ where
             return Size::new(0.0, 0.0);
         }
         if let Some(idx) = data.get_chroot() {
-            return self.children[idx].layout(ctx, bc, data.get_child(idx), env);
+            let chroot = &mut self.children[idx];
+            let data = data.get_child(idx);
+            let size = chroot.layout(ctx, bc, data, env);
+            chroot.set_origin(ctx, data, env, Point::ORIGIN);
+            return size;
         }
         let basic_size = env.get(theme::BASIC_WIDGET_HEIGHT);
         let indent = env.get(theme::BASIC_WIDGET_HEIGHT); // For a lack of a better definition
@@ -566,14 +636,15 @@ impl<T: TreeNode> Tree<T> {
             Arc::new(Box::new(|| Box::new(make_wedge::<T>())));
         Tree {
             root_node: WidgetPod::new(TreeNodeWidget::new(make_widget, make_opener, 0)),
-            // chroot: vec![],
-            chroot_up: WidgetPod::new(Button::new("..".to_owned()).on_click(|ctx, _data, _env| {
-                ctx.submit_notification(TREE_CHROOT_UP);
-            })),
+            // dumy chroot id at creation.
+            chroot: WidgetId::next(),
+            // chroot_up: WidgetPod::new(Button::new("..".to_owned()).on_click(|ctx, _data, _env| {
+            //     ctx.submit_notification(TREE_CHROOT_UP);
+            // })),
         }
     }
 
-    pub fn with_opener<W: Widget<T> + 'static>(
+    pub fn with_opener<W: OpenerWidget<T> + 'static>(
         mut self,
         closure: impl Fn() -> W + 'static,
     ) -> Self {
@@ -583,16 +654,6 @@ impl<T: TreeNode> Tree<T> {
         });
         self
     }
-
-    // fn get_chrooted<'a>(&'a mut self) -> &mut WidgetPod<T, TreeNodeWidget<T>> {
-    //     let mut root_node = &mut self.root_node;
-    //     if self.chroot.len() > 0 {
-    //         for idx in &self.chroot {
-    //             root_node = &mut root_node.widget_mut().children[*idx];
-    //         }
-    //     }
-    //     root_node
-    // }
 
     fn get_chroot_from<'a>(
         widget: &'a mut WidgetPod<T, TreeNodeWidget<T>>,
@@ -618,8 +679,8 @@ impl<T: TreeNode + Display> Default for Tree<T> {
             Arc::new(Box::new(|| Box::new(make_wedge::<T>())));
         Tree {
             root_node: WidgetPod::new(TreeNodeWidget::new(make_widget, make_opener, 0)),
-            // chroot: vec![],
-            chroot_up: WidgetPod::new(Button::new("..".to_owned()).on_click(|ctx, data, env| {})),
+            chroot: WidgetId::next(),
+            // chroot_up: WidgetPod::new(Button::new("..".to_owned()).on_click(|ctx, data, env| {})),
         }
     }
 }
@@ -638,14 +699,27 @@ impl<T: TreeNode> Widget<T> for Tree<T> {
             }
             if notif.is(TREE_CHROOT_CHILD) {
                 ctx.set_handled();
+                let root_node_id = self.root_node.id();
+                let (chroot, _) = Tree::get_chroot_from(&mut self.root_node, data);
+                if chroot.id() != self.chroot {
+                    ctx.submit_command(
+                        TREE_NOTIFY_CHROOT
+                            .with(if chroot.id() == root_node_id {
+                                ChrootStatus::ROOT
+                            } else {
+                                ChrootStatus::YES
+                            })
+                            .to(chroot.id()),
+                    );
+                    ctx.submit_command(TREE_NOTIFY_CHROOT.with(ChrootStatus::NO).to(self.chroot));
+                    self.chroot = chroot.id();
+                }
                 ctx.children_changed();
             }
             if notif.is(TREE_CHROOT_UP) {
                 // self.chroot.pop();
                 ctx.set_handled();
                 ctx.children_changed();
-                let (chroot, _) = Tree::get_chroot_from(&mut self.root_node, data);
-                ctx.submit_command(TREE_NOTIFY_CHROOT);
             }
             return;
         }
@@ -656,51 +730,44 @@ impl<T: TreeNode> Widget<T> for Tree<T> {
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
         if let LifeCycle::WidgetAdded = event {
             // self.root_node.widget_mut().make_widget();
+            // init the chroot state.
+            let root_node_id = self.root_node.id();
+            let (chroot, _) = Tree::get_chroot_from(&mut self.root_node, data);
+            if chroot.id() != root_node_id {
+                ctx.submit_command(TREE_NOTIFY_CHROOT.with(ChrootStatus::YES).to(chroot.id()));
+            }
+            ctx.submit_command(TREE_NOTIFY_CHROOT.with(ChrootStatus::ROOT).to(root_node_id));
         }
-        self.chroot_up.lifecycle(ctx, event, &(), env);
         self.root_node.lifecycle(ctx, event, data, env);
     }
 
     fn update(&mut self, ctx: &mut UpdateCtx, _old_data: &T, data: &T, env: &Env) {
+        let root_node_id = self.root_node.id();
+        let (chroot, _) = Tree::get_chroot_from(&mut self.root_node, data);
+        if chroot.id() != self.chroot {
+            ctx.submit_command(
+                TREE_NOTIFY_CHROOT
+                    .with(if chroot.id() == root_node_id {
+                        ChrootStatus::ROOT
+                    } else {
+                        ChrootStatus::YES
+                    })
+                    .to(chroot.id()),
+            );
+            ctx.submit_command(TREE_NOTIFY_CHROOT.with(ChrootStatus::NO).to(self.chroot));
+            self.chroot = chroot.id();
+        }
         self.root_node.update(ctx, data, env);
     }
 
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> Size {
-        // let mut chroot_data = data;
-        // for idx in &chroot {
-        //     chroot_data = chroot_data.get_child(*idx);
-        // }
-
-        // let origin = if chroot.len() > 0 {
-        //     self.chroot_up.set_origin(ctx, &(), env, Point::ORIGIN);
-        //     let btn_sz = self.chroot_up.layout(ctx, bc, &(), env);
-        //     Point::new(btn_sz.width, 0.0)
-        // } else {
-        //     // self.chroot_up.layout(ctx, BoxConstraints::
-        //     Point::ORIGIN
-        // };
-        let origin = Point::ORIGIN;
-        // let root = self.get_chrooted();
-        let (root, chroot_data) = Self::get_chroot_from(&mut self.root_node, data);
-        let root_size = root.layout(ctx, bc, chroot_data, env);
-        root.set_origin(ctx, chroot_data, env, origin);
-        Size::new(root_size.width + origin.x, root_size.height)
+        let size = self.root_node.layout(ctx, bc, data, env);
+        self.root_node.set_origin(ctx, data, env, Point::ORIGIN);
+        // TODO: ctx.set_paint_insets...
+        size
     }
 
     fn paint(&mut self, ctx: &mut PaintCtx, data: &T, env: &Env) {
-        // let background_color = env.get(theme::BACKGROUND_LIGHT);
-        // let clip_rect = ctx.size().to_rect();
-        // ctx.fill(clip_rect, &background_color);
-
-        // let chroot = self.chroot.clone();
-        // let mut chroot_data = data;
-        // for idx in &chroot {
-        //     chroot_data = chroot_data.get_child(*idx);
-        // }
-        // if chroot.len() > 0 {
-        //     self.chroot_up.paint(ctx, &(), env);
-        // }
-        // let root = self.get_chrooted();
         let (root, chroot_data) = Self::get_chroot_from(&mut self.root_node, data);
         root.paint(ctx, chroot_data, env);
     }

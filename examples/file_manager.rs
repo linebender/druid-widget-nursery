@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Demos basic tree widget and tree manipulations.
+//! Demos advanced tree widget and tree manipulations.
 use std::cmp::Ordering;
 use std::ffi::OsStr;
 use std::fmt::Display;
@@ -28,8 +28,8 @@ use druid::{
     WidgetExt, WidgetId, WidgetPod, WindowDesc,
 };
 use druid_widget_nursery::tree::{
-    Tree, TreeNode, TREE_CHILD_CREATED, TREE_CHILD_SHOW, TREE_CHROOT, TREE_CHROOT_UP,
-    TREE_NODE_REMOVE, TREE_NOTIFY_PARENT, TREE_OPEN,
+    ChrootStatus, OpenerWidget, Tree, TreeNode, TREE_CHILD_CREATED, TREE_CHILD_SHOW, TREE_CHROOT,
+    TREE_CHROOT_UP, TREE_NODE_REMOVE, TREE_NOTIFY_CHROOT, TREE_NOTIFY_PARENT, TREE_OPEN,
 };
 
 use druid_widget_nursery::selectors;
@@ -217,20 +217,57 @@ impl TreeNode for FSNode {
 struct FSOpener {
     label: WidgetPod<String, Label<String>>,
     filetype: FileType,
+    chroot_status: ChrootStatus,
 }
 
 impl FSOpener {
     fn label(&self, data: &FSNode) -> String {
         if data.is_branch() {
-            if data.is_open() { "📂" } else { "📁" }.to_owned()
+            match self.chroot_status {
+                ChrootStatus::NO | ChrootStatus::ROOT => {
+                    if data.is_open() {
+                        "📂"
+                    } else {
+                        "📁"
+                    }
+                }
+                ChrootStatus::YES => "↖️",
+            }
+            .to_owned()
         } else {
             format!("{}", self.filetype)
         }
     }
 }
 
+impl OpenerWidget<FSNode> for FSOpener {
+    fn set_open(&mut self, ctx: &mut EventCtx, data: &mut FSNode) {
+        match self.chroot_status {
+            ChrootStatus::NO | ChrootStatus::ROOT => data.open(!data.is_open()),
+            ChrootStatus::YES => ctx.submit_notification(TREE_CHROOT_UP),
+        }
+    }
+}
+
 impl Widget<FSNode> for FSOpener {
-    fn event(&mut self, _ctx: &mut EventCtx, _event: &Event, _data: &mut FSNode, _env: &Env) {}
+    fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut FSNode, _env: &Env) {
+        if data.is_branch() {
+            match event {
+                Event::Command(cmd) if cmd.is(TREE_NOTIFY_CHROOT) => {
+                    let new_status = cmd.get(TREE_NOTIFY_CHROOT).unwrap().clone();
+                    if self.chroot_status != new_status {
+                        self.chroot_status = new_status;
+                        if let ChrootStatus::YES = self.chroot_status {
+                            data.open(true);
+                        }
+                        ctx.children_changed();
+                        ctx.request_update();
+                    }
+                }
+                _ => (),
+            }
+        }
+    }
 
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &FSNode, env: &Env) {
         let label = self.label(data);
@@ -247,6 +284,8 @@ impl Widget<FSNode> for FSOpener {
                 self.filetype = data.filetype.clone();
                 self.label.update(ctx, &self.label(data), env);
             }
+        } else {
+            self.label.update(ctx, &self.label(data), env);
         }
     }
 
@@ -327,9 +366,6 @@ impl FSNodeWidget {
         let edit_widget = TextBox::new()
             .with_placeholder("new item")
             .with_id(WidgetId::next());
-        let chroot_up = Button::new("↖️").on_click(|ctx, _, _| {
-            ctx.submit_notification(TREE_CHROOT_UP);
-        });
         FSNodeWidget {
             edit_widget_id: edit_widget.id().unwrap().clone(),
             edit_branch: WidgetPod::new(
@@ -347,7 +383,6 @@ impl FSNodeWidget {
             ),
             normal_branch: WidgetPod::new(
                 Flex::row()
-                    .with_child(chroot_up)
                     // First, there's the Label
                     .with_child(Label::dynamic(|data: &FSNode, _env| {
                         String::from(data.name.as_ref())
@@ -512,8 +547,10 @@ fn ui_builder() -> impl Widget<FSNode> {
     .with_opener(|| FSOpener {
         label: WidgetPod::new(Label::dynamic(|st: &String, _| st.clone())),
         filetype: FileType::Unknown,
+        chroot_status: ChrootStatus::NO,
     });
-    Scroll::new(tree).debug_widget_id()
+    Scroll::new(tree)
+    //.debug_widget_id()
 }
 
 pub fn main() {
