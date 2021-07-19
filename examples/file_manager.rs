@@ -85,7 +85,7 @@ struct FSNode {
     children: Vector<Arc<FSNode>>,
     node_type: FSNodeType,
     filetype: FileType,
-    open_: bool,
+    expanded_: bool,
     chroot_: Option<usize>,
 }
 
@@ -98,7 +98,7 @@ impl FSNode {
             children: Vector::new(),
             node_type: FSNodeType::File,
             filetype: FileType::Unknown,
-            open_: false,
+            expanded_: false,
             chroot_: None,
         }
     }
@@ -110,7 +110,7 @@ impl FSNode {
             children: Vector::new(),
             node_type: FSNodeType::Directory,
             filetype: FileType::Unknown,
-            open_: false,
+            expanded_: false,
             chroot_: None,
         }
     }
@@ -141,6 +141,7 @@ impl FSNode {
 
     fn ref_add_child(&mut self, child: Self) {
         self.children.push_back(Arc::new(child));
+        self.update();
     }
 
     // fn get_child_mut(&mut self, index: usize) -> &mut FSNode {
@@ -176,6 +177,7 @@ impl TreeNode for FSNode {
     }
 
     fn for_child_mut(&mut self, index: usize, mut cb: impl FnMut(&mut Self, usize)) {
+        // TODO: there must be a more idiomatic way to do this
         let orig = &self.children[index];
         let mut new = orig.as_ref().clone();
         cb(&mut new, index);
@@ -197,12 +199,12 @@ impl TreeNode for FSNode {
         self.children.remove(index);
     }
 
-    fn open(&mut self, state: bool) {
-        self.open_ = state;
+    fn expand(&mut self, state: bool) {
+        self.expanded_ = state;
     }
 
-    fn is_open(&self) -> bool {
-        self.open_
+    fn is_expanded(&self) -> bool {
+        self.expanded_
     }
 
     fn chroot(&mut self, idx: Option<usize>) {
@@ -225,7 +227,7 @@ impl FSOpener {
         if data.is_branch() {
             match self.chroot_status {
                 ChrootStatus::NO | ChrootStatus::ROOT => {
-                    if data.is_open() {
+                    if data.is_expanded() {
                         "📂"
                     } else {
                         "📁"
@@ -243,7 +245,7 @@ impl FSOpener {
 impl OpenerWidget<FSNode> for FSOpener {
     fn set_open(&mut self, ctx: &mut EventCtx, data: &mut FSNode) {
         match self.chroot_status {
-            ChrootStatus::NO | ChrootStatus::ROOT => data.open(!data.is_open()),
+            ChrootStatus::NO | ChrootStatus::ROOT => data.expand(!data.is_expanded()),
             ChrootStatus::YES => ctx.submit_notification(TREE_CHROOT_UP),
         }
     }
@@ -258,7 +260,7 @@ impl Widget<FSNode> for FSOpener {
                     if self.chroot_status != new_status {
                         self.chroot_status = new_status;
                         if let ChrootStatus::YES = self.chroot_status {
-                            data.open(true);
+                            data.expand(true);
                         }
                         ctx.children_changed();
                         ctx.request_update();
@@ -275,7 +277,7 @@ impl Widget<FSNode> for FSOpener {
     }
 
     fn update(&mut self, ctx: &mut UpdateCtx, old_data: &FSNode, data: &FSNode, env: &Env) {
-        if old_data.is_open() != data.is_open() {
+        if old_data.is_expanded() != data.is_expanded() {
             let label = self.label(data);
             self.label.update(ctx, &label, env);
         }

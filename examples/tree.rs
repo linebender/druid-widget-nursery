@@ -24,7 +24,7 @@ struct Taxonomy {
     name: String,
     editing: bool,
     children: Vector<Taxonomy>,
-    open_: bool,
+    expanded_: bool,
 }
 
 /// We use Taxonomy as a tree node, implementing the TreeNode trait.
@@ -34,7 +34,7 @@ impl Taxonomy {
             name: name.to_string(),
             editing: false,
             children: Vector::new(),
-            open_: false,
+            expanded_: false,
         }
     }
 
@@ -55,7 +55,7 @@ impl Data for Taxonomy {
     // the main argument in favor of `for_child_mut(&self, index, callback)`vs the former simpler
     // `get_child_mut(&self, index)`. This workaround is implemented in the `file_manager` example.
     fn same(&self, other: &Self) -> bool {
-        self.open_ == other.open_
+        self.expanded_ == other.expanded_
             && self.name == other.name
             && self.editing == other.editing
             && self.children.len() == other.children.len()
@@ -80,12 +80,12 @@ impl TreeNode for Taxonomy {
         cb(&mut self.children[index], index);
     }
 
-    fn open(&mut self, state: bool) {
-        self.open_ = state;
+    fn expand(&mut self, state: bool) {
+        self.expanded_ = state;
     }
 
-    fn is_open(&self) -> bool {
-        self.open_
+    fn is_expanded(&self) -> bool {
+        self.expanded_
     }
 }
 

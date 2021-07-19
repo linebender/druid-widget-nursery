@@ -80,9 +80,9 @@ where
     /// Returns a mutable reference to the node's child at the given index
     fn for_child_mut(&mut self, index: usize, cb: impl FnMut(&mut Self, usize));
 
-    fn open(&mut self, state: bool);
+    fn expand(&mut self, state: bool);
 
-    fn is_open(&self) -> bool;
+    fn is_expanded(&self) -> bool;
 
     fn get_chroot(&self) -> Option<usize> {
         None
@@ -113,7 +113,7 @@ where
 {
     #[allow(unused_variables)]
     fn set_open(&mut self, ctx: &mut EventCtx, data: &mut T) {
-        data.open(!data.is_open());
+        data.expand(!data.is_expanded());
     }
 }
 
@@ -188,7 +188,7 @@ impl<T: TreeNode> Widget<T> for Wedge<T> {
 
         // Paint the opener
         let mut path = BezPath::new();
-        if data.is_open() {
+        if data.is_expanded() {
             // expanded: 'V' shape
             path.move_to((5.0, 7.0));
             path.line_to((9.0, 13.0));
@@ -308,7 +308,7 @@ impl<T: TreeNode> TreeNodeWidget<T> {
     /// Returns whether new children were created.
     fn update_children(&mut self, data: &T) -> bool {
         let mut changed = false;
-        if data.is_open() {
+        if data.is_expanded() {
             if self.children.len() > data.children_count() {
                 self.children.truncate(data.children_count());
                 changed = true;
@@ -347,7 +347,7 @@ where
             Event::Notification(notif) if notif.is(TREE_CHILD_CREATED) => {
                 ctx.set_handled();
                 self.update_children(data);
-                if data.is_open() {
+                if data.is_expanded() {
                     for child_widget_node in self.children.iter_mut() {
                         // TODO: this is not true except for the new child. `updage_children` should tell
                         // which child was added/removed...
@@ -359,8 +359,8 @@ where
             }
             Event::Notification(notif) if notif.is(TREE_OPEN) => {
                 ctx.set_handled();
-                if !data.is_open() {
-                    data.open(true);
+                if !data.is_expanded() {
+                    data.expand(true);
                     self.update_children(data);
                     ctx.children_changed();
                     for child_widget_node in self.children.iter_mut() {
@@ -441,11 +441,11 @@ where
         if data.is_branch() {
             // send the event to the opener if the widget is visible or the event also targets
             // hidden widgets.
-            let before = data.is_open();
+            let before = data.is_expanded();
             if chrooted.is_none() | event.should_propagate_to_hidden() {
                 self.opener.event(ctx, event, data, env);
             }
-            let expanded = data.is_open();
+            let expanded = data.is_expanded();
 
             if expanded != before {
                 // The opener widget has decided to change the expanded/collapsed state of the node,
@@ -508,7 +508,7 @@ where
         self.opener.lifecycle(ctx, event, data, env);
         self.widget.lifecycle(ctx, event, data, env);
         if data.is_branch() {
-            if event.should_propagate_to_hidden() | data.is_open() {
+            if event.should_propagate_to_hidden() | data.is_expanded() {
                 for (index, child_widget_node) in self.children.iter_mut().enumerate() {
                     let child_tree_node = data.get_child(index);
                     child_widget_node.lifecycle(ctx, event, child_tree_node, env);
@@ -577,7 +577,7 @@ where
         let mut size = Size::new(indent + widget_size.width, basic_size);
 
         // Below, the children nodes, but only if expanded
-        if data.is_open() && max_width > indent {
+        if data.is_expanded() && max_width > indent {
             if min_width > indent {
                 min_width -= min_width;
             } else {
@@ -618,7 +618,7 @@ where
         }
         self.opener.paint(ctx, data, env);
         self.widget.paint(ctx, data, env);
-        if data.is_branch() & data.is_open() {
+        if data.is_branch() & data.is_expanded() {
             for (index, child_widget_node) in self.children.iter_mut().enumerate() {
                 let child_tree_node = data.get_child(index);
                 child_widget_node.paint(ctx, child_tree_node, env);
