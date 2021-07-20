@@ -28,8 +28,9 @@ use druid::{
     WidgetExt, WidgetId, WidgetPod, WindowDesc,
 };
 use druid_widget_nursery::tree::{
-    ChrootStatus, OpenerWidget, Tree, TreeNode, TREE_CHILD_CREATED, TREE_CHILD_SHOW, TREE_CHROOT,
-    TREE_CHROOT_UP, TREE_NODE_REMOVE, TREE_NOTIFY_CHROOT, TREE_NOTIFY_PARENT, TREE_OPEN,
+    ChrootStatus, Tree, TreeNode, TREE_ACTIVATE_NODE, TREE_CHILD_CREATED, TREE_CHILD_SHOW,
+    TREE_CHROOT, TREE_CHROOT_UP, TREE_NODE_REMOVE, TREE_NOTIFY_CHROOT, TREE_NOTIFY_PARENT,
+    TREE_OPEN,
 };
 
 use druid_widget_nursery::selectors;
@@ -85,7 +86,7 @@ struct FSNode {
     children: Vector<Arc<FSNode>>,
     node_type: FSNodeType,
     filetype: FileType,
-    expanded_: bool,
+    expanded: bool,
     chroot_: Option<usize>,
 }
 
@@ -98,7 +99,7 @@ impl FSNode {
             children: Vector::new(),
             node_type: FSNodeType::File,
             filetype: FileType::Unknown,
-            expanded_: false,
+            expanded: false,
             chroot_: None,
         }
     }
@@ -110,7 +111,7 @@ impl FSNode {
             children: Vector::new(),
             node_type: FSNodeType::Directory,
             filetype: FileType::Unknown,
-            expanded_: false,
+            expanded: false,
             chroot_: None,
         }
     }
@@ -144,10 +145,6 @@ impl FSNode {
         self.update();
     }
 
-    // fn get_child_mut(&mut self, index: usize) -> &mut FSNode {
-    //     &mut self.children[index]
-    // }
-
     fn get_filetype(&mut self) {
         use FileType::*;
         self.filetype = {
@@ -163,7 +160,7 @@ impl FSNode {
                 },
             }
         };
-        eprintln!("{:?}", self.filetype);
+        // eprintln!("{:?}", self.filetype);
     }
 }
 
@@ -199,14 +196,6 @@ impl TreeNode for FSNode {
         self.children.remove(index);
     }
 
-    fn expand(&mut self, state: bool) {
-        self.expanded_ = state;
-    }
-
-    fn is_expanded(&self) -> bool {
-        self.expanded_
-    }
-
     fn chroot(&mut self, idx: Option<usize>) {
         self.chroot_ = idx;
     }
@@ -227,7 +216,7 @@ impl FSOpener {
         if data.is_branch() {
             match self.chroot_status {
                 ChrootStatus::NO | ChrootStatus::ROOT => {
-                    if data.is_expanded() {
+                    if data.expanded {
                         "📂"
                     } else {
                         "📁"
@@ -242,25 +231,20 @@ impl FSOpener {
     }
 }
 
-impl OpenerWidget<FSNode> for FSOpener {
-    fn set_open(&mut self, ctx: &mut EventCtx, data: &mut FSNode) {
-        match self.chroot_status {
-            ChrootStatus::NO | ChrootStatus::ROOT => data.expand(!data.is_expanded()),
-            ChrootStatus::YES => ctx.submit_notification(TREE_CHROOT_UP),
-        }
-    }
-}
-
 impl Widget<FSNode> for FSOpener {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut FSNode, _env: &Env) {
         if data.is_branch() {
             match event {
+                Event::Command(cmd) if cmd.is(TREE_ACTIVATE_NODE) => match self.chroot_status {
+                    ChrootStatus::NO | ChrootStatus::ROOT => data.expanded = !data.expanded,
+                    ChrootStatus::YES => ctx.submit_notification(TREE_CHROOT_UP),
+                },
                 Event::Command(cmd) if cmd.is(TREE_NOTIFY_CHROOT) => {
                     let new_status = cmd.get(TREE_NOTIFY_CHROOT).unwrap().clone();
                     if self.chroot_status != new_status {
                         self.chroot_status = new_status;
                         if let ChrootStatus::YES = self.chroot_status {
-                            data.expand(true);
+                            data.expanded = true;
                         }
                         ctx.children_changed();
                         ctx.request_update();
@@ -277,7 +261,7 @@ impl Widget<FSNode> for FSOpener {
     }
 
     fn update(&mut self, ctx: &mut UpdateCtx, old_data: &FSNode, data: &FSNode, env: &Env) {
-        if old_data.is_expanded() != data.is_expanded() {
+        if old_data.expanded != data.expanded {
             let label = self.label(data);
             self.label.update(ctx, &label, env);
         }
@@ -363,7 +347,6 @@ pub struct FSNodeWidget {
 }
 
 impl FSNodeWidget {
-    ///
     pub fn new() -> FSNodeWidget {
         let edit_widget = TextBox::new()
             .with_placeholder("new item")
@@ -399,7 +382,6 @@ impl Widget<FSNode> for FSNodeWidget {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut FSNode, env: &Env) {
         let new_event = match event {
             Event::MouseDown(ref mouse) if mouse.button.is_right() => {
-                eprintln!("mousedown... {:?}", ctx.widget_id());
                 if !self.editing {
                     if data.is_branch() {
                         ctx.show_context_menu(make_dir_context_menu(ctx.widget_id()), mouse.pos);
@@ -412,13 +394,11 @@ impl Widget<FSNode> for FSNodeWidget {
                 }
             }
             Event::Command(cmd) if cmd.is(EDIT_FINISHED) => {
-                eprintln!("############## {:?} ##############", cmd);
                 data.get_filetype();
                 ctx.submit_notification(TREE_NOTIFY_PARENT.with(UPDATE_DIR_VIEW));
                 None
             }
             Event::Command(cmd) if cmd.is(TREE_CHILD_SHOW) => {
-                eprintln!("-------- show -------- {:?}", ctx.widget_id());
                 data.get_filetype();
                 if self.editing {
                     ctx.set_focus(self.edit_widget_id);
@@ -426,7 +406,6 @@ impl Widget<FSNode> for FSNodeWidget {
                 None
             }
             Event::Command(cmd) if cmd.is(NEW_FILE) => {
-                eprintln!("-------- new file -------- {:?}", ctx.widget_id());
                 data.ref_add_child({
                     let mut child = FSNode::new("");
                     child.editing = true;
@@ -437,7 +416,6 @@ impl Widget<FSNode> for FSNodeWidget {
                 None
             }
             Event::Command(cmd) if cmd.is(NEW_DIR) => {
-                eprintln!("-------- new dir -------- {:?}", ctx.widget_id());
                 data.ref_add_child({
                     let mut child = FSNode::new_dir("");
                     child.editing = true;
@@ -448,12 +426,10 @@ impl Widget<FSNode> for FSNodeWidget {
                 None
             }
             Event::Command(cmd) if cmd.is(DELETE) => {
-                eprintln!("-------- delete -------- {:?}", ctx.widget_id());
                 ctx.submit_notification(TREE_NODE_REMOVE);
                 None
             }
             Event::Command(cmd) if cmd.is(RENAME) => {
-                eprintln!("-------- delete -------- {:?}", ctx.widget_id());
                 data.editing = true;
                 ctx.set_focus(self.edit_widget_id);
                 None
@@ -541,11 +517,14 @@ impl FSNodeWidget {
 }
 
 fn ui_builder() -> impl Widget<FSNode> {
-    let tree = Tree::new(|| {
-        // Our items are editable. If editing is true, we show a TextBox of the name,
-        // otherwise it's a Label
-        FSNodeWidget::new()
-    })
+    let tree = Tree::new(
+        || {
+            // Our items are editable. If editing is true, we show a TextBox of the name,
+            // otherwise it's a Label
+            FSNodeWidget::new()
+        },
+        FSNode::expanded,
+    )
     .with_opener(|| FSOpener {
         label: WidgetPod::new(Label::dynamic(|st: &String, _| st.clone())),
         filetype: FileType::Unknown,

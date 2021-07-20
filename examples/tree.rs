@@ -24,7 +24,7 @@ struct Taxonomy {
     name: String,
     editing: bool,
     children: Vector<Taxonomy>,
-    expanded_: bool,
+    expanded: bool,
 }
 
 /// We use Taxonomy as a tree node, implementing the TreeNode trait.
@@ -34,7 +34,7 @@ impl Taxonomy {
             name: name.to_string(),
             editing: false,
             children: Vector::new(),
-            expanded_: false,
+            expanded: false,
         }
     }
 
@@ -45,7 +45,7 @@ impl Taxonomy {
 }
 
 impl Data for Taxonomy {
-    // If we derive simply derive `Data`, the children Vector is changed at every
+    // If we simply derive `Data`, the children Vector is changed at every
     // event pass (as Vector updates its children pointers in its implementation
     // of `iter_mut(), regardless of the actual sameness of the data). We have to explicitly
     // check the sameness of children nodes.
@@ -55,7 +55,7 @@ impl Data for Taxonomy {
     // the main argument in favor of `for_child_mut(&self, index, callback)`vs the former simpler
     // `get_child_mut(&self, index)`. This workaround is implemented in the `file_manager` example.
     fn same(&self, other: &Self) -> bool {
-        self.expanded_ == other.expanded_
+        self.expanded == other.expanded
             && self.name == other.name
             && self.editing == other.editing
             && self.children.len() == other.children.len()
@@ -79,14 +79,6 @@ impl TreeNode for Taxonomy {
     fn for_child_mut(&mut self, index: usize, mut cb: impl FnMut(&mut Self, usize)) {
         cb(&mut self.children[index], index);
     }
-
-    fn expand(&mut self, state: bool) {
-        self.expanded_ = state;
-    }
-
-    fn is_expanded(&self) -> bool {
-        self.expanded_
-    }
 }
 
 impl fmt::Display for Taxonomy {
@@ -97,7 +89,7 @@ impl fmt::Display for Taxonomy {
 
 fn ui_builder() -> impl Widget<Taxonomy> {
     // Taxonomy implements Display. We can use the default tree.
-    Tree::default()
+    Tree::default(Taxonomy::expanded)
 }
 
 pub fn main() {
