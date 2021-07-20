@@ -185,11 +185,7 @@ impl TreeNode for FSNode {
     }
 
     fn is_branch(&self) -> bool {
-        if let FSNodeType::Directory = self.node_type {
-            true
-        } else {
-            false
-        }
+        matches!(self.node_type, FSNodeType::Directory)
     }
 
     fn rm_child(&mut self, index: usize) {
@@ -347,12 +343,13 @@ pub struct FSNodeWidget {
 }
 
 impl FSNodeWidget {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> FSNodeWidget {
         let edit_widget = TextBox::new()
             .with_placeholder("new item")
             .with_id(WidgetId::next());
         FSNodeWidget {
-            edit_widget_id: edit_widget.id().unwrap().clone(),
+            edit_widget_id: edit_widget.id().unwrap(),
             edit_branch: WidgetPod::new(
                 Flex::row()
                     .with_child(edit_widget.lens(druid::lens::Map::new(
@@ -366,13 +363,9 @@ impl FSNodeWidget {
                         }),
                     ),
             ),
-            normal_branch: WidgetPod::new(
-                Flex::row()
-                    // First, there's the Label
-                    .with_child(Label::dynamic(|data: &FSNode, _env| {
-                        String::from(data.name.as_ref())
-                    })),
-            ),
+            normal_branch: WidgetPod::new(Flex::row().with_default_spacer().with_child(
+                Label::dynamic(|data: &FSNode, _env| String::from(data.name.as_ref())),
+            )),
             editing: false,
         }
     }

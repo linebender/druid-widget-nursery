@@ -141,7 +141,7 @@ impl<T: TreeNode, L: Lens<T, bool>> Widget<T> for Wedge<T, L> {
 
     fn paint(&mut self, ctx: &mut PaintCtx, data: &T, env: &Env) {
         if !data.is_branch() {
-            return ();
+            return;
         }
         let stroke_color = if ctx.is_hot() {
             env.get(theme::FOREGROUND_LIGHT)
@@ -379,7 +379,7 @@ impl<T: TreeNode, L: Lens<T, bool> + Clone> Widget<T> for TreeNodeWidget<T, L> {
             }
             Event::Notification(notif) if notif.is(TREE_CHROOT_UP) => {
                 // eprintln!("{:?}", notif);
-                if let Some(_) = data.get_chroot() {
+                if data.get_chroot().is_some() {
                     data.chroot(None);
                     ctx.set_handled();
                 }
@@ -389,7 +389,7 @@ impl<T: TreeNode, L: Lens<T, bool> + Clone> Widget<T> for TreeNodeWidget<T, L> {
                 // eprintln!("{:?}", notif);
                 if self.widget.id() != notif.source() {
                     let notif = notif.get(TREE_NOTIFY_PARENT).unwrap();
-                    ctx.submit_command(TREE_NOTIFY_PARENT.with(notif.clone()).to(self.widget.id()));
+                    ctx.submit_command(TREE_NOTIFY_PARENT.with(*notif).to(self.widget.id()));
                     ctx.set_handled();
                 }
                 None
@@ -471,12 +471,10 @@ impl<T: TreeNode, L: Lens<T, bool> + Clone> Widget<T> for TreeNodeWidget<T, L> {
         }
         self.opener.lifecycle(ctx, event, data, env);
         self.widget.lifecycle(ctx, event, data, env);
-        if data.is_branch() {
-            if event.should_propagate_to_hidden() | self.expand_lens.get(data) {
-                for (index, child_widget_node) in self.children.iter_mut().enumerate() {
-                    let child_tree_node = data.get_child(index);
-                    child_widget_node.lifecycle(ctx, event, child_tree_node, env);
-                }
+        if data.is_branch() & (event.should_propagate_to_hidden() | self.expand_lens.get(data)) {
+            for (index, child_widget_node) in self.children.iter_mut().enumerate() {
+                let child_tree_node = data.get_child(index);
+                child_widget_node.lifecycle(ctx, event, child_tree_node, env);
             }
         }
     }
