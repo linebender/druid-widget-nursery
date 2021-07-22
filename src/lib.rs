@@ -59,7 +59,7 @@ pub use progress_bar::ProgressBar;
 pub use separator::{Orientation, Separator};
 pub use titlebar::TitleBar;
 pub use tooltip::{TooltipController, TooltipExt};
-pub use tree::{Tree, TreeNode, TREE_CHILD_CREATED, TREE_NODE_REMOVE};
+pub use tree::{Tree, TreeNode, TREE_NODE_REMOVE};
 pub use wedge::Wedge;
 
 #[cfg(feature = "async")]

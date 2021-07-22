@@ -13,6 +13,11 @@
 // limitations under the License.
 
 //! Demos advanced tree widget and tree manipulations.
+
+// This is a pseudo tree file manager (no interaction with your actual
+// filesystem whatsoever). It's intended to use most of the features of
+// the `Tree` widget in a familiar context. It's by no mean polished, and
+// probably lacks a lot of features, we want to focus on the tree widget here.
 use std::cmp::Ordering;
 use std::ffi::OsStr;
 use std::fmt::Display;
@@ -28,9 +33,8 @@ use druid::{
     WidgetExt, WidgetId, WidgetPod, WindowDesc,
 };
 use druid_widget_nursery::tree::{
-    ChrootStatus, Tree, TreeNode, TREE_ACTIVATE_NODE, TREE_CHILD_CREATED, TREE_CHILD_SHOW,
-    TREE_CHROOT, TREE_CHROOT_UP, TREE_NODE_REMOVE, TREE_NOTIFY_CHROOT, TREE_NOTIFY_PARENT,
-    TREE_OPEN,
+    ChrootStatus, Tree, TreeNode, TREE_ACTIVATE_NODE, TREE_CHILD_SHOW, TREE_CHROOT, TREE_CHROOT_UP,
+    TREE_NODE_REMOVE, TREE_NOTIFY_CHROOT, TREE_NOTIFY_PARENT, TREE_OPEN,
 };
 
 use druid_widget_nursery::selectors;
@@ -46,10 +50,16 @@ selectors! {
     RENAME,
     /// Delete the node
     DELETE,
+    /// Tell that the edition of a node name name (on creation/rename) is now completed
     EDIT_FINISHED,
+    /// Tell that the edition of a node name name (on creation/rename) has just started
     EDIT_STARTED,
+    /// Command sent by the context menu to chroot to the targeted directory
     CHROOT,
+
+    /// Internal wiring, mostly to update the filetype and the sorting
     UPDATE_DIR_VIEW,
+    UPDATE_FILE,
 }
 
 #[derive(Clone, Debug, PartialEq, Data)]
@@ -80,13 +90,19 @@ impl Display for FileType {
 
 #[derive(Clone, Lens, Debug, Data)]
 struct FSNode {
+    /// Name of the node, that is diplayed in the tree
     name: ArcStr,
+    /// Wether the user is currently editing the node name
     editing: bool,
-    // #[data(ignore)]
+    /// Children FSNodes. We wrap them in an Arc to avoid a ugly side effect of Vector (discussed in examples/tree.rs)
     children: Vector<Arc<FSNode>>,
+    /// Explicit storage of the type (file or directory)
     node_type: FSNodeType,
+    /// File type to display cute animals next to the files
     filetype: FileType,
+    /// Keep track of the expanded state
     expanded: bool,
+    /// Keep track of the chroot state (see TreeNode::get_chroot for description of the chroot mechanism)
     chroot_: Option<usize>,
 }
 
@@ -116,6 +132,9 @@ impl FSNode {
         }
     }
 
+    /// The sorting is directories first and alphanumeric order.
+    /// This is called upon insertion or update of a child, by the
+    /// FSNodeWidget.
     fn sort(&mut self) {
         self.children
             .sort_by(|a, b| match (&a.node_type, &b.node_type) {
@@ -132,6 +151,9 @@ impl FSNode {
 
     fn update(&mut self) {
         self.sort();
+        // TODO: we should update the virtual root here, if its index has changed.
+        //       Or... maybe... the whole chroot system is to be redesigned, even
+        //       in the Tree widget :/
     }
 
     fn add_child(mut self, child: Self) -> Self {
@@ -146,6 +168,7 @@ impl FSNode {
     }
 
     fn get_filetype(&mut self) {
+        // A quick and dirty filetype detection to add eye-candy to the demo.
         use FileType::*;
         self.filetype = {
             let fname = self.name.to_string();
@@ -160,7 +183,6 @@ impl FSNode {
                 },
             }
         };
-        // eprintln!("{:?}", self.filetype);
     }
 }
 
@@ -174,6 +196,9 @@ impl TreeNode for FSNode {
     }
 
     fn for_child_mut(&mut self, index: usize, mut cb: impl FnMut(&mut Self, usize)) {
+        // Apply the closure to a clone of the child and update the `self.children` vector
+        // with the clone iff it's changed to avoid unnecessary calls to `update(...)`
+
         // TODO: there must be a more idiomatic way to do this
         let orig = &self.children[index];
         let mut new = orig.as_ref().clone();
@@ -185,6 +210,7 @@ impl TreeNode for FSNode {
     }
 
     fn is_branch(&self) -> bool {
+        // The default implementation would consider empty dirs as files.
         matches!(self.node_type, FSNodeType::Directory)
     }
 
@@ -192,6 +218,8 @@ impl TreeNode for FSNode {
         self.children.remove(index);
     }
 
+    // those two accessors are the most simple implementation to enable chroot, and should
+    // be enough for most use cases.
     fn chroot(&mut self, idx: Option<usize>) {
         self.chroot_ = idx;
     }
@@ -201,6 +229,8 @@ impl TreeNode for FSNode {
     }
 }
 
+/// FSOpener is the opener widget, the small icon the user interacts with to
+/// expand directories.
 struct FSOpener {
     label: WidgetPod<String, Label<String>>,
     filetype: FileType,
@@ -212,12 +242,15 @@ impl FSOpener {
         if data.is_branch() {
             match self.chroot_status {
                 ChrootStatus::NO | ChrootStatus::ROOT => {
+                    // this is either the actual root or not the virtual root. We
+                    // show a directory emoji based on the expand state
                     if data.expanded {
                         "📂"
                     } else {
                         "📁"
                     }
                 }
+                // for the chroot we show that the user can move the virtual root up a dir
                 ChrootStatus::YES => "↖️",
             }
             .to_owned()
@@ -231,10 +264,21 @@ impl Widget<FSNode> for FSOpener {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut FSNode, _env: &Env) {
         if data.is_branch() {
             match event {
-                Event::Command(cmd) if cmd.is(TREE_ACTIVATE_NODE) => match self.chroot_status {
-                    ChrootStatus::NO | ChrootStatus::ROOT => data.expanded = !data.expanded,
-                    ChrootStatus::YES => ctx.submit_notification(TREE_CHROOT_UP),
-                },
+                // The wrapping tree::Opener widget transforms a click to this command.
+                Event::Command(cmd) if cmd.is(TREE_ACTIVATE_NODE) => {
+                    // We care only for branches (we could of course imagine interactions with files too)
+                    if data.is_branch() {
+                        match self.chroot_status {
+                            // not on chroot ? expand
+                            ChrootStatus::NO | ChrootStatus::ROOT => data.expanded = !data.expanded,
+                            // on chroot ? chroot up
+                            ChrootStatus::YES => ctx.submit_notification(TREE_CHROOT_UP),
+                        }
+                    }
+                }
+                // The Tree widget sends this command when the node's virtual root status change.
+                // This is because the data of a virtual root is not enough to tell. We keep the
+                // info on the widget at the moment.
                 Event::Command(cmd) if cmd.is(TREE_NOTIFY_CHROOT) => {
                     let new_status = cmd.get(TREE_NOTIFY_CHROOT).unwrap().clone();
                     if self.chroot_status != new_status {
@@ -335,11 +379,15 @@ fn make_file_context_menu(widget_id: WidgetId) -> Menu<FSNode> {
         ))
 }
 
+/// THis is the user widget we pass to the Tree constructor, to display `FSNode`s
+/// It is a variation of `druid::widget::Either` that displays a Label or a TextBox
+/// according to `editing`.
 pub struct FSNodeWidget {
     edit_widget_id: WidgetId,
     edit_branch: WidgetPod<FSNode, Flex<FSNode>>,
     normal_branch: WidgetPod<FSNode, Flex<FSNode>>,
     editing: bool,
+    file_type: Option<FileType>,
 }
 
 impl FSNodeWidget {
@@ -359,7 +407,6 @@ impl FSNodeWidget {
                     .with_child(
                         Button::new("Save").on_click(|_ctx, data: &mut FSNode, _env| {
                             data.editing = false;
-                            // data.get_filetype();
                         }),
                     ),
             ),
@@ -367,12 +414,16 @@ impl FSNodeWidget {
                 Label::dynamic(|data: &FSNode, _env| String::from(data.name.as_ref())),
             )),
             editing: false,
+            file_type: None,
         }
     }
 }
 
 impl Widget<FSNode> for FSNodeWidget {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut FSNode, env: &Env) {
+        // Well, a lot of stuff is going on here, but not directly related to the tree widget. It's
+        // mostly plubming for the FSNodeWidget interactions... The exercise is left to the reader.
+        // (i.e. I'm tired documenting, I'm not even sure how much this may change in a near future.)
         let new_event = match event {
             Event::MouseDown(ref mouse) if mouse.button.is_right() => {
                 if !self.editing {
@@ -386,13 +437,22 @@ impl Widget<FSNode> for FSNodeWidget {
                     Some(event)
                 }
             }
+            // Tell that the edition of a node name name (on creation/rename) is now completed
             Event::Command(cmd) if cmd.is(EDIT_FINISHED) => {
+                ctx.submit_command(UPDATE_FILE.to(ctx.widget_id()));
+                None
+            }
+            Event::Command(cmd) if cmd.is(UPDATE_FILE) => {
                 data.get_filetype();
+                self.file_type = Some(data.filetype.clone());
                 ctx.submit_notification(TREE_NOTIFY_PARENT.with(UPDATE_DIR_VIEW));
                 None
             }
             Event::Command(cmd) if cmd.is(TREE_CHILD_SHOW) => {
-                data.get_filetype();
+                if self.file_type.is_none() {
+                    data.get_filetype();
+                    self.file_type = Some(data.filetype.clone());
+                }
                 if self.editing {
                     ctx.set_focus(self.edit_widget_id);
                 }
@@ -404,7 +464,6 @@ impl Widget<FSNode> for FSNodeWidget {
                     child.editing = true;
                     child
                 });
-                ctx.submit_notification(TREE_CHILD_CREATED);
                 ctx.submit_notification(TREE_OPEN);
                 None
             }
@@ -414,7 +473,6 @@ impl Widget<FSNode> for FSNodeWidget {
                     child.editing = true;
                     child
                 });
-                ctx.submit_notification(TREE_CHILD_CREATED);
                 ctx.submit_notification(TREE_OPEN);
                 None
             }
@@ -435,7 +493,6 @@ impl Widget<FSNode> for FSNodeWidget {
                 let cmd_data = cmd.get(TREE_NOTIFY_PARENT).unwrap();
                 if *cmd_data == UPDATE_DIR_VIEW {
                     data.update();
-                    ctx.children_changed();
                     ctx.set_handled();
                     None
                 } else {
@@ -470,12 +527,14 @@ impl Widget<FSNode> for FSNodeWidget {
     fn update(&mut self, ctx: &mut UpdateCtx, _old_data: &FSNode, data: &FSNode, env: &Env) {
         if data.editing != self.editing {
             if self.editing {
+                // Tell that the edition of a node name name (on creation/rename) is now completed
                 ctx.submit_command(EDIT_FINISHED.to(ctx.widget_id()));
             } else {
                 ctx.submit_command(EDIT_STARTED);
             }
             self.editing = data.editing;
-            ctx.children_changed();
+        } else if !self.editing & (_old_data.name != data.name) {
+            ctx.submit_command(UPDATE_FILE.to(ctx.widget_id()));
         }
         self.current_widget().update(ctx, data, env)
     }
