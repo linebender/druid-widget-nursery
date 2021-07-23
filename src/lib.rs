@@ -29,6 +29,7 @@ mod macros;
 mod multi_value;
 pub mod navigator;
 mod on_monitor;
+mod on_cmd;
 pub mod prism;
 mod progress_bar;
 mod separator;
@@ -37,6 +38,7 @@ pub mod theme_loader;
 mod tooltip;
 mod tree;
 mod titlebar;
+mod widget_ext;
 
 #[cfg(feature = "async")]
 mod future_widget;
@@ -53,11 +55,13 @@ pub use dynamic_sized_box::DynamicSizedBox;
 pub use list_filter::{FilterIter, ListFilter};
 pub use list_select::ListSelect;
 pub use multi_value::{MultiCheckbox, MultiRadio};
+pub use on_cmd::OnCmd;
 pub use on_monitor::{OnMonitor, OnMonitorExt};
 pub use progress_bar::ProgressBar;
 pub use separator::{Orientation, Separator};
 pub use tooltip::{TooltipController, TooltipExt};
 pub use titlebar::TitleBar;
+pub use widget_ext::WidgetExt;
 
 pub use tree::{Tree, TreeNode, Wedge, TREE_CHILD_CREATED, TREE_CHILD_REMOVE, TREE_OPEN_PARENT};
 
