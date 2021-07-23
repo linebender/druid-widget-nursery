@@ -16,6 +16,7 @@
 
 #![allow(clippy::new_ret_no_self)]
 
+mod autofocus;
 pub mod animation;
 mod canvas;
 mod computed;
@@ -45,6 +46,7 @@ mod future_widget;
 pub mod hot_reload;
 mod list_filter;
 
+pub use autofocus::AutoFocus;
 pub use canvas::{Canvas, CanvasLayout, CanvasWrap};
 pub use computed::ComputedWidget;
 pub use dropdown::{Dropdown, DROP};
