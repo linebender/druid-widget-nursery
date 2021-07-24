@@ -16,6 +16,7 @@
 
 #![allow(clippy::new_ret_no_self)]
 
+mod autofocus;
 pub mod animation;
 mod canvas;
 mod computed;
@@ -35,10 +36,11 @@ mod progress_bar;
 mod separator;
 pub mod splits;
 pub mod theme_loader;
-mod tooltip;
-mod tree;
 mod titlebar;
 mod widget_ext;
+mod tooltip;
+pub mod tree;
+pub mod wedge;
 
 #[cfg(feature = "async")]
 mod future_widget;
@@ -47,6 +49,7 @@ mod future_widget;
 pub mod hot_reload;
 mod list_filter;
 
+pub use autofocus::AutoFocus;
 pub use canvas::{Canvas, CanvasLayout, CanvasWrap};
 pub use computed::ComputedWidget;
 pub use dropdown::{Dropdown, DROP};
@@ -59,11 +62,11 @@ pub use on_cmd::OnCmd;
 pub use on_monitor::{OnMonitor, OnMonitorExt};
 pub use progress_bar::ProgressBar;
 pub use separator::{Orientation, Separator};
-pub use tooltip::{TooltipController, TooltipExt};
 pub use titlebar::TitleBar;
 pub use widget_ext::WidgetExt;
-
-pub use tree::{Tree, TreeNode, Wedge, TREE_CHILD_CREATED, TREE_CHILD_REMOVE, TREE_OPEN_PARENT};
+pub use tooltip::{TooltipController, TooltipExt};
+pub use tree::{Tree, TreeNode, TREE_NODE_REMOVE};
+pub use wedge::Wedge;
 
 #[cfg(feature = "async")]
 pub use future_widget::{Delegate as AsyncDelegate, FutureWidget};
