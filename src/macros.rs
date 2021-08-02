@@ -75,3 +75,34 @@ macro_rules! keys {
         )*
     };
 }
+
+/// Matches on a command or notification.
+///
+/// # Example
+///
+/// ```
+/// use druid_widget_nursery::{selectors, match_command};
+/// selectors!(FOO: i32, BAR);
+/// # let cmd = FOO.with(0);
+/// match_command!(cmd => {
+///     FOO(i) => { todo!() },
+///     BAR => { todo!() },
+/// });
+/// ```
+#[macro_export]
+macro_rules! match_command {
+    ($val:expr => {$($selector:ident $(($bind:ident))? => $body:expr),+ $(,)? }) => {
+        match $val {
+            val => match () {
+                $(
+                    // TODO: druid should expose the raw selector so we can match it directly
+                    () if val.is($selector) => {
+                        $(let $bind = val.get_unchecked($selector);)?
+                        $body
+                    }
+                )+
+                    _ => {}
+            }
+        }
+    };
+}
