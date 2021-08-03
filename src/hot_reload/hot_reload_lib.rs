@@ -14,7 +14,7 @@ impl HotReloadLib {
     pub fn new(path: impl AsRef<Path>, on_reload: impl Fn() + Send + Sync + 'static) -> Self {
         let lib_path = path.as_ref().canonicalize().unwrap();
         let (lib, temp_path) = copy_and_load_library(&lib_path);
-        let mut watcher = notify5::immediate_watcher({
+        let mut watcher = notify5::recommended_watcher({
             let lib_path = lib_path.clone();
             move |ev| {
                 let ev: Event = match ev {
