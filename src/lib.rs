@@ -16,10 +16,11 @@
 
 #![allow(clippy::new_ret_no_self)]
 
-mod autofocus;
 pub mod animation;
+mod autofocus;
 mod canvas;
 mod computed;
+mod context_traits;
 mod dropdown;
 mod dropdown_select;
 mod dynamic_sized_box;
@@ -29,18 +30,18 @@ mod list_select;
 mod macros;
 mod multi_value;
 pub mod navigator;
-mod on_monitor;
 mod on_cmd;
+mod on_monitor;
 pub mod prism;
 mod progress_bar;
 mod separator;
 pub mod splits;
 pub mod theme_loader;
 mod titlebar;
-mod widget_ext;
 mod tooltip;
 pub mod tree;
 pub mod wedge;
+mod widget_ext;
 
 #[cfg(feature = "async")]
 mod future_widget;
@@ -52,6 +53,7 @@ mod list_filter;
 pub use autofocus::AutoFocus;
 pub use canvas::{Canvas, CanvasLayout, CanvasWrap};
 pub use computed::ComputedWidget;
+pub use context_traits::{AnyCtx, CommandCtx, CursorCtx, LaidOutCtx, RequestCtx};
 pub use dropdown::{Dropdown, DROP};
 pub use dropdown_select::DropdownSelect;
 pub use dynamic_sized_box::DynamicSizedBox;
@@ -63,10 +65,10 @@ pub use on_monitor::{OnMonitor, OnMonitorExt};
 pub use progress_bar::ProgressBar;
 pub use separator::{Orientation, Separator};
 pub use titlebar::TitleBar;
-pub use widget_ext::WidgetExt;
 pub use tooltip::{TooltipController, TooltipExt};
 pub use tree::{Tree, TreeNode, TREE_NODE_REMOVE};
 pub use wedge::Wedge;
+pub use widget_ext::WidgetExt;
 
 #[cfg(feature = "async")]
 pub use future_widget::{Delegate as AsyncDelegate, FutureWidget};
