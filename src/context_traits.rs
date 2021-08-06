@@ -189,10 +189,6 @@ pub trait RequestCtx {
     ///
     /// [`children_changed`]: EventCtx::children_changed
     fn children_changed(&mut self);
-    /// Set the menu of the window containing the current widget. See [`set_menu`].
-    ///
-    /// [`set_menu`]: EventCtx::set_menu
-    fn set_menu<T: Any>(&mut self, menu: Menu<T>);
     /// Create a new sub-window. See [`new_sub_window`].
     ///
     /// [`new_sub_window`]: EventCtx::new_sub_window
@@ -222,9 +218,6 @@ impl_context_trait!(
         }
         fn children_changed(&mut self){
             Self::children_changed(self)
-        }
-        fn set_menu<T: Any>(&mut self, menu: Menu<T>){
-            Self::set_menu(self, menu)
         }
         fn new_sub_window<W: Widget<U> + 'static, U: Data>(
             &mut self,
