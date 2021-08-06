@@ -115,7 +115,7 @@ impl<T: Data, D: Data, I: ListIter<T>> Widget<(I, D)> for ListFilter<D, T, I> {
     fn update(&mut self, ctx: &mut UpdateCtx, old_data: &(I, D), data: &(I, D), env: &Env) {
         let old_inner = FilterIter::new(old_data.0.clone(), self.accepted.clone());
 
-        if !old_data.same(&data) {
+        if !old_data.same(data) {
             //TODO: do real diffing here
             self.accepted.clear();
             (self.filter_update)(

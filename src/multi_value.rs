@@ -112,7 +112,7 @@ where
     /// Returns the internal data of the widget. This works also when the widget is disabled.
     /// By calling enable the current internal data gets injected into the external data.
     pub fn internal_data(&self) -> &U {
-        &self.inner.widget().internal_data()
+        self.inner.widget().internal_data()
     }
 }
 
@@ -275,7 +275,7 @@ where
     /// Returns the internal data of the widget. This works also when the widget is disabled.
     /// By calling enable the current internal data gets injected into the external data.
     pub fn internal_data(&self) -> &T {
-        &self.inner.widget().internal_data()
+        self.inner.widget().internal_data()
     }
 }
 

@@ -30,7 +30,7 @@ futures = { version = "0.3", optional = true }
 flume = { version = "0.10", optional = true }
 
 # hot reload
-notify5 = { version = "5.0.0-pre.4", optional = true, package = "notify" }
+notify5 = { version = "5.0.0-pre.11", optional = true, package = "notify" }
 libloading = { version = "0.6.6", optional = true }
 rand = { version = "0.8.1", optional = true }
 tracing = { version = "0.1.22" }
