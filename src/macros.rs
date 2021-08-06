@@ -85,7 +85,9 @@ macro_rules! keys {
 /// selectors!(FOO: i32, BAR);
 /// # let cmd = FOO.with(0);
 /// match_command!(cmd => {
-///     FOO(i) => { todo!() },
+///     FOO(i) => {
+///         // do something
+///     },
 ///     BAR => { todo!() },
 /// });
 /// ```
