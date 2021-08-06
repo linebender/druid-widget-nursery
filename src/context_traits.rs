@@ -1,10 +1,9 @@
-use std::any::Any;
 use std::time::Duration;
 
 use druid::piet::PietText;
 use druid::widget::prelude::*;
 use druid::{
-    Command, Cursor, ExtEventSink, Menu, Point, Rect, TimerToken, WindowConfig, WindowHandle,
+    Command, Cursor, ExtEventSink, Point, Rect, TimerToken, WindowConfig, WindowHandle,
     WindowId,
 };
 
