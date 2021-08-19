@@ -35,6 +35,10 @@ If you add a new widget, please add its name and a short summary here.
  - Splits : Multiple resizable splits
  - ListFilter : a widget which filters a list for its inner widget.
  - TitleBar : a widget that is treated as a window's titlebar. (Only on windows)
+ - An advanced version of the slider which also allows keyboard input.
+
+   ![Advanced Slider example](advanced-slider-example.gif)
+
 
 ## ProgressBar Improvements
 - Building on the existing progress bar in druid.
