@@ -162,7 +162,7 @@ impl<T: Data + PartialEq> Controller<T, Flex<T>> for ListSelectController<T> {
 
 /// A single list item.
 pub struct ListItem<T> {
-    // Utlimately this shall be able to display either a label, a label with an icon, or a single icon
+    // Ultimately this shall be able to display either a label, a label with an icon, or a single icon
     variant: T,
     child_label: Label<T>,
     label_y: f64,

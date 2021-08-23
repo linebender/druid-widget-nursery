@@ -120,7 +120,7 @@ impl<T: Data, W: Widget<T>> Controller<T, W> for TooltipController<T> {
                 Event::MouseMove(ev) if ctx.is_hot() => {
                     // This is annoying. On GTK, after showing a window we instantly get a new
                     // MouseMove event, with a mouse position that tends to be slightly different
-                    // than the prebious one. If we don't test the positions, this causes the
+                    // than the previous one. If we don't test the positions, this causes the
                     // tooltip to immediately close.
                     if (ev.window_pos - last_mouse_pos).hypot2() > 1.0 {
                         ctx.submit_command(CLOSE_WINDOW.to(id));

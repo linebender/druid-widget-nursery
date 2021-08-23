@@ -51,7 +51,7 @@ impl Data for Taxonomy {
     // check the sameness of children nodes.
     //
     // The other workaround is to use a `Vector<Arc<Taxonomy>>` at the expense
-    // of a more complex `for_child_mut()` implementation (being able to use imutable children  was
+    // of a more complex `for_child_mut()` implementation (being able to use immutable children  was
     // the main argument in favor of `for_child_mut(&self, index, callback)`vs the former simpler
     // `get_child_mut(&self, index)`. This workaround is implemented in the `file_manager` example.
     fn same(&self, other: &Self) -> bool {
