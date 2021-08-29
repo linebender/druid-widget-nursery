@@ -2,7 +2,8 @@ use druid::widget::{
     Button, CrossAxisAlignment, Flex, Label, RadioGroup, Scroll, TextBox, WidgetExt,
 };
 use druid::{AppLauncher, Data, Env, EventCtx, Lens, Widget, WindowDesc};
-use druid_widget_nursery::{Dropdown, DROP};
+use druid_widget_nursery::dropdown::DROPDOWN_SHOW;
+use druid_widget_nursery::Dropdown;
 
 #[derive(Data, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
 enum Fruit {
@@ -32,7 +33,7 @@ fn main_widget() -> impl Widget<DropDownState> {
                         .with_flex_spacer(1.)
                         .with_child(
                             Button::new("V")
-                                .on_click(|ctx: &mut EventCtx, _, _| ctx.submit_command(DROP)),
+                                .on_click(|ctx: &mut EventCtx, _, _| ctx.submit_notification(DROPDOWN_SHOW)),
                         ),
                     |_, _| {
                         let places: Vec<(&'static str, String)> =
@@ -53,7 +54,7 @@ fn main_widget() -> impl Widget<DropDownState> {
                         .with_flex_spacer(1.)
                         .with_child(
                             Button::new("V")
-                                .on_click(|ctx: &mut EventCtx, _, _| ctx.submit_command(DROP)),
+                                .on_click(|ctx: &mut EventCtx, _, _| ctx.submit_notification(DROPDOWN_SHOW)),
                         ),
                     |_, _| {
                         RadioGroup::new(vec![
@@ -68,17 +69,17 @@ fn main_widget() -> impl Widget<DropDownState> {
             )
             .with_spacer(200.)
             .with_child(
-                Dropdown::new_sized(
+                Dropdown::new(
                     Button::new(|f: &Fruit, _: &Env| format!("{:?}", f))
-                        .on_click(|ctx: &mut EventCtx, _, _| ctx.submit_command(DROP)),
+                        .on_click(|ctx: &mut EventCtx, _, _| ctx.submit_notification(DROPDOWN_SHOW)),
                     |_, _| {
                         RadioGroup::new(vec![
                             ("Apple", Fruit::Apple),
                             ("Pear", Fruit::Pear),
                             ("Orange", Fruit::Orange),
                         ])
+                        .fix_size(100., 400.)
                     },
-                    druid::Size::new(100., 400.),
                 )
                 .align_left()
                 .lens(DropDownState::fruit),
