@@ -1,128 +1,125 @@
+use druid::commands::CLOSE_WINDOW;
 use druid::widget::prelude::*;
+use druid::widget::Controller;
 use druid::widget::WidgetExt;
+use druid::Target;
 use druid::WindowSizePolicy;
-use druid::{
-    commands::CLOSE_WINDOW,
-    widget::{Scroll, SizedBox},
-};
-use druid::{Point, Selector, WindowConfig};
+use druid::{Point, WindowConfig};
 use druid::{WindowId, WindowLevel};
 
 pub struct Dropdown<T> {
-    header: Box<dyn Widget<T>>,
     drop: Box<dyn Fn(&T, &Env) -> Box<dyn Widget<T>>>,
     window: Option<WindowId>,
 }
 
-pub const DROP: Selector<()> = Selector::new("druid-widget-nursery.dropdown.drop");
+crate::selectors! {
+    DROPDOWN_SHOW,
+    DROPDOWN_HIDE,
+    DROPDOWN_CLOSED,
+}
 
 impl<T: Data> Dropdown<T> {
-    pub fn new<DW: Widget<T> + 'static>(
-        header: impl Widget<T> + 'static,
+    pub fn new<W: 'static + Widget<T>, DW: Widget<T> + 'static>(
+        header: W,
         make_drop: impl Fn(&T, &Env) -> DW + 'static,
-    ) -> Dropdown<T> {
-        Dropdown {
-            header: header.boxed(),
+    ) -> impl Widget<T> {
+        // padding for putting header in separate WidgetPod
+        // because notifications from same WidgetPod are not sent
+        header.padding(0.).controller(Dropdown {
             drop: Box::new(move |d, e| make_drop(d, e).boxed()),
             window: None,
-        }
+        })
     }
 
-    pub fn new_sized<DW: Widget<T> + 'static>(
-        header: impl Widget<T> + 'static,
-        make_drop: impl Fn(&T, &Env) -> DW + 'static,
-        size: Size,
-    ) -> Dropdown<T> {
-        Dropdown {
-            header: header.boxed(),
-            drop: Box::new(move |d, e| {
-                SizedBox::new(Scroll::new(make_drop(d, e)))
-                    .width(size.width)
-                    .height(size.height)
-                    .boxed()
-            }),
-            window: None,
-        }
+    fn show_dropdown(&mut self, data: &mut T, env: &Env, ctx: &mut EventCtx) {
+        let widget = (self.drop)(data, env);
+        let origin = ctx.to_screen(Point::new(0., ctx.size().height));
+        self.window = Some(
+            ctx.new_sub_window(
+                WindowConfig::default()
+                    .set_level(WindowLevel::DropDown)
+                    .set_position(origin)
+                    .window_size_policy(WindowSizePolicy::Content)
+                    .resizable(false)
+                    .show_titlebar(false),
+                widget.controller(DropedCtrl {
+                    parent: ctx.widget_id(),
+                }),
+                data.clone(),
+                env.clone(),
+            ),
+        );
+        ctx.set_active(true);
     }
 }
 
-impl<T: Data> Widget<T> for Dropdown<T> {
-    fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
+struct DropedCtrl {
+    parent: WidgetId,
+}
+
+impl<T, W: Widget<T>> Controller<T, W> for DropedCtrl {
+    fn event(&mut self, child: &mut W, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
+        if let Event::WindowDisconnected = event {
+            ctx.submit_command(DROPDOWN_CLOSED.to(self.parent));
+        }
+        child.event(ctx, event, data, env);
+    }
+}
+
+impl<T: Data, W: Widget<T>> Controller<T, W> for Dropdown<T> {
+    fn event(&mut self, child: &mut W, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
         match event {
-            Event::Command(n) if n.is(DROP) => {
-                let widget = (self.drop)(data, env);
-                let origin = ctx.to_screen(Point::new(0., ctx.size().height));
-                self.window = Some(
-                    ctx.new_sub_window(
-                        WindowConfig::default()
-                            .set_level(WindowLevel::DropDown)
-                            .set_position(origin)
-                            .window_size_policy(WindowSizePolicy::Content)
-                            .resizable(false)
-                            .show_titlebar(false),
-                        Dropped { child: widget },
-                        data.clone(),
-                        env.clone(),
-                    ),
-                );
+            Event::Command(c) if c.is(DROPDOWN_SHOW) && self.window.is_none() => {
+                self.show_dropdown(data, env, ctx);
                 ctx.set_handled();
             }
-            _ => {
-                self.header.event(ctx, event, data, env);
+            Event::Notification(n) if n.is(DROPDOWN_SHOW) && self.window.is_none() => {
+                self.show_dropdown(data, env, ctx);
+                ctx.set_handled();
             }
+            Event::Command(cmd) if cmd.is(DROPDOWN_CLOSED) => {
+                ctx.set_active(false);
+                self.window = None;
+                let inner_cmd = cmd.clone().to(Target::Global);
+                // send DROP_END to header
+                child.event(ctx, &Event::Command(inner_cmd), data, env);
+                ctx.set_handled();
+            }
+
+            Event::Command(cmd) if cmd.is(DROPDOWN_HIDE) => {
+                if let Some(w) = self.window {
+                    ctx.submit_command(CLOSE_WINDOW.to(w));
+                }
+                ctx.set_handled();
+            }
+
+            Event::Notification(cmd) if cmd.is(DROPDOWN_HIDE) => {
+                if let Some(w) = self.window {
+                    ctx.submit_command(CLOSE_WINDOW.to(w));
+                }
+                ctx.set_handled();
+            }
+
+            // we recieve global mouse downs when widget is_active
+            // close on any outside mouse click
+            Event::MouseDown(ev) if ctx.is_active() && !ctx.size().to_rect().contains(ev.pos) => {
+                if let Some(w) = self.window {
+                    ctx.submit_command(CLOSE_WINDOW.to(w));
+                }
+            }
+            _ => {}
         }
+        child.event(ctx, event, data, env);
     }
 
-    fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
-        self.header.lifecycle(ctx, event, data, env)
-    }
-
-    fn update(&mut self, ctx: &mut UpdateCtx, old_data: &T, data: &T, env: &Env) {
-        self.header.update(ctx, old_data, data, env)
-    }
-
-    fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> Size {
-        if let Some(window) = self.window {
-            ctx.submit_command(CLOSE_WINDOW.to(window));
-            self.window = None;
-        }
-        self.header.layout(ctx, bc, data, env)
-    }
-
-    fn paint(&mut self, ctx: &mut PaintCtx, data: &T, env: &Env) {
-        self.header.paint(ctx, data, env)
-    }
-}
-
-struct Dropped<T> {
-    child: Box<dyn Widget<T>>,
-}
-
-impl<T: Data> Widget<T> for Dropped<T> {
-    fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
-        self.child.event(ctx, event, data, env);
-    }
-
-    fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
-        if let LifeCycle::HotChanged(false) = event {
-            ctx.window().close()
-        }
-
-        self.child.lifecycle(ctx, event, data, env)
-    }
-
-    fn update(&mut self, ctx: &mut UpdateCtx, old_data: &T, data: &T, env: &Env) {
-        self.child.update(ctx, old_data, data, env);
-        if !old_data.same(data) {
-            ctx.window().close()
-        }
-    }
-
-    fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> Size {
-        self.child.layout(ctx, bc, data, env)
-    }
-
-    fn paint(&mut self, ctx: &mut PaintCtx, data: &T, env: &Env) {
-        self.child.paint(ctx, data, env)
+    fn lifecycle(
+        &mut self,
+        child: &mut W,
+        ctx: &mut LifeCycleCtx,
+        event: &LifeCycle,
+        data: &T,
+        env: &Env,
+    ) {
+        child.lifecycle(ctx, event, data, env)
     }
 }

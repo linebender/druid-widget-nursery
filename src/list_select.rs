@@ -32,12 +32,12 @@ pub struct ListSelect<T> {
     controller: ListSelectController<T>,
 }
 
-impl<T: Data + PartialEq> ListSelect<T> {
+impl<T: Data> ListSelect<T> {
     /// Given a vector of `(label_text, enum_variant)` tuples, create a list of items to select from
     pub fn new(
         values: impl IntoIterator<Item = (impl Into<LabelText<T>> + 'static, T)>,
     ) -> ListSelect<T> {
-        let mut col = Flex::column().cross_axis_alignment(CrossAxisAlignment::Start);
+        let mut col = Flex::column().cross_axis_alignment(CrossAxisAlignment::Fill);
         let mut variants = Vec::new();
         for (index, (label, variant)) in values.into_iter().enumerate() {
             variants.insert(index, variant.clone());
@@ -68,7 +68,7 @@ impl<T: Data + PartialEq> ListSelect<T> {
     }
 }
 
-impl<T: Data + PartialEq> Widget<T> for ListSelect<T> {
+impl<T: Data> Widget<T> for ListSelect<T> {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
         self.controller
             .event(&mut self.widget, ctx, event, data, env)
@@ -101,9 +101,9 @@ struct ListSelectController<T> {
     action: Option<ListSelectAction<T>>,
 }
 
-impl<T: Data + PartialEq> ListSelectController<T> {
+impl<T: Data> ListSelectController<T> {
     fn change_index(&self, data: &mut T, next_else_previous: bool) {
-        if let Some(mut index) = self.variants.iter().position(|variant| variant == data) {
+        if let Some(mut index) = self.variants.iter().position(|variant| variant.same(data)) {
             if next_else_previous {
                 index += 1
             } else if index > 0 {
@@ -116,7 +116,7 @@ impl<T: Data + PartialEq> ListSelectController<T> {
     }
 }
 
-impl<T: Data + PartialEq> Controller<T, Flex<T>> for ListSelectController<T> {
+impl<T: Data> Controller<T, Flex<T>> for ListSelectController<T> {
     fn event(
         &mut self,
         child: &mut Flex<T>,
@@ -179,7 +179,7 @@ impl<T: Data> ListItem<T> {
     }
 }
 
-impl<T: Data + PartialEq> Widget<T> for ListItem<T> {
+impl<T: Data> Widget<T> for ListItem<T> {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, _env: &Env) {
         match event {
             Event::MouseDown(_) => {
@@ -227,7 +227,7 @@ impl<T: Data + PartialEq> Widget<T> for ListItem<T> {
         let rect = ctx.size().to_rect().inset(-border_width / 2.0);
 
         // Paint the data in the primary color if we are selected
-        if *data == self.variant {
+        if data.same(&self.variant) {
             let background_gradient = LinearGradient::new(
                 UnitPoint::TOP,
                 UnitPoint::BOTTOM,
