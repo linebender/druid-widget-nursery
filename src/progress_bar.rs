@@ -198,7 +198,7 @@ impl Widget<f64> for ProgressBar {
         .inset((0.0, inset))
         .to_rounded_rect(self.corner_radius.resolve(env));
 
-        //Old method would't apply brush to the full bar.
+        //Old method wouldn't apply brush to the full bar.
         // ctx.fill(bar_rect, &self.bar_brush(env));
 
         //Renders full bar and clips.

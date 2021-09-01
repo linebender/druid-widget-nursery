@@ -55,7 +55,7 @@ selectors! {
     TREE_CHILD_HIDE,
     /// Notification that moves the root of the tree to the first encountered branch node.
     TREE_CHROOT,
-    /// Notificattion that ask a parent to register a chroot a this index.
+    /// Notification that ask a parent to register a chroot a this index.
     /// Mostly for internal use.
     TREE_CHROOT_CHILD: usize,
     /// Notification that moves the chroot to the parent of the current virtual root.
@@ -63,7 +63,7 @@ selectors! {
     TREE_CHROOT_UP,
     /// Notify a child that it's now the chroot
     TREE_NOTIFY_CHROOT: ChrootStatus,
-    /// Submitted as a notification, from the user's widget, the Selector payload is submited as
+    /// Submitted as a notification, from the user's widget, the Selector payload is submitted as
     /// a command to its parent. It's a workaround to simulate notifications between user's tree
     /// widgets.
     TREE_NOTIFY_PARENT: Selector,
@@ -71,7 +71,7 @@ selectors! {
     TREE_ACTIVATE_NODE,
 }
 
-/// A tree widget for a collection of items organized in a hierachical way.
+/// A tree widget for a collection of items organized in a hierarchical way.
 pub struct Tree<T, L>
 where
     T: TreeNode,
@@ -106,7 +106,7 @@ where
     /// If a node is somewhere between the root and the virtual root return the
     /// index of the next children in the this path otherwise return `None`
     ///
-    /// The default implementation returns always `None`, disalowing chrooting.
+    /// The default implementation returns always `None`, disallowing chrooting.
     ///
     /// Here's a tree with get_chroot result for each node:
     ///
@@ -117,7 +117,7 @@ where
     ///     - virtual_root None
     ///     - node1-1 None
     ///
-    /// In this case the virutal root is `/actual_root/node1/virtual_root`
+    /// In this case the virtual root is `/actual_root/node1/virtual_root`
     fn get_chroot(&self) -> Option<usize> {
         None
     }
@@ -126,7 +126,7 @@ where
     #[allow(unused_variables)]
     fn chroot(&mut self, idx: Option<usize>) {}
 
-    /// `is_branch` must return `true` if the data is considerd as a branch.
+    /// `is_branch` must return `true` if the data is considered as a branch.
     /// The default implementation returns `true` when `children_count()` is
     /// more than 0.
     fn is_branch(&self) -> bool {
@@ -360,7 +360,7 @@ impl<T: TreeNode, L: Lens<T, bool> + Clone> Widget<T> for TreeNodeWidget<T, L> {
                 }
             }
             Event::Notification(notif) if notif.is(TREE_NODE_REMOVE) => {
-                // we were comanded to remove ourselves. Let's tell our parent.
+                // we were commanded to remove ourselves. Let's tell our parent.
                 ctx.submit_notification(TREE_CHILD_REMOVE_INTERNAL.with(self.index as i32));
                 ctx.set_handled();
                 None
@@ -463,7 +463,7 @@ impl<T: TreeNode, L: Lens<T, bool> + Clone> Widget<T> for TreeNodeWidget<T, L> {
             }
             // Forward to children nodes
             if event.should_propagate_to_hidden() {
-                // forward inconditionaly
+                // forward unconditionally
                 for (index, child_widget_node) in self.children.iter_mut().enumerate() {
                     data.for_child_mut(index, |data: &mut T, _index: usize| {
                         if child_widget_node.is_initialized() {
@@ -583,7 +583,7 @@ impl<T: TreeNode, L: Lens<T, bool> + Clone> Widget<T> for TreeNodeWidget<T, L> {
 
             let mut next_index: usize = 0;
             for (index, child_widget_node) in self.children.iter_mut().enumerate() {
-                // In case we have lazily instanciated children nodes,
+                // In case we have lazily instantiated children nodes,
                 // we may skip some indices. This catches up the correct height.
                 if index != next_index {
                     size.height += (index - next_index) as f64 * basic_size;
@@ -642,7 +642,7 @@ impl<T: TreeNode, L: Lens<T, bool> + Clone + 'static> Tree<T, L> {
                 0,
                 expand_lens,
             )),
-            // dumy chroot id at creation.
+            // dummy chroot id at creation.
             chroot: WidgetId::next(),
         }
     }

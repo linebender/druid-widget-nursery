@@ -14,28 +14,27 @@
 
 //! A simple list selection widget, for selecting a single value out of a list.
 
-use crate::{Dropdown, ListSelect, Wedge, DROP};
+use crate::dropdown::{DROPDOWN_SHOW, DROPDOWN_CLOSED, DROPDOWN_HIDE};
+use crate::{AutoFocus, Dropdown, ListSelect, Wedge, WidgetExt as _};
+use druid::commands::CLOSE_WINDOW;
 use druid::kurbo::BezPath;
-use druid::widget::{
-    Click, Container, Controller, ControllerHost, DefaultScopePolicy, Label, LabelText, Scope,
-};
+use druid::widget::{Controller, DefaultScopePolicy, Label, LabelText, LineBreaking, Scope};
 use druid::{
     theme, Affine, BoxConstraints, Data, Env, Event, EventCtx, Insets, LayoutCtx, Lens, LifeCycle,
-    LifeCycleCtx, LinearGradient, PaintCtx, Point, RenderContext, Selector, Size, UnitPoint,
-    UpdateCtx, Widget, WidgetExt, WidgetPod,
+    LifeCycleCtx, LinearGradient, PaintCtx, Point, RenderContext, Size, UnitPoint, UpdateCtx,
+    Widget, WidgetExt, WidgetPod,
 };
 use std::marker::PhantomData;
 
 // NOTE: This is copied from Button. Should those be generic, or maybe set in the environment?
 const LABEL_INSETS: Insets = Insets::uniform_xy(8., 2.);
-const COLLAPSE: Selector<()> = Selector::new("druid-widget-nursery.dropdown.collapse");
 
 /// Builds a list selection widget, showed as a button, for which the different possible values appear as a dropdown.
 pub struct DropdownSelect<T> {
     _t: PhantomData<T>,
 }
 
-impl<T: Data + PartialEq> DropdownSelect<T> {
+impl<T: Data> DropdownSelect<T> {
     /// Given a vector of `(label_text, enum_variant)` tuples, create a dropdown select widget
     /// This is exactly the same interface as `Radio` so that both can be used interchangably,
     /// with dropdown taking less space in the UI.
@@ -58,94 +57,65 @@ impl<T: Data + PartialEq> DropdownSelect<T> {
     ) -> impl Widget<T> {
         let mut variants = Vec::new();
         for (label, variant) in values.clone().into_iter() {
-            variants.push((label.into().display_text().to_string(), variant));
+            variants.push((label.into(), variant));
         }
-        let header = DropdownButton::new(move |t: &T, _: &Env| {
-            variants
+        let header = DropdownButton::new(move |t: &T, env: &Env| {
+            let mut var = variants
                 .clone()
                 .into_iter()
-                .find_map(|(label, variant)| if *t == variant { Some(label) } else { None })
-                .unwrap()
+                .find(|(_, variant)| t.same(variant))
+                .map(|(label, _)| label)
+                .unwrap();
+            var.resolve(t, env);
+            var.display_text().to_string()
         })
         .on_click(|ctx: &mut EventCtx, t: &mut DropdownState<T>, _| {
             if t.expanded {
                 t.expanded = false;
-                ctx.submit_command(COLLAPSE.to(ctx.widget_id()));
+                ctx.submit_notification(DROPDOWN_HIDE)
             } else {
                 t.expanded = true;
-                ctx.submit_command(DROP.to(ctx.widget_id()))
+                ctx.submit_notification(DROPDOWN_SHOW)
             }
+        })
+        .on_command(DROPDOWN_CLOSED, |_ctx, &(), t: &mut DropdownState<T>| {
+            t.expanded = false;
         });
 
         let make_drop = move |_t: &DropdownState<T>, env: &Env| {
-            ControllerHost::new(
-                ListSelect::new(values.clone())
-                    .lens(DropdownState::<T>::data)
-                    .border(env.get(theme::BORDER_DARK), 1.0),
-                DropdownSelectController { _t: PhantomData },
-            )
+            let w = ListSelect::new(values.clone())
+                .lens(DropdownState::<T>::data)
+                .border(env.get(theme::BORDER_DARK), 1.0)
+                .controller(DropdownSelectCtrl)
+                .controller(AutoFocus);
+            if let Some(size) = size {
+                w.fix_size(size.width, size.height).boxed()
+            } else {
+                w.boxed()
+            }
         };
         // A `Scope` is used here to add internal data shared within the children widgets,
         // namely whether or not the dropdown is expanded. See `DropdownState`.
         Scope::new(
             DefaultScopePolicy::from_lens(DropdownState::new, druid::lens!(DropdownState<T>, data)),
-            if let Some(size) = size {
-                Dropdown::new_sized(header, make_drop, size)
-            } else {
-                Dropdown::new(header, make_drop)
-            },
+            Dropdown::new(header, make_drop),
         )
     }
 }
 
 // This controller will send itself "COLLAPSE" events whenever the dropdown is removed, and
 // reacts to it by updating its expanded state
-struct DropdownSelectController<T> {
-    _t: PhantomData<T>,
-}
+struct DropdownSelectCtrl;
 
-impl<T: Data + PartialEq> Controller<DropdownState<T>, Container<DropdownState<T>>>
-    for DropdownSelectController<T>
-{
-    fn event(
-        &mut self,
-        child: &mut Container<DropdownState<T>>,
-        ctx: &mut EventCtx,
-        event: &Event,
-        data: &mut DropdownState<T>,
-        env: &Env,
-    ) {
-        match event {
-            Event::Command(n) if n.is(COLLAPSE) => {
-                data.expanded = false;
-            }
-            _ => child.event(ctx, event, data, env),
+impl<T: Data, W: Widget<T>> Controller<T, W> for DropdownSelectCtrl {
+    fn update(&mut self, child: &mut W, ctx: &mut UpdateCtx, old_data: &T, data: &T, env: &Env) {
+        if !old_data.same(data) {
+            // workaround for https://github.com/linebender/druid/issues/1939
+            let ext = ctx.get_external_handle();
+            ext.submit_command(CLOSE_WINDOW, (), ctx.window_id())
+                .unwrap();
         }
-    }
-    fn lifecycle(
-        &mut self,
-        child: &mut Container<DropdownState<T>>,
-        ctx: &mut LifeCycleCtx,
-        event: &LifeCycle,
-        data: &DropdownState<T>,
-        env: &Env,
-    ) {
-        if let LifeCycle::HotChanged(false) = event {
-            ctx.submit_command(COLLAPSE);
-        }
-        child.lifecycle(ctx, event, data, env)
-    }
-
-    fn update(
-        &mut self,
-        child: &mut Container<DropdownState<T>>,
-        ctx: &mut UpdateCtx,
-        old_data: &DropdownState<T>,
-        data: &DropdownState<T>,
-        env: &Env,
-    ) {
-        ctx.submit_command(COLLAPSE);
-        child.update(ctx, old_data, data, env)
+        child.update(ctx, old_data, data, env);
     }
 }
 
@@ -173,7 +143,7 @@ struct DropdownButton<T> {
 
 impl<T: Data> DropdownButton<T> {
     fn new(text: impl Into<LabelText<T>>) -> DropdownButton<T> {
-        DropdownButton::from_label(Label::new(text))
+        DropdownButton::from_label(Label::new(text).with_line_break_mode(LineBreaking::Clip))
     }
 
     fn from_label(label: Label<T>) -> DropdownButton<T> {
@@ -182,13 +152,6 @@ impl<T: Data> DropdownButton<T> {
             label,
             label_size: Size::ZERO,
         }
-    }
-
-    fn on_click(
-        self,
-        f: impl Fn(&mut EventCtx, &mut DropdownState<T>, &Env) + 'static,
-    ) -> ControllerHost<Self, Click<DropdownState<T>>> {
-        ControllerHost::new(self, Click::new(f))
     }
 }
 
