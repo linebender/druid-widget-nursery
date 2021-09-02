@@ -62,7 +62,7 @@ impl AdvancedSlider {
         let string: String;
         match self.step_size {
             Some(step_size) => {
-                data = ((data_attempt - self.min_val) / step_size).floor() * step_size + self.min_val;
+                data = ((data_attempt - self.min_val) / step_size).round() * step_size + self.min_val;
                 string = String::from(format!("{:.*}", self.signif_dig, data));
             }
             None => {
