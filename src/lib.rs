@@ -43,6 +43,7 @@ mod tooltip;
 pub mod tree;
 pub mod wedge;
 mod widget_ext;
+mod advanced_slider;
 
 #[cfg(feature = "async")]
 mod future_widget;
@@ -71,6 +72,7 @@ pub use tooltip::{TooltipController, TooltipExt};
 pub use tree::{Tree, TreeNode, TREE_NODE_REMOVE};
 pub use wedge::Wedge;
 pub use widget_ext::WidgetExt;
+pub use advanced_slider::AdvancedSlider;
 
 #[cfg(feature = "async")]
 pub use future_widget::{Delegate as AsyncDelegate, FutureWidget};
