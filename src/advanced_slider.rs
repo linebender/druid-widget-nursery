@@ -173,6 +173,47 @@ impl Widget<f64> for AdvancedSlider {
                 ctx.request_paint();
             }
 
+            Event::MouseDown(mouse_event) => {
+                // Make sure the widget only reacts when not in input mode
+                if !self.input_mode {
+                    // Check whether a double click happened
+                    if self.last_click.elapsed().as_millis() < 100_u128 {
+                        // Enter input mode
+                        self.input_mode = true;
+                        self.input_string = String::from("");
+                        self.val_text = TextLayout::from_text(format!("{}", self.input_string));
+                        self.val_text.rebuild_if_needed(ctx.text(), env);
+                        ctx.request_focus();
+                        ctx.request_paint();
+                    } else {
+                        // Handle simple click
+                        ctx.set_active(true);
+                        let data_attempt = self.x_from_mouse(mouse_event);
+                        let data_tuple = self.data_from_attempt(data_attempt);
+                        *data = data_tuple.0;
+                    }
+                }
+            }
+
+            // Handle mouse up and set time instance for double click
+            Event::MouseUp(_mouse_event) => {
+                ctx.set_active(false);
+                self.last_click = Instant::now();
+            }
+
+            // Handle mouse movement for dragging of the slider
+            Event::MouseMove(mouse_event) => {
+                // Make sure the widget only reacts if not in input mode
+                if !self.input_mode {
+                    // Make sure widget only reacts when active
+                    if ctx.is_active() {
+                        let data_attempt = self.x_from_mouse(mouse_event);
+                        let data_tuple = self.data_from_attempt(data_attempt);
+                        *data = data_tuple.0;
+                    }
+                }
+            }
+
             Event::KeyDown(key_event) => match &key_event.key {
                 // Enter to confirm keyboard input
                 druid::keyboard_types::Key::Enter => {
@@ -185,17 +226,19 @@ impl Widget<f64> for AdvancedSlider {
                             let data_tuple = self.data_from_attempt(parsed_input);
                             *data = data_tuple.0;
                             self.val_text = TextLayout::from_text(format!("{}", data_tuple.1));
+                            self.val_text.rebuild_if_needed(ctx.text(), env);
+                            self.input_mode = false;
                         }
 
                         // When not parsable -> revert to old data
                         Err(_) => {
                             self.val_text =
                                 TextLayout::from_text(format!("{:.*}", self.signif_dig, data));
+                            self.val_text.rebuild_if_needed(ctx.text(), env);
+                            self.input_mode = false;
+                            ctx.request_paint();
                         }
                     }
-                    self.val_text.rebuild_if_needed(ctx.text(), env);
-                    self.input_mode = false;
-                    ctx.request_paint();
                 }
 
                 // Handle allowed input characters
@@ -220,51 +263,6 @@ impl Widget<f64> for AdvancedSlider {
                 _ => {}
             }
 
-            Event::MouseDown(mouse_event) => {
-                // Make sure the widget only reacts when not in input mode
-                if !self.input_mode {
-                    // Check whether a double click happened
-                    if self.last_click.elapsed().as_millis() < 100_u128 {
-                        // Enter input mode
-                        self.input_mode = true;
-                        self.input_string = String::from("");
-                        self.val_text = TextLayout::from_text(format!("{}", self.input_string));
-                        self.val_text.rebuild_if_needed(ctx.text(), env);
-                        ctx.request_focus();
-                        ctx.request_paint();
-                    } else {
-                        // Handle simple click
-                        ctx.set_active(true);
-                        let data_attempt = self.x_from_mouse(mouse_event);
-                        let data_tuple = self.data_from_attempt(data_attempt);
-                        *data = data_tuple.0;
-                        self.val_text = TextLayout::from_text(format!("{}", data_tuple.1));
-                        self.val_text.rebuild_if_needed(ctx.text(), env);
-                    }
-                }
-            }
-
-            // Handle mouse up and set time instance for double click
-            Event::MouseUp(_mouse_event) => {
-                ctx.set_active(false);
-                self.last_click = Instant::now();
-            }
-
-            // Handle mouse movement for dragging of the slider
-            Event::MouseMove(mouse_event) => {
-                // Make sure the widget only reacts if not in input mode
-                if !self.input_mode {
-                    // Make sure widget only reacts when active
-                    if ctx.is_active() {
-                        let data_attempt = self.x_from_mouse(mouse_event);
-                        let data_tuple = self.data_from_attempt(data_attempt);
-                        *data = data_tuple.0;
-                        self.val_text = TextLayout::from_text(format!("{}", data_tuple.1));
-                        self.val_text.rebuild_if_needed(ctx.text(), env);
-                    }
-                }
-            }
-
             _ => {}
         }
     }
@@ -282,6 +280,8 @@ impl Widget<f64> for AdvancedSlider {
 
     fn update(&mut self, ctx: &mut UpdateCtx, old_data: &f64, data: &f64, env: &Env) {
         if old_data != data {
+            // For the case data gets modified while in input mode
+            self.input_mode = false;
             if self.keyboard_input_origin {
                 self.keyboard_input_origin = false;
                 ctx.request_layout();
