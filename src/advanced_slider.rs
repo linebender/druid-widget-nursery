@@ -313,6 +313,7 @@ impl Widget<f64> for AdvancedSlider {
             ctx.fill(rounded_box, &Color::rgb8(50, 50, 50));
             ctx.stroke(rounded_box, &Color::rgb8(80, 80, 80), 1.0);
 
+            // Center Text and draw it
             let text_width = self.val_text.layout_metrics().size.width;
             self.val_text.draw(
                 ctx,
@@ -323,6 +324,8 @@ impl Widget<f64> for AdvancedSlider {
             let percentage = (data - self.min_val) / (self.max_val - self.min_val) * 100.0;
             let blocker = Rect::new(percentage * 1.2 + 2.0, 2.0, 122.0, 22.0);
 
+            // Constrain blocker to within the slider. A blocker is used to make
+            // sure the slider is flat on one side and rounded on the other side.
             if (data < &self.min_val) | (data > &self.max_val) {
                 ctx.fill(rounded_box, &Color::rgb8(212, 32, 35));
             } else {
@@ -331,6 +334,7 @@ impl Widget<f64> for AdvancedSlider {
             }
             ctx.stroke(rounded_box, &Color::rgb8(30, 30, 30), 1.0);
 
+            // Center Text and draw it
             let text_width = self.val_text.layout_metrics().size.width;
             self.val_text.draw(
                 ctx,
