@@ -80,21 +80,21 @@ impl AdvancedSlider {
             Some(step_size) => {
                 // Apply stepping
                 data = ((data_attempt - self.min_val) / step_size).round() * step_size + self.min_val;
-                string = String::from(format!("{:.*}", self.signif_dig, data));
+                string = format!("{:.*}", self.signif_dig, data);
             }
             None => {
                 data = data_attempt;
                 if self.keyboard_input_origin {
                     if modified {
                         // Correct String when data was corrected
-                        string = String::from(format!("{:.*}", self.signif_dig, data));
+                        string = format!("{:.*}", self.signif_dig, data);
                     } else {
                         // Otherwise take input string from the keyboard
                         string = self.input_string.clone();
                     }
                 } else {
                     // Format String when the origin wasn't keyboard input
-                    string = String::from(format!("{:.*}", self.signif_dig, data));
+                    string = format!("{:.*}", self.signif_dig, data);
                 }
             }
         }
@@ -123,12 +123,11 @@ impl AdvancedSlider {
         if min_val < max_val {
             self.min_val = min_val;
             self.max_val = max_val;
-            self
         } else {
             self.min_val = max_val;
             self.max_val = min_val;
-            self
         }
+        self
     }
 
     /// Builder style method for setting the start value.
@@ -163,6 +162,12 @@ impl AdvancedSlider {
     }
 }
 
+impl Default for AdvancedSlider {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Widget<f64> for AdvancedSlider {
     /// Handles clicking and draging the slider bar, aswell as a double click
     /// for Keyboard input
@@ -181,7 +186,7 @@ impl Widget<f64> for AdvancedSlider {
                         // Enter input mode
                         self.input_mode = true;
                         self.input_string = String::from("");
-                        self.val_text = TextLayout::from_text(format!("{}", self.input_string));
+                        self.val_text = TextLayout::from_text(self.input_string.to_string());
                         self.val_text.rebuild_if_needed(ctx.text(), env);
                         ctx.request_focus();
                         ctx.request_paint();
@@ -225,7 +230,7 @@ impl Widget<f64> for AdvancedSlider {
                             self.keyboard_input_origin = true;
                             let data_tuple = self.data_from_attempt(parsed_input);
                             *data = data_tuple.0;
-                            self.val_text = TextLayout::from_text(format!("{}", data_tuple.1));
+                            self.val_text = TextLayout::from_text(data_tuple.1);
                             self.val_text.rebuild_if_needed(ctx.text(), env);
                             self.input_mode = false;
                         }
@@ -244,8 +249,8 @@ impl Widget<f64> for AdvancedSlider {
                 // Handle allowed input characters
                 druid::keyboard_types::Key::Character(string) => match string.as_str() {
                     "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "." | "-" => {
-                        self.input_string.push_str(&string);
-                        self.val_text = TextLayout::from_text(format!("{}", self.input_string));
+                        self.input_string.push_str(string);
+                        self.val_text = TextLayout::from_text(self.input_string.to_string());
                         self.val_text.rebuild_if_needed(ctx.text(), env);
                         ctx.request_paint();
                     }
@@ -255,7 +260,7 @@ impl Widget<f64> for AdvancedSlider {
                 // Handle deleting chararcters of the input sting
                 druid::keyboard_types::Key::Backspace => {
                     self.input_string.pop();
-                    self.val_text = TextLayout::from_text(format!("{}", self.input_string));
+                    self.val_text = TextLayout::from_text(self.input_string.to_string());
                     self.val_text.rebuild_if_needed(ctx.text(), env);
                     ctx.request_paint();
                 }
@@ -269,29 +274,25 @@ impl Widget<f64> for AdvancedSlider {
 
     // Handle initialisation
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, _data: &f64, _env: &Env) {
-        match event {
-            LifeCycle::WidgetAdded => {
-                ctx.request_layout();
-                ctx.request_paint();
-            }
-            _ => {}
+        if let LifeCycle::WidgetAdded = event {
+            ctx.request_layout();
+            ctx.request_paint();
         }
     }
 
     fn update(&mut self, ctx: &mut UpdateCtx, old_data: &f64, data: &f64, env: &Env) {
-        if old_data != data {
+        // Not really nessecary but != gives a clippy error ;)
+        if (old_data - data).abs() > f64::EPSILON {
             // For the case data gets modified while in input mode
             self.input_mode = false;
             if self.keyboard_input_origin {
                 self.keyboard_input_origin = false;
-                ctx.request_layout();
-                ctx.request_paint();
             } else {
                 self.val_text = TextLayout::from_text(format!("{:.*}", self.signif_dig, data));
                 self.val_text.rebuild_if_needed(ctx.text(), env);
-                ctx.request_layout();
-                ctx.request_paint();
             }
+            ctx.request_layout();
+            ctx.request_paint();
             
         }
     }
@@ -307,20 +308,12 @@ impl Widget<f64> for AdvancedSlider {
     }
 
     fn paint(&mut self, ctx: &mut PaintCtx, data: &f64, _env: &Env) {
+        let rounded_box = RoundedRect::new(2.0, 2.0, 122.0, 22.0, 2.0);
         // Handle in which mode to draw the widget
         if self.input_mode {
-            let rounded_box = RoundedRect::new(2.0, 2.0, 122.0, 22.0, 2.0);
             ctx.fill(rounded_box, &Color::rgb8(50, 50, 50));
             ctx.stroke(rounded_box, &Color::rgb8(80, 80, 80), 1.0);
-
-            // Center Text and draw it
-            let text_width = self.val_text.layout_metrics().size.width;
-            self.val_text.draw(
-                ctx,
-                Point::new(62.0 - (text_width / 2.0), 2.0 + self.text_offset),
-            );
         } else {
-            let rounded_box = RoundedRect::new(2.0, 2.0, 122.0, 22.0, 2.0);
             let percentage = (data - self.min_val) / (self.max_val - self.min_val) * 100.0;
             let blocker = Rect::new(percentage * 1.2 + 2.0, 2.0, 122.0, 22.0);
 
@@ -333,13 +326,12 @@ impl Widget<f64> for AdvancedSlider {
                 ctx.fill(blocker, &Color::rgb8(80, 80, 80));
             }
             ctx.stroke(rounded_box, &Color::rgb8(30, 30, 30), 1.0);
-
-            // Center Text and draw it
-            let text_width = self.val_text.layout_metrics().size.width;
-            self.val_text.draw(
-                ctx,
-                Point::new(62.0 - (text_width / 2.0), 2.0 + self.text_offset),
-            );
         }
+        // Center Text and draw it
+        let text_width = self.val_text.layout_metrics().size.width;
+        self.val_text.draw(
+            ctx,
+            Point::new(62.0 - (text_width / 2.0), 2.0 + self.text_offset),
+        );
     }
 }
