@@ -41,6 +41,12 @@ pub enum WrapCrossAlignment {
     Center,
 }
 
+impl<T> Default for Wrap<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T> Wrap<T> {
     pub fn new() -> Self {
         Self {
