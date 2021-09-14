@@ -44,6 +44,7 @@ pub mod tree;
 pub mod wedge;
 mod widget_ext;
 mod advanced_slider;
+pub mod wrap;
 
 #[cfg(feature = "async")]
 mod future_widget;

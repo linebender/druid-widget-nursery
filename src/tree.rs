@@ -253,7 +253,7 @@ impl<T: TreeNode, L: Lens<T, bool>> Widget<T> for Wedge<T, L> {
     }
 }
 
-type TreeItemFactory<T> = Arc<Box<dyn Fn() -> Box<dyn Widget<T>>>>;
+type TreeItemFactory<T> = Arc<dyn Fn() -> Box<dyn Widget<T>>>;
 type OpenerFactory<T> = dyn Fn() -> Box<dyn Widget<T>>;
 
 fn make_wedge<T: TreeNode, L: Lens<T, bool>>(expand_lens: L) -> Wedge<T, L> {
@@ -281,7 +281,7 @@ where
     /// A factory closure for the user defined widget
     make_widget: TreeItemFactory<T>,
     /// A factory closure for the user defined opener
-    make_opener: Arc<Box<OpenerFactory<T>>>,
+    make_opener: Arc<OpenerFactory<T>>,
     /// The user must provide a Lens<T, bool> that tells if
     /// the node is expanded or not.
     expand_lens: L,
@@ -291,7 +291,7 @@ impl<T: TreeNode, L: Lens<T, bool> + Clone> TreeNodeWidget<T, L> {
     /// Create a TreeNodeWidget from a TreeNode.
     fn new(
         make_widget: TreeItemFactory<T>,
-        make_opener: Arc<Box<OpenerFactory<T>>>,
+        make_opener: Arc<OpenerFactory<T>>,
         index: usize,
         expand_lens: L, // expanded: bool,
     ) -> Self {
@@ -631,7 +631,7 @@ impl<T: TreeNode, L: Lens<T, bool> + Clone + 'static> Tree<T, L> {
         make_widget: impl Fn() -> W + 'static,
         expand_lens: L,
     ) -> Self {
-        let make_widget: TreeItemFactory<T> = Arc::new(Box::new(move || Box::new(make_widget())));
+        let make_widget: TreeItemFactory<T> = Arc::new(move || Box::new(make_widget()));
         let el = expand_lens.clone();
         let make_opener: Arc<Box<OpenerFactory<T>>> =
             Arc::new(Box::new(move || Box::new(make_wedge(el.clone()))));
@@ -652,7 +652,7 @@ impl<T: TreeNode, L: Lens<T, bool> + Clone + 'static> Tree<T, L> {
         mut self,
         closure: impl Fn() -> W + 'static,
     ) -> Self {
-        self.root_node.widget_mut().make_opener = Arc::new(Box::new(move || Box::new(closure())));
+        self.root_node.widget_mut().make_opener = Arc::new(move || Box::new(closure()));
         self.root_node.widget_mut().opener = WidgetPod::new(Opener {
             widget: WidgetPod::new(self.root_node.widget_mut().make_opener.clone()()),
         });
@@ -678,9 +678,8 @@ impl<T: TreeNode, L: Lens<T, bool> + Clone + 'static> Tree<T, L> {
 ///       At least, find a less confusing name.
 impl<T: TreeNode + Display, L: Lens<T, bool> + Clone + 'static> Tree<T, L> {
     pub fn default(expand_lens: L) -> Self {
-        let make_widget: TreeItemFactory<T> = Arc::new(Box::new(|| {
-            Box::new(Label::dynamic(|data: &T, _env| format!("{}", data)))
-        }));
+        let make_widget: TreeItemFactory<T> =
+            Arc::new(|| Box::new(Label::dynamic(|data: &T, _env| format!("{}", data))));
         let el = expand_lens.clone();
         let make_opener: Arc<Box<OpenerFactory<T>>> =
             Arc::new(Box::new(move || Box::new(make_wedge(el.clone()))));
