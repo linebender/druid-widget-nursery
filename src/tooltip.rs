@@ -72,20 +72,13 @@ impl<T: Data, W: Widget<T>> Controller<T, W> for TooltipController<T> {
                     if elapsed > TOOLTIP_DELAY_CHECK {
                         self.text.resolve(data, env);
                         let insets = ctx.window().content_insets();
+                        let tooltip_position_in_window_coordinates = (last_mouse_pos.to_vec2() + TOOLTIP_OFFSET).to_point();
                         let win_id = ctx.new_sub_window(
                             WindowConfig::default()
                                 .show_titlebar(false)
                                 .window_size_policy(WindowSizePolicy::Content)
                                 .set_level(WindowLevel::Tooltip(ctx.window().clone()))
-                                .set_position(
-                                    ctx.window().get_position()
-                                        // I *think* this is right in general, because the mouse
-                                        // position is relative to the inset origin. It certainly
-                                        // seems right on GTK.
-                                        + Vec2::new(insets.x0, insets.y0)
-                                        + last_mouse_pos.to_vec2()
-                                        + TOOLTIP_OFFSET,
-                                ),
+                                .set_position(tooltip_position_in_window_coordinates),
                             // FIXME: we'd like to use the actual label text instead of
                             // resolving, but LabelText isn't Clone
                             Label::new(self.text.display_text())
@@ -168,4 +161,4 @@ const TOOLTIP_BORDER_WIDTH: f64 = 1.0;
 // It looks better if we don't put the tooltip *right* on the tip of the mouse,
 // because the mouse obstructs it.
 // FIXME: this should depend on the actual cursor size.
-const TOOLTIP_OFFSET: Vec2 = Vec2::new(0.0, 24.0);
+const TOOLTIP_OFFSET: Vec2 = Vec2::new(-10.0, 0.0);
