@@ -71,7 +71,6 @@ impl<T: Data, W: Widget<T>> Controller<T, W> for TooltipController<T> {
                     let elapsed = Instant::now().duration_since(last_mouse_move);
                     if elapsed > TOOLTIP_DELAY_CHECK {
                         self.text.resolve(data, env);
-                        let insets = ctx.window().content_insets();
                         let tooltip_position_in_window_coordinates = (last_mouse_pos.to_vec2() + TOOLTIP_OFFSET).to_point();
                         let win_id = ctx.new_sub_window(
                             WindowConfig::default()
