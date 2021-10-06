@@ -76,7 +76,7 @@ impl<T: Data, W: Widget<T>> Controller<T, W> for TooltipController<T> {
                             WindowConfig::default()
                                 .show_titlebar(false)
                                 .window_size_policy(WindowSizePolicy::Content)
-                                .set_level(WindowLevel::Tooltip)
+                                .set_level(WindowLevel::Tooltip(ctx.window().clone()))
                                 .set_position(
                                     ctx.window().get_position()
                                         // I *think* this is right in general, because the mouse
