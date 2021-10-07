@@ -71,7 +71,7 @@ impl<T: Data, W: Widget<T>> Controller<T, W> for TooltipController<T> {
                     let elapsed = Instant::now().duration_since(last_mouse_move);
                     if elapsed > TOOLTIP_DELAY_CHECK {
                         self.text.resolve(data, env);
-                        let tooltip_position_in_window_coordinates = (last_mouse_pos.to_vec2() + TOOLTIP_OFFSET).to_point();
+                        let tooltip_position_in_window_coordinates = last_mouse_pos + TOOLTIP_OFFSET;
                         let win_id = ctx.new_sub_window(
                             WindowConfig::default()
                                 .show_titlebar(false)
@@ -160,4 +160,4 @@ const TOOLTIP_BORDER_WIDTH: f64 = 1.0;
 // It looks better if we don't put the tooltip *right* on the tip of the mouse,
 // because the mouse obstructs it.
 // FIXME: this should depend on the actual cursor size.
-const TOOLTIP_OFFSET: Vec2 = Vec2::new(-10.0, 0.0);
+const TOOLTIP_OFFSET: Vec2 = Vec2::new(15.0, 15.0);
