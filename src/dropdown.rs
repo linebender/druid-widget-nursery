@@ -37,7 +37,7 @@ impl<T: Data> Dropdown<T> {
         self.window = Some(
             ctx.new_sub_window(
                 WindowConfig::default()
-                    .set_level(WindowLevel::DropDown)
+                    .set_level(WindowLevel::DropDown(ctx.window().clone()))
                     .set_position(origin)
                     .window_size_policy(WindowSizePolicy::Content)
                     .resizable(false)
