@@ -148,14 +148,11 @@ where
     fn update(&mut self, ctx: &mut UpdateCtx, _old_data: &T, data: &T, env: &Env) {
         if let Some(data) = self.prism.get(data) {
             self.enabled = true;
-
             self.current_data = data;
-            self.widget.update(ctx, &self.current_data, env);
         } else {
             self.enabled = false;
-
-            self.widget.update(ctx, &self.current_data, env);
         }
+        self.widget.update(ctx, &self.current_data, env);
         ctx.set_disabled(!self.enabled);
     }
 
