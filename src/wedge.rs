@@ -61,6 +61,8 @@ impl Widget<bool> for Wedge {
     }
 
     fn paint(&mut self, ctx: &mut PaintCtx, expanded: &bool, env: &Env) {
+        let size = env.get(theme::BASIC_WIDGET_HEIGHT);
+        let y_offset = ((size - 8.0) / 2.0).floor();
         let stroke_color = if ctx.is_hot() {
             env.get(theme::FOREGROUND_LIGHT)
         } else {
@@ -71,14 +73,14 @@ impl Widget<bool> for Wedge {
         let mut path = BezPath::new();
         if *expanded {
             // expanded: 'V' shape
-            path.move_to((5.0, 7.0));
-            path.line_to((9.0, 13.0));
-            path.line_to((13.0, 7.0));
+            path.move_to((5.0, y_offset + 2.0));
+            path.line_to((9.0, y_offset + 8.0));
+            path.line_to((13.0, y_offset + 2.0));
         } else {
             // collapsed: '>' shape
-            path.move_to((7.0, 5.0));
-            path.line_to((13.0, 9.0));
-            path.line_to((7.0, 13.0));
+            path.move_to((7.0, y_offset));
+            path.line_to((13.0, y_offset + 4.0));
+            path.line_to((7.0, y_offset + 8.0));
         }
         let style = StrokeStyle::new()
             .line_cap(LineCap::Round)
