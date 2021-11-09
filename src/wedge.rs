@@ -61,8 +61,7 @@ impl Widget<bool> for Wedge {
     }
 
     fn paint(&mut self, ctx: &mut PaintCtx, expanded: &bool, env: &Env) {
-        let size = env.get(theme::BASIC_WIDGET_HEIGHT);
-        let y_offset = ((size - 8.0) / 2.0).floor();
+        let y_offset = ((ctx.size().height - 8.0) / 2.0).floor();
         let stroke_color = if ctx.is_hot() {
             env.get(theme::FOREGROUND_LIGHT)
         } else {
