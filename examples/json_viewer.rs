@@ -13,13 +13,18 @@
 // limitations under the License.
 
 //! A json viewer using the tree widget
-use std::{fmt, fs, path::PathBuf, sync::Arc};
+use std::{
+    fmt, fs,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
-use druid::im::Vector;
 use druid::{
+    commands::{OPEN_FILE, QUIT_APP, SHOW_OPEN_PANEL},
     theme,
     widget::{Flex, Label, Maybe},
-    AppLauncher, Color, Data, Lens, LocalizedString, Widget, WidgetExt, WindowDesc,
+    AppDelegate, AppLauncher, Color, Command, Data, DelegateCtx, Env, Handled, Lens,
+    LocalizedString, Menu, MenuItem, Target, Widget, WidgetExt, WindowDesc, WindowId,
 };
 use druid_widget_nursery::{Tree, TreeNode};
 use qu::ick_use::*;
@@ -113,8 +118,8 @@ impl fmt::Display for JsonValue {
             JsonValue::Bool(b) => write!(f, "{}", b),
             JsonValue::Number(num) => write!(f, "{}", num),
             JsonValue::String(s) => f.write_str(s),
-            JsonValue::Array(els) => f.write_str("[ ]"),
-            JsonValue::Object(els) => f.write_str("{ }"),
+            JsonValue::Array(_) => f.write_str("[ ]"),
+            JsonValue::Object(_) => f.write_str("{ }"),
         }
     }
 }
@@ -148,6 +153,45 @@ fn ui_builder() -> impl Widget<JsonNode> {
     .scroll()
 }
 
+fn menu(_: Option<WindowId>, _: &JsonNode, _: &Env) -> Menu<JsonNode> {
+    Menu::new(LocalizedString::new("json-viewer.menu")).entry(
+        Menu::new(LocalizedString::new("json-viewer.menu.file").with_placeholder("File"))
+            .entry(
+                MenuItem::new(
+                    LocalizedString::new("json-viewer.menu.file.open").with_placeholder("Open"),
+                )
+                .command(SHOW_OPEN_PANEL.with(Default::default())),
+            )
+            .separator()
+            .entry(
+                MenuItem::new(
+                    LocalizedString::new("json-viewer.menu.file.quit").with_placeholder("Quit"),
+                )
+                .command(QUIT_APP),
+            ),
+    )
+}
+
+struct Delegate;
+
+impl AppDelegate<JsonNode> for Delegate {
+    fn command(
+        &mut self,
+        _ctx: &mut DelegateCtx,
+        _target: Target,
+        cmd: &Command,
+        data: &mut JsonNode,
+        _env: &Env,
+    ) -> Handled {
+        if let Some(file) = cmd.get(OPEN_FILE) {
+            *data = JsonNode::new(None, load_json(&file.path));
+            Handled::Yes
+        } else {
+            Handled::No
+        }
+    }
+}
+
 #[derive(Debug, StructOpt)]
 struct Opt {
     #[structopt(parse(from_os_str))]
@@ -158,26 +202,39 @@ struct Opt {
 pub fn main(opt: Opt) -> Result {
     // Create the main window
     let main_window = WindowDesc::new(ui_builder())
-        .title(LocalizedString::new("json-viewer-window-title").with_placeholder("Json Viewer"));
+        .title(LocalizedString::new("json-viewer-window-title").with_placeholder("Json Viewer"))
+        .menu(menu);
 
     let json = match &opt.json_file {
-        Some(path) => fs::read_to_string(path)?,
-        None => r#"
+        Some(path) => load_json(path),
+        None => serde_json::from_str(
+            r#"
             {
-                "name": "value",
+                "name": "example json (open a file in the \"File\" menu)",
                 "name2": [
                     1,
                     2
                 ]
             }
-            "#
-        .into(),
+            "#,
+        )
+        .unwrap(),
     };
-    let node = JsonNode::new(None, serde_json::from_str(&json)?);
+    let node = JsonNode::new(None, json);
 
     // start the application
     AppLauncher::with_window(main_window)
+        .delegate(Delegate)
         .log_to_console()
         .launch(node)?;
     Ok(())
+}
+
+fn load_json(path: &Path) -> serde_json::Value {
+    fs::read_to_string(path)
+        .map_err(|e| e.to_string())
+        .and_then(|json| serde_json::from_str(&json).map_err(|e| e.to_string()))
+        .unwrap_or_else(|e| {
+            serde_json::Value::String(format!("error opening file \"{}\": {}", path.display(), e))
+        })
 }
