@@ -11,7 +11,7 @@ hot-reload = ["libloading", "notify5", "rand"]
 
 [dependencies.druid]
 git = "https://github.com/linebender/druid"
-#rev = "1801164629800938ba1316e5b58c5383641fdea6" # update this when upgrading to newer druid
+rev = "0a82b127eac325c9c721364a5d81f1bfd931cb13" # update this when upgrading to newer druid
 # path = "../../projects/druid/druid"
 features = ["im"]
 
