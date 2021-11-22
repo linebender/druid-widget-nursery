@@ -8,6 +8,20 @@ We don't insist that all widgets always build when updating to a newer version o
 
 So, in summary, the default assumption for PRs to this repo will be to merge, but this policy includes future PRs that might change or reverse stuff in previous PRs. For more information I recommend reading [the optimistic merging article linked here and above][optimistic merging], which offers an interesting approach to managing open source projects irrespective of its use here.
 
+## Using this library
+
+Add the following to your `Cargo.toml`. You will need to get the current druid `rev` from this repository's [Cargo.toml](Cargo.toml).
+```toml
+druid-widget-nursery = { git = "https://github.com/linebender/druid-widget-nursery" }
+
+[patch.crates-io.druid]
+git = "https://github.com/linebender/druid"
+rev = "<copy the current druid rev from this repository's Cargo.toml>"
+```
+The `rev` in your `Cargo.toml` should match the `rev` under `[dependencies.druid]` in this repo's `Cargo.toml`. This ensures that your app depends on the same version of druid as this library - otherwise you may end up with problems with [multiple versions of `druid` installed](https://github.com/linebender/druid-widget-nursery/issues/20). For more on the override syntax above, see [Cargo's `patch` documentation](https://doc.rust-lang.org/cargo/reference/overriding-dependencies.html).
+
+Once you have `druid-widget-nursery` installed, you can import the various widgets as usual with `use druid_widget_nursery::YourWidgetNameHere`. For specific examples of using the various widgets, check out the [examples](examples/) directory.
+
 # Widgets
 
 If you add a new widget, please add its name and a short summary here.
