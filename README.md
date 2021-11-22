@@ -18,9 +18,9 @@ druid-widget-nursery = { git = "https://github.com/linebender/druid-widget-nurse
 git = "https://github.com/linebender/druid"
 rev = "<copy the current druid rev from this repository's Cargo.toml>"
 ```
-The `rev` in your `Cargo.toml` should match the `rev` in this repository's `[dependencies.druid]`, so that your app depends on the same version of druid as this library. Otherwise you may end up with problems with [multiple versions of `druid` installed](https://github.com/linebender/druid-widget-nursery/issues/20). The snippet above uses Cargo's [patch functionality](https://doc.rust-lang.org/cargo/reference/overriding-dependencies.html), which is designed for overriding dependencies like this.
+The `rev` in your `Cargo.toml` should match the `rev` under `[dependencies.druid]` in this repo's `Cargo.toml`. This ensures that your app depends on the same version of druid as this library - otherwise you may end up with problems with [multiple versions of `druid` installed](https://github.com/linebender/druid-widget-nursery/issues/20). For more on the override syntax above, see [Cargo's `patch` documentation](https://doc.rust-lang.org/cargo/reference/overriding-dependencies.html).
 
-Once you have `druid-widget-nursery` installed, you can `use druid_widget_nursery` to import the various widgets. For many examples on using various widgets, check out the [examples] directory.
+Once you have `druid-widget-nursery` installed, you can import the various widgets as usual with `use druid_widget_nursery::YourWidgetNameHere`. For specific examples of using the various widgets, check out the [examples](examples/) directory.
 
 # Widgets
 
