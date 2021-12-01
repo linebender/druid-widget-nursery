@@ -1,12 +1,18 @@
-use druid::widget::Controller;
 use druid::widget::prelude::*;
+use druid::{widget::Controller, Command, Selector};
+
+const TAKE_FOCUS: Selector<()> = Selector::new("auto_focus.take_focus");
 
 pub struct AutoFocus;
+
 impl<W: Widget<T>, T> Controller<T, W> for AutoFocus {
     fn event(&mut self, child: &mut W, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
-        if let Event::WindowConnected = event {
-            ctx.request_focus()
+        if let Event::Command(cmd) = event {
+            if cmd.is(TAKE_FOCUS) {
+                ctx.request_focus();
+            }
         }
+
         child.event(ctx, event, data, env)
     }
 
@@ -18,9 +24,14 @@ impl<W: Widget<T>, T> Controller<T, W> for AutoFocus {
         data: &T,
         env: &Env,
     ) {
-        if let LifeCycle::BuildFocusChain = event {
-            ctx.register_for_focus()
+        match event {
+            LifeCycle::BuildFocusChain => ctx.register_for_focus(),
+            LifeCycle::WidgetAdded => {
+                ctx.submit_command(Command::new(TAKE_FOCUS, (), ctx.widget_id()))
+            }
+            _ => (),
         }
+
         child.lifecycle(ctx, event, data, env)
     }
 }
