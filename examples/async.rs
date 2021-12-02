@@ -16,12 +16,13 @@ use std::time::Duration;
 
 use druid::widget::{Flex, Label, Spinner};
 use druid::{AppLauncher, Widget, WidgetExt, WindowDesc};
-use druid_widget_nursery::{AsyncDelegate, FutureWidget};
+use druid_widget_nursery::FutureWidget;
 use tokio::time;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let window = WindowDesc::new(build_root_widget());
-    AsyncDelegate::new(AppLauncher::with_window(window))
+    AppLauncher::with_window(window)
         .log_to_console()
         .launch(())
         .unwrap();

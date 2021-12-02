@@ -80,4 +80,4 @@ pub use widget_ext::WidgetExt;
 pub use advanced_slider::AdvancedSlider;
 
 #[cfg(feature = "async")]
-pub use future_widget::{Delegate as AsyncDelegate, FutureWidget};
+pub use future_widget::FutureWidget;
