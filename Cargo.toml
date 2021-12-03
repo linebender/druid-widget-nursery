@@ -35,7 +35,7 @@ tracing = { version = "0.1.22" }
 
 [[example]]
 name = "async"
-required-features = ["async", "tokio/time"]
+required-features = ["async", "tokio/rt-multi-thread", "tokio/macros", "tokio/time"]
 
 [[example]]
 name = "animator"
