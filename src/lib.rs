@@ -38,6 +38,7 @@ pub mod prism;
 mod progress_bar;
 mod separator;
 pub mod splits;
+pub mod table;
 pub mod theme_loader;
 mod titlebar;
 mod tooltip;
