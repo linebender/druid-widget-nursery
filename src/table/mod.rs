@@ -54,6 +54,12 @@ pub struct TableRow<T> {
     children: Vec<WidgetPod<T, Box<dyn Widget<T>>>>,
 }
 
+impl<T: Data> Default for TableRow<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T: Data> TableRow<T> {
     /// Create a new, empty table
     pub fn new() -> Self {

@@ -50,10 +50,7 @@ impl TableColumnWidth {
     }
 
     fn need_intrinsic_width(&self) -> bool {
-        match self {
-            Self::Intrinsic => true,
-            _ => false,
-        }
+        matches!(self, Self::Intrinsic)
     }
 }
 

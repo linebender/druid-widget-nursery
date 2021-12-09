@@ -65,6 +65,12 @@ pub struct FlexTable<T> {
     col_starts: Option<Vec<f64>>,
 }
 
+impl<T: Data> Default for FlexTable<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T: Data> FlexTable<T> {
     /// Create a new empty table.
     pub fn new() -> Self {
@@ -111,7 +117,7 @@ impl<T: Data> FlexTable<T> {
         let color = color.into();
         let width = width.into();
         self.set_row_border(color.clone(), width.clone());
-        self.set_column_border(color.clone(), width.clone());
+        self.set_column_border(color, width);
     }
 
     /// Builder-style method to set the table row border.
@@ -250,10 +256,8 @@ impl<T: Data> FlexTable<T> {
     ///
     /// All row must have equal number of cells. Panics if not!
     pub fn add_row(&mut self, row: TableRow<T>) {
-        if !self.children.is_empty() {
-            if row.children.len() != self.column_count() {
-                panic!("Table::add_row - wrong row length");
-            }
+        if !self.children.is_empty() && row.children.len() != self.column_count() {
+            panic!("Table::add_row - wrong row length");
         }
         self.children.push(row);
     }
@@ -489,13 +493,13 @@ impl<T: Data> Widget<T> for FlexTable<T> {
         // Note: Convert col_widths to start offset
         let mut col_starts = col_widths;
         let mut col_start = 0f64;
-        for i in 0..col_starts.len() {
+        for (i, width) in col_starts.iter_mut().enumerate() {
             if i > 0 {
                 col_start += col_border_width;
             }
-            let width = col_starts[i];
-            col_starts[i] = col_start;
-            col_start += width;
+            let old_width = *width;
+            *width = col_start;
+            col_start += old_width;
         }
 
         self.col_starts = Some(col_starts);
@@ -537,28 +541,24 @@ impl<T: Data> Widget<T> for FlexTable<T> {
         }
 
         for (row_num, row) in self.children.iter_mut().enumerate() {
-            if row_num > 0 {
-                if row_border_width > 0.0 {
-                    if let Some(ref row_starts) = self.row_starts {
-                        let row_start = row_starts[row_num] - half_row_border_width;
-                        let start = Point::new(0.0, row_start);
-                        let end = Point::new(size.width, row_start);
-                        let line = Line::new(start, end);
-                        ctx.stroke(line, &row_border_color, row_border_width);
-                    }
+            if row_num > 0 && row_border_width > 0.0 {
+                if let Some(ref row_starts) = self.row_starts {
+                    let row_start = row_starts[row_num] - half_row_border_width;
+                    let start = Point::new(0.0, row_start);
+                    let end = Point::new(size.width, row_start);
+                    let line = Line::new(start, end);
+                    ctx.stroke(line, &row_border_color, row_border_width);
                 }
             }
 
             for (col_num, cell) in row.children.iter_mut().enumerate() {
-                if col_num > 0 {
-                    if col_border_width > 0.0 {
-                        if let Some(ref col_starts) = self.col_starts {
-                            let col_start = col_starts[col_num] - half_col_border_width;
-                            let start = Point::new(col_start, size.height);
-                            let end = Point::new(col_start, 0.0);
-                            let line = Line::new(start, end);
-                            ctx.stroke(line, &col_border_color, col_border_width);
-                        }
+                if col_num > 0 && col_border_width > 0.0 {
+                    if let Some(ref col_starts) = self.col_starts {
+                        let col_start = col_starts[col_num] - half_col_border_width;
+                        let start = Point::new(col_start, size.height);
+                        let end = Point::new(col_start, 0.0);
+                        let line = Line::new(start, end);
+                        ctx.stroke(line, &col_border_color, col_border_width);
                     }
                 }
 
