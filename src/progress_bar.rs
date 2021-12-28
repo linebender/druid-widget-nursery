@@ -24,6 +24,7 @@
 //! TODO: review theme values more generally, concerned that they might not be getting used consistently.
 //! TODO: Use druid::BackgroundBrush instead of druid::piet::PaintBrush, but it ruins all my derives.
 
+use druid::kurbo::RoundedRectRadii;
 use druid::piet::PaintBrush;
 use druid::widget::prelude::*;
 // use druid::widget::BackgroundBrush;
@@ -37,7 +38,7 @@ use tracing::instrument;
 pub struct ProgressBar {
     bar_brush: Option<PaintBrush>,
     background_brush: Option<PaintBrush>,
-    corner_radius: KeyOrValue<f64>,
+    corner_radius: KeyOrValue<RoundedRectRadii>,
     border_colour: KeyOrValue<Color>,
     border_width: KeyOrValue<f64>,
 }
@@ -58,7 +59,7 @@ impl ProgressBar {
         self
     }
     pub fn with_corner_radius(mut self, c_rad: f64) -> Self {
-        self.corner_radius = KeyOrValue::Concrete(c_rad);
+        self.corner_radius = KeyOrValue::Concrete(RoundedRectRadii::from(c_rad));
         self
     }
     pub fn with_border_width(mut self, c_rad: f64) -> Self {
@@ -77,7 +78,7 @@ impl ProgressBar {
         self.background_brush = Some(cl);
     }
     pub fn set_corner_radius(mut self, c_rad: f64) {
-        self.corner_radius = KeyOrValue::Concrete(c_rad);
+        self.corner_radius = KeyOrValue::Concrete(RoundedRectRadii::from(c_rad));
     }
     pub fn set_border_width(mut self, c_rad: f64) {
         self.border_width = KeyOrValue::Concrete(c_rad);
