@@ -3,8 +3,7 @@ use std::time::Duration;
 use druid::piet::PietText;
 use druid::widget::prelude::*;
 use druid::{
-    Command, Cursor, ExtEventSink, Point, Rect, TimerToken, WindowConfig, WindowHandle,
-    WindowId,
+    Command, Cursor, ExtEventSink, Point, Rect, TimerToken, WindowConfig, WindowHandle, WindowId,
 };
 
 macro_rules! impl_context_trait{

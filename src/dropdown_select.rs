@@ -14,7 +14,7 @@
 
 //! A simple list selection widget, for selecting a single value out of a list.
 
-use crate::dropdown::{DROPDOWN_SHOW, DROPDOWN_CLOSED, DROPDOWN_HIDE};
+use crate::dropdown::{DROPDOWN_CLOSED, DROPDOWN_HIDE, DROPDOWN_SHOW};
 use crate::{AutoFocus, Dropdown, ListSelect, Wedge, WidgetExt as _};
 use druid::commands::CLOSE_WINDOW;
 use druid::kurbo::BezPath;

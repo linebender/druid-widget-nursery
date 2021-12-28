@@ -31,10 +31,9 @@ fn main_widget() -> impl Widget<DropDownState> {
                     Flex::row()
                         .with_child(TextBox::new())
                         .with_flex_spacer(1.)
-                        .with_child(
-                            Button::new("V")
-                                .on_click(|ctx: &mut EventCtx, _, _| ctx.submit_notification(DROPDOWN_SHOW)),
-                        ),
+                        .with_child(Button::new("V").on_click(|ctx: &mut EventCtx, _, _| {
+                            ctx.submit_notification(DROPDOWN_SHOW)
+                        })),
                     |_, _| {
                         let places: Vec<(&'static str, String)> =
                             vec!["England", "San Tropez", "Antarctica"]
@@ -52,10 +51,9 @@ fn main_widget() -> impl Widget<DropDownState> {
                     Flex::row()
                         .with_child(Label::new(|f: &Fruit, _: &Env| format!("{:?}", f)))
                         .with_flex_spacer(1.)
-                        .with_child(
-                            Button::new("V")
-                                .on_click(|ctx: &mut EventCtx, _, _| ctx.submit_notification(DROPDOWN_SHOW)),
-                        ),
+                        .with_child(Button::new("V").on_click(|ctx: &mut EventCtx, _, _| {
+                            ctx.submit_notification(DROPDOWN_SHOW)
+                        })),
                     |_, _| {
                         RadioGroup::new(vec![
                             ("Apple", Fruit::Apple),
@@ -70,8 +68,9 @@ fn main_widget() -> impl Widget<DropDownState> {
             .with_spacer(200.)
             .with_child(
                 Dropdown::new(
-                    Button::new(|f: &Fruit, _: &Env| format!("{:?}", f))
-                        .on_click(|ctx: &mut EventCtx, _, _| ctx.submit_notification(DROPDOWN_SHOW)),
+                    Button::new(|f: &Fruit, _: &Env| format!("{:?}", f)).on_click(
+                        |ctx: &mut EventCtx, _, _| ctx.submit_notification(DROPDOWN_SHOW),
+                    ),
                     |_, _| {
                         RadioGroup::new(vec![
                             ("Apple", Fruit::Apple),

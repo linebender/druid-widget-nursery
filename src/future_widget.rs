@@ -19,9 +19,7 @@
 use std::{any::Any, future::Future, pin::Pin};
 
 use druid::widget::prelude::*;
-use druid::{
-    Data, Selector, SingleUse, Target, WidgetPod,
-};
+use druid::{Data, Selector, SingleUse, Target, WidgetPod};
 
 struct Response {
     value: Box<dyn Any + Send>,
@@ -29,11 +27,11 @@ struct Response {
 
 const ASYNC_RESPONSE: Selector<SingleUse<Response>> = Selector::new("druid-async.async-response");
 
-#[cfg(target_arch="wasm32")]
+#[cfg(target_arch = "wasm32")]
 pub type FutureWidgetAction<T> =
     Box<dyn FnOnce(&T, &Env) -> Pin<Box<dyn Future<Output = Box<dyn Any + Send>>>>>;
 
-#[cfg(not(target_arch="wasm32"))]
+#[cfg(not(target_arch = "wasm32"))]
 pub type FutureWidgetAction<T> =
     Box<dyn FnOnce(&T, &Env) -> Pin<Box<dyn Send + Future<Output = Box<dyn Any + Send>>>>>;
 
@@ -45,7 +43,7 @@ pub struct FutureWidget<T, U> {
     on_done: Option<FutureWidgetDone<T, U>>,
 }
 
-#[cfg(target_arch="wasm32")]
+#[cfg(target_arch = "wasm32")]
 impl<T, U> FutureWidget<T, U> {
     pub fn new<FMaker, Fut, Done>(
         future_maker: FMaker,
@@ -69,7 +67,7 @@ impl<T, U> FutureWidget<T, U> {
     }
 }
 
-#[cfg(not(target_arch="wasm32"))]
+#[cfg(not(target_arch = "wasm32"))]
 impl<T, U> FutureWidget<T, U> {
     pub fn new<FMaker, Fut, Done>(
         future_maker: FMaker,
@@ -109,7 +107,6 @@ impl<T: Data, U: 'static> Widget<T> for FutureWidget<T, U> {
     }
 
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, data: &T, env: &Env) {
-
         if let LifeCycle::WidgetAdded = event {
             let sink = ctx.get_external_handle();
             let widget_id = ctx.widget_id();
@@ -120,13 +117,14 @@ impl<T: Data, U: 'static> Widget<T> for FutureWidget<T, U> {
                     ASYNC_RESPONSE,
                     SingleUse::new(Response { value: data }),
                     Target::Widget(widget_id),
-                ).unwrap();
+                )
+                .unwrap();
             };
 
-            #[cfg(target_arch="wasm32")]
+            #[cfg(target_arch = "wasm32")]
             wasm_bindgen_futures::spawn_local(task);
 
-            #[cfg(not(target_arch="wasm32"))]
+            #[cfg(not(target_arch = "wasm32"))]
             tokio::spawn(task);
         }
 
