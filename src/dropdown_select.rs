@@ -17,7 +17,7 @@
 use crate::dropdown::{DROPDOWN_CLOSED, DROPDOWN_HIDE, DROPDOWN_SHOW};
 use crate::{AutoFocus, Dropdown, ListSelect, Wedge, WidgetExt as _};
 use druid::commands::CLOSE_WINDOW;
-use druid::kurbo::BezPath;
+use druid::kurbo::{BezPath, TranslateScale};
 use druid::widget::{Controller, DefaultScopePolicy, Label, LabelText, LineBreaking, Scope};
 use druid::{
     theme, Affine, BoxConstraints, Data, Env, Event, EventCtx, Insets, LayoutCtx, Lens, LifeCycle,
@@ -262,10 +262,12 @@ impl<T: Data> Widget<DropdownState<T>> for DropdownButton<T> {
             env.get(theme::BORDER_DARK)
         };
 
-        let radius = env.get(theme::BUTTON_BORDER_RADIUS) * 1.5;
+        let radius = TranslateScale::scale(1.5) * env.get(theme::BUTTON_BORDER_RADIUS);
         if data.expanded {
-            let rounded_rect =
-                half_rounded_rect(size - Size::new(stroke_width, stroke_width), radius);
+            let rounded_rect = half_rounded_rect(
+                size - Size::new(stroke_width, stroke_width),
+                radius.top_left,
+            );
             ctx.with_save(|ctx| {
                 ctx.transform(Affine::translate((stroke_width / 2.0, stroke_width / 2.0)));
                 ctx.fill(rounded_rect.clone(), &bg_gradient);
