@@ -58,7 +58,7 @@ impl AdvancedSlider {
     /// stepping, as well as min and max value of the slider. Also returns a
     /// formated String which is used for the label and satisfies the
     /// significant digits option.
-    /// 
+    ///
     /// When stepping is disabled the returned String is identical to the
     /// keyboard input and therefore allows more significant digits to be
     /// displayed to show the exact value.
@@ -79,7 +79,8 @@ impl AdvancedSlider {
         match self.step_size {
             Some(step_size) => {
                 // Apply stepping
-                data = ((data_attempt - self.min_val) / step_size).round() * step_size + self.min_val;
+                data =
+                    ((data_attempt - self.min_val) / step_size).round() * step_size + self.min_val;
                 string = format!("{:.*}", self.signif_dig, data);
             }
             None => {
@@ -255,7 +256,7 @@ impl Widget<f64> for AdvancedSlider {
                         ctx.request_paint();
                     }
                     _ => {}
-                }
+                },
 
                 // Handle deleting chararcters of the input sting
                 druid::keyboard_types::Key::Backspace => {
@@ -266,7 +267,7 @@ impl Widget<f64> for AdvancedSlider {
                 }
 
                 _ => {}
-            }
+            },
 
             _ => {}
         }
@@ -293,7 +294,6 @@ impl Widget<f64> for AdvancedSlider {
             }
             ctx.request_layout();
             ctx.request_paint();
-            
         }
     }
 

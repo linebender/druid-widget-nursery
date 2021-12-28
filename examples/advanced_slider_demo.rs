@@ -1,10 +1,10 @@
 use druid::widget::{Flex, Slider};
 use druid::{AppLauncher, Color, Widget, WidgetExt, WindowDesc};
-use druid_widget_nursery::{AdvancedSlider};
+use druid_widget_nursery::AdvancedSlider;
 
 fn build_ui() -> impl Widget<f64> {
     Flex::column()
-    .with_spacer(30.0)
+        .with_spacer(30.0)
         .with_child(Slider::new().with_range(0.0, 80.0))
         .with_spacer(10.0)
         .with_flex_child(
@@ -15,7 +15,7 @@ fn build_ui() -> impl Widget<f64> {
                 .with_significant(2)
                 .with_text_offset(0.0)
                 .background(Color::rgb8(30, 30, 30)),
-            1.0
+            1.0,
         )
         .background(Color::rgb8(30, 30, 30))
 }

@@ -29,6 +29,7 @@ pub mod enum_switcher;
 mod list_select;
 #[macro_use]
 mod macros;
+mod advanced_slider;
 mod multi_value;
 pub mod navigator;
 mod on_change;
@@ -46,7 +47,6 @@ pub mod tree;
 mod versioned;
 pub mod wedge;
 mod widget_ext;
-mod advanced_slider;
 pub mod wrap;
 
 #[cfg(feature = "async")]
@@ -56,6 +56,7 @@ mod future_widget;
 pub mod hot_reload;
 mod list_filter;
 
+pub use advanced_slider::AdvancedSlider;
 pub use autofocus::AutoFocus;
 pub use canvas::{Canvas, CanvasLayout, CanvasWrap};
 pub use computed::ComputedWidget;
@@ -67,8 +68,8 @@ pub use dynamic_sized_box::DynamicSizedBox;
 pub use list_filter::{FilterIter, ListFilter};
 pub use list_select::ListSelect;
 pub use multi_value::{MultiCheckbox, MultiRadio};
-pub use on_cmd::OnCmd;
 pub use on_change::OnChange;
+pub use on_cmd::OnCmd;
 pub use on_monitor::{OnMonitor, OnMonitorExt};
 pub use progress_bar::ProgressBar;
 pub use separator::{Orientation, Separator};
@@ -78,7 +79,6 @@ pub use tree::{Tree, TreeNode, TREE_NODE_REMOVE};
 pub use versioned::Versioned;
 pub use wedge::Wedge;
 pub use widget_ext::WidgetExt;
-pub use advanced_slider::AdvancedSlider;
 
 #[cfg(feature = "async")]
 pub use future_widget::FutureWidget;
