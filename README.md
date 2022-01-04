@@ -14,7 +14,7 @@ Add the following to your `Cargo.toml`. You will need to get the current druid `
 ```toml
 druid-widget-nursery = { git = "https://github.com/linebender/druid-widget-nursery" }
 
-[patch.crates-io.druid]
+[patch.'https://github.com/linebender/druid'.druid]
 git = "https://github.com/linebender/druid"
 rev = "<copy the current druid rev from this repository's Cargo.toml>"
 ```
