@@ -1,9 +1,9 @@
 use druid::widget::prelude::*;
-use druid::widget::ControllerHost;
+use druid::widget::{ControllerHost, LabelText};
 use druid::{Selector, WidgetExt as _};
 
 use crate::on_cmd::OnCmd;
-use crate::OnChange;
+use crate::{OnChange, TooltipController};
 
 pub trait WidgetExt<T: Data>: Widget<T> + Sized + 'static {
     fn on_command<CT: 'static>(
@@ -22,6 +22,14 @@ pub trait WidgetExt<T: Data>: Widget<T> + Sized + 'static {
         f: impl Fn(&mut EventCtx, &T, &mut T, &Env) + 'static,
     ) -> ControllerHost<Self, OnChange<T>> {
         self.controller(OnChange::new(f))
+    }
+
+    /// Open a tooltip when the mouse is hovered over this widget.
+    fn tooltip<LT: Into<LabelText<T>>>(self, text: LT) -> ControllerHost<W, TooltipController<T>> {
+        self.controller(TooltipController {
+            text: text.into(),
+            state: TooltipState::Off,
+        })
     }
 }
 

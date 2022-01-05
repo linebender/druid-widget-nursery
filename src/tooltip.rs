@@ -33,23 +33,8 @@ enum TooltipState {
 ///
 /// [`Controller`]: druid::widget::Controller
 pub struct TooltipController<T> {
-    text: LabelText<T>,
-    state: TooltipState,
-}
-
-/// Extension methods for tooltips.
-pub trait TooltipExt<T: Data, W: Widget<T>> {
-    /// Open a tooltip when the mouse is hovered over this widget.
-    fn tooltip<LT: Into<LabelText<T>>>(self, text: LT) -> ControllerHost<W, TooltipController<T>>;
-}
-
-impl<T: Data, W: Widget<T> + 'static> TooltipExt<T, W> for W {
-    fn tooltip<LT: Into<LabelText<T>>>(self, text: LT) -> ControllerHost<W, TooltipController<T>> {
-        self.controller(TooltipController {
-            text: text.into(),
-            state: TooltipState::Off,
-        })
-    }
+    pub text: LabelText<T>,
+    pub state: TooltipState,
 }
 
 impl<T: Data, W: Widget<T>> Controller<T, W> for TooltipController<T> {
