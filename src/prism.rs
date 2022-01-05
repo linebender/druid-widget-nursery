@@ -196,8 +196,10 @@ impl<T, U: Data, P: Prism<T, U>, W: Widget<U>> PrismWidget<T> for PrismWrap<W, P
 impl<T, U: Data, P: Prism<T, U>, W: Widget<U>> Widget<T> for PrismWrap<W, P, U> {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
         if let Some(mut inner_data) = self.prism.get(data) {
-            self.inner.event(ctx, event, &mut inner_data, env);
-            self.prism.put(data, inner_data);
+            if self.cached_data.is_some() {
+                self.inner.event(ctx, event, &mut inner_data, env);
+                self.prism.put(data, inner_data);
+            }
         } else if let Some(mut data) = self.cached_data.clone() {
             self.inner.event(ctx, event, &mut data, env);
         }
