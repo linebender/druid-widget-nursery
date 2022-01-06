@@ -2,6 +2,7 @@ use crate::animation::AnimationCurve;
 use druid::{Color, Data, EventCtx, Insets, Point, Rect, Size, Vec2};
 use std::ops::Deref;
 use std::time::Duration;
+use crate::RequestCtx;
 
 /// Animated provides simple transition-animations for single values or tuples of values that implement
 /// Interpolate.
@@ -91,26 +92,39 @@ impl<T: Interpolate + Data> Animated<T> {
 
     /// Set the new end value. If the animation is currently running, it will start from the current
     /// value.
-    //TODO: change to RequestCtx to automatically update
-    pub fn animate(&mut self, value: T) {
+    pub fn animate(&mut self, ctx: &mut impl RequestCtx, value: T) {
         if !value.same(&self.end) {
             self.start = self.current.clone();
             self.end = value.clone();
             self.current_duration = 0.0;
             if self.full_duration == 0.0 {
                 self.current = value;
-                //if self.layout { ctx.request_layout(); } else { ctx.request_paint(); }
-            } // else { ctx.request_anim_frame(); }
+                if self.layout {
+                    ctx.request_layout();
+                } else {
+                    ctx.request_paint();
+                }
+            } else {
+                ctx.request_anim_frame();
+            }
         }
     }
 
-    pub fn animate_with(&mut self, value: T, duration: Duration, curve: impl Into<AnimationCurve>) {
+    /// Set the new end value, curve and duration.
+    /// If the animation is currently running, it will start from the current value.
+    pub fn animate_with(
+        &mut self,
+        ctx: &mut impl RequestCtx,
+        value: T,
+        duration: Duration,
+        curve: impl Into<AnimationCurve>
+    ) {
         self.set_curve(curve);
         self.set_duration(duration);
-        self.animate(value);
+        self.animate(ctx, value);
     }
 
-    /// Stop the animation and sets the value.
+    /// Stop the animation and set the value.
     pub fn jump_to_value(&mut self, value: T) {
         self.start = value.clone();
         self.end = value.clone();
@@ -130,8 +144,12 @@ impl<T: Interpolate + Data> Animated<T> {
     /// If the value changes and the specific flags are set paint or layout are requested.
     /// If the transition's end isn't reached an additional animation-frame is requested.
     ///
-    pub fn update(&mut self, nanos: u64, ctx: &mut EventCtx) {
+    /// Returns `true` if the animation just finished.
+    ///
+    pub fn update(&mut self, nanos: u64, ctx: &mut EventCtx) -> bool {
         // This must happen before updating the value!
+        let animated = self.animating();
+
         if self.animating() {
             if self.layout {
                 ctx.request_layout();
@@ -153,6 +171,8 @@ impl<T: Interpolate + Data> Animated<T> {
         } else {
             self.current = self.end.clone();
         }
+
+        animated && !self.animating()
     }
 }
 
