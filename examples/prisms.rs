@@ -152,6 +152,7 @@ fn main() {
 
     // start the application
     AppLauncher::with_window(main_window)
+        .configure_env(druid_widget_nursery::configure_env)
         .launch(app_data)
         .expect("Failed to launch application");
 }
