@@ -1,16 +1,13 @@
 use druid::commands::CLOSE_WINDOW;
 use druid::widget::prelude::*;
-use druid::widget::{Controller, ControllerHost, Label, LabelText};
-use druid::{
-    Color, Data, Point, TimerToken, Vec2, Widget, WidgetExt, WindowConfig, WindowId, WindowLevel,
-    WindowSizePolicy,
-};
+use druid::widget::{Controller, Label, LabelText};
+use druid::{Color, Data, Point, TimerToken, Vec2, Widget, WidgetExt, WindowConfig, WindowId, WindowLevel, WindowSizePolicy};
 use std::time::{Duration, Instant};
 
-use crate::OnMonitorExt;
+use crate::WidgetExt as _;
 
 #[derive(Clone)]
-enum TooltipState {
+pub(crate) enum TooltipState {
     Off,
     Waiting {
         timer: TimerToken,
@@ -33,23 +30,8 @@ enum TooltipState {
 ///
 /// [`Controller`]: druid::widget::Controller
 pub struct TooltipController<T> {
-    text: LabelText<T>,
-    state: TooltipState,
-}
-
-/// Extension methods for tooltips.
-pub trait TooltipExt<T: Data, W: Widget<T>> {
-    /// Open a tooltip when the mouse is hovered over this widget.
-    fn tooltip<LT: Into<LabelText<T>>>(self, text: LT) -> ControllerHost<W, TooltipController<T>>;
-}
-
-impl<T: Data, W: Widget<T> + 'static> TooltipExt<T, W> for W {
-    fn tooltip<LT: Into<LabelText<T>>>(self, text: LT) -> ControllerHost<W, TooltipController<T>> {
-        self.controller(TooltipController {
-            text: text.into(),
-            state: TooltipState::Off,
-        })
-    }
+    pub(crate) text: LabelText<T>,
+    pub(crate) state: TooltipState,
 }
 
 impl<T: Data, W: Widget<T>> Controller<T, W> for TooltipController<T> {

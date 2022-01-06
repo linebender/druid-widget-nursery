@@ -6,8 +6,8 @@ use druid::{Data, InternalLifeCycle, Point, Rect, Scalable, Screen, Vec2, Window
 ///
 /// It may be useful for things like tooltips and dropdowns.
 pub struct OnMonitor<W> {
-    inner: W,
-    parent: WindowHandle,
+    pub(crate) inner: W,
+    pub(crate) parent: WindowHandle,
 }
 
 /// Returns the bounds (in virtual screen coordinates) of a monitor containing the origin of `w`.
@@ -23,14 +23,6 @@ fn screen_bounds(w: &WindowHandle) -> Rect {
         }
     }
     Rect::from_origin_size(Point::ZERO, Size::new(f64::INFINITY, f64::INFINITY))
-}
-
-pub trait OnMonitorExt<T: Data, W: Widget<T>> {
-    /// A convenience method for ensuring that this widget is fully visible on the same monitor as
-    /// some other window.
-    fn on_monitor(self, parent: &WindowHandle) -> OnMonitor<W>
-    where
-        Self: Sized;
 }
 
 fn calc_nudge(rect: Rect, bounds: Rect) -> Vec2 {
@@ -80,14 +72,5 @@ impl<T: Data, W: Widget<T>> Widget<T> for OnMonitor<W> {
 
     fn paint(&mut self, ctx: &mut PaintCtx, data: &T, env: &Env) {
         self.inner.paint(ctx, data, env);
-    }
-}
-
-impl<T: Data, W: Widget<T>> OnMonitorExt<T, W> for W {
-    fn on_monitor(self, parent: &WindowHandle) -> OnMonitor<W> {
-        OnMonitor {
-            inner: self,
-            parent: parent.clone(),
-        }
     }
 }
