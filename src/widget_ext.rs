@@ -4,6 +4,7 @@ use druid::{Selector, WidgetExt as _, WindowHandle};
 
 use crate::on_cmd::OnCmd;
 use crate::{OnChange, OnMonitor, TooltipController};
+use crate::tooltip::TooltipState;
 
 pub trait WidgetExt<T: Data>: Widget<T> + Sized + 'static {
     fn on_command<CT: 'static>(

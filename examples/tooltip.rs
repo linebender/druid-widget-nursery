@@ -2,7 +2,8 @@ use druid::{
     widget::{Flex, Label, TextBox},
     AppLauncher, Data, Env, Lens, Widget, WidgetExt, WindowDesc,
 };
-use druid_widget_nursery::TooltipExt;
+
+use druid_widget_nursery::WidgetExt as _;
 
 fn main() {
     let window = WindowDesc::new(ui());

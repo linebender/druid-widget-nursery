@@ -1,16 +1,13 @@
 use druid::commands::CLOSE_WINDOW;
 use druid::widget::prelude::*;
-use druid::widget::{Controller, ControllerHost, Label, LabelText};
-use druid::{
-    Color, Data, Point, TimerToken, Vec2, Widget, WidgetExt, WindowConfig, WindowId, WindowLevel,
-    WindowSizePolicy,
-};
+use druid::widget::{Controller, Label, LabelText};
+use druid::{Color, Data, Point, TimerToken, Vec2, Widget, WidgetExt, WindowConfig, WindowId, WindowLevel, WindowSizePolicy};
 use std::time::{Duration, Instant};
 
-use crate::OnMonitorExt;
+use crate::WidgetExt as _;
 
 #[derive(Clone)]
-enum TooltipState {
+pub(crate) enum TooltipState {
     Off,
     Waiting {
         timer: TimerToken,
@@ -33,8 +30,8 @@ enum TooltipState {
 ///
 /// [`Controller`]: druid::widget::Controller
 pub struct TooltipController<T> {
-    pub text: LabelText<T>,
-    pub state: TooltipState,
+    pub(crate) text: LabelText<T>,
+    pub(crate) state: TooltipState,
 }
 
 impl<T: Data, W: Widget<T>> Controller<T, W> for TooltipController<T> {
