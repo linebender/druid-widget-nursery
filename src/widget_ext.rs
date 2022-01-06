@@ -1,9 +1,9 @@
 use druid::widget::prelude::*;
 use druid::widget::{ControllerHost, LabelText};
-use druid::{Selector, WidgetExt as _};
+use druid::{Selector, WidgetExt as _, WindowHandle};
 
 use crate::on_cmd::OnCmd;
-use crate::{OnChange, TooltipController};
+use crate::{OnChange, OnMonitor, TooltipController};
 
 pub trait WidgetExt<T: Data>: Widget<T> + Sized + 'static {
     fn on_command<CT: 'static>(
@@ -25,11 +25,20 @@ pub trait WidgetExt<T: Data>: Widget<T> + Sized + 'static {
     }
 
     /// Open a tooltip when the mouse is hovered over this widget.
-    fn tooltip<LT: Into<LabelText<T>>>(self, text: LT) -> ControllerHost<W, TooltipController<T>> {
+    fn tooltip<LT: Into<LabelText<T>>>(self, text: LT) -> ControllerHost<Self, TooltipController<T>> {
         self.controller(TooltipController {
             text: text.into(),
             state: TooltipState::Off,
         })
+    }
+
+    /// A convenience method for ensuring that this widget is fully visible on the same monitor as
+    /// some other window.
+    fn on_monitor(self, parent: &WindowHandle) -> OnMonitor<Self> {
+        OnMonitor {
+            inner: self,
+            parent: parent.clone(),
+        }
     }
 }
 
