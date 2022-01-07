@@ -4,6 +4,7 @@ use druid::{
 };
 use druid_widget_nursery::animation::{Animated, SimpleCurve};
 use std::time::Duration;
+use druid_widget_nursery::RequestCtx;
 
 static COLORS: [Color; 12] = [
     Color::RED,
@@ -44,7 +45,7 @@ impl AnimatedWidget {
             current_color: 0,
         }
     }
-    pub fn set_insets(&mut self, hot: bool, active: bool) {
+    pub fn set_insets(&mut self, ctx: &mut impl RequestCtx, hot: bool, active: bool) {
         let insets = if hot {
             if active {
                 6.0
@@ -54,7 +55,7 @@ impl AnimatedWidget {
         } else {
             3.0
         };
-        self.insets.animate(insets);
+        self.insets.animate(ctx, insets);
     }
 }
 
@@ -64,17 +65,17 @@ impl Widget<()> for AnimatedWidget {
             Event::MouseDown(_) => {
                 ctx.set_active(true);
                 ctx.request_anim_frame();
-                self.set_insets(ctx.is_hot(), true);
+                self.set_insets(ctx, ctx.is_hot(), true);
             }
             Event::MouseUp(_) => {
                 if ctx.is_hot() {
                     self.current_color += 1;
                     self.color
-                        .animate(COLORS[self.current_color % COLORS.len()].clone());
+                        .animate(ctx, COLORS[self.current_color % COLORS.len()].clone());
                 }
                 ctx.set_active(false);
                 ctx.request_anim_frame();
-                self.set_insets(ctx.is_hot(), false);
+                self.set_insets(ctx, ctx.is_hot(), false);
             }
             Event::AnimFrame(nanos) => {
                 self.insets.update(*nanos, ctx);
@@ -87,7 +88,7 @@ impl Widget<()> for AnimatedWidget {
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, _: &(), _: &Env) {
         if let LifeCycle::HotChanged(hot) = event {
             ctx.request_anim_frame();
-            self.set_insets(*hot, ctx.is_active());
+            self.set_insets(ctx, *hot, ctx.is_active());
         }
     }
 
