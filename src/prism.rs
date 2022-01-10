@@ -225,7 +225,9 @@ impl<T, U: Data, P: Prism<T, U>, W: Widget<U>> Widget<T> for PrismWrap<W, P, U> 
 
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, _data: &T, env: &Env) -> Size {
         if let Some(data) = &self.cached_data {
-            self.inner.layout(ctx, bc, data, env)
+            let size = self.inner.layout(ctx, bc, data, env);
+            self.inner.set_origin(ctx, data, env, Point::ORIGIN);
+            size
         } else {
             bc.min()
         }
@@ -236,28 +238,6 @@ impl<T, U: Data, P: Prism<T, U>, W: Widget<U>> Widget<T> for PrismWrap<W, P, U> 
             self.inner.paint(ctx, data, env);
         }
     }
-}
-
-#[macro_export]
-macro_rules! prism {
-    //Empty variant
-    ($name:ident: $base:ty => $variant:tt ) => {
-        //$($el:ty),+
-        pub struct $name;
-
-        impl Prism<$base, ()> for $name {
-            fn get(&self, data: &$base) -> ::std::option::Option<()> {
-                if let <$base>::$variant = data.clone() {
-                    ::std::option::Option::Some(())
-                } else {
-                    ::std::option::Option::None
-                }
-            }
-            fn put(&self, data: &mut $base, _: ()) {
-                *data = <$base>::$variant;
-            }
-        }
-    };
 }
 
 pub struct OptionSome;
@@ -272,9 +252,7 @@ impl<T: Data> Prism<Option<T>, T> for OptionSome {
     }
 }
 
-prism!(OptionNone: Option<String> => None);
-
-/*pub struct OptionNone;
+pub struct OptionNone;
 
 impl<T> Prism<Option<T>, ()> for OptionNone {
     fn get(&self, data: &Option<T>) -> Option<()> {
@@ -288,7 +266,7 @@ impl<T> Prism<Option<T>, ()> for OptionNone {
     fn put(&self, data: &mut Option<T>, _: ()) {
         *data = None;
     }
-}*/
+}
 
 pub struct ResultOk;
 

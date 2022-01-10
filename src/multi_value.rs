@@ -1,10 +1,13 @@
 use crate::animation::{Animated, AnimationCurve, Interpolate, SimpleCurve};
 use crate::prism::{DisablePrismWrap, OptionSome, Prism};
+use druid::theme::WIDGET_PADDING_VERTICAL;
 use druid::widget::{Checkbox, Radio};
-use druid::{BoxConstraints, Data, Env, Event, EventCtx, Key, KeyOrValue, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Point, RenderContext, Size, UpdateCtx, Vec2, Widget, WidgetPod};
+use druid::{
+    BoxConstraints, Data, Env, Event, EventCtx, Key, KeyOrValue, LayoutCtx, LifeCycle,
+    LifeCycleCtx, PaintCtx, Point, RenderContext, Size, UpdateCtx, Vec2, Widget, WidgetPod,
+};
 use std::fmt::Debug;
 use std::time::Duration;
-use druid::theme::WIDGET_PADDING_VERTICAL;
 
 ///A Radio which has further configuration for the value it represents
 pub struct MultiRadio<W, T, U, P> {
@@ -417,7 +420,7 @@ impl IndentLayout {
 
         let inner_origin = Vec2::new(
             self.indent.resolve(env),
-            radio_size.height + self.space.resolve(env)
+            radio_size.height + self.space.resolve(env),
         );
         let inner_bc = bc.shrink(inner_origin.to_size());
 
