@@ -1,12 +1,10 @@
 use crate::animation::{Animated, AnimationCurve, Interpolate, SimpleCurve};
 use crate::prism::{DisablePrismWrap, OptionSome, Prism};
 use druid::widget::{Checkbox, Radio};
-use druid::{
-    BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx,
-    Point, RenderContext, Size, UpdateCtx, Vec2, Widget, WidgetPod,
-};
+use druid::{BoxConstraints, Data, Env, Event, EventCtx, Key, KeyOrValue, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx, Point, RenderContext, Size, UpdateCtx, Vec2, Widget, WidgetPod};
 use std::fmt::Debug;
 use std::time::Duration;
+use druid::theme::WIDGET_PADDING_VERTICAL;
 
 ///A Radio which has further configuration for the value it represents
 pub struct MultiRadio<W, T, U, P> {
@@ -33,24 +31,24 @@ where
     }
 
     /// Set the indent of the inner widget
-    pub fn set_indent(&mut self, indent: f64) {
-        self.layout.indent = indent;
+    pub fn set_indent(&mut self, indent: impl Into<KeyOrValue<f64>>) {
+        self.layout.indent = indent.into();
     }
 
     /// Builder-style method to set the indent of the inner widget
-    pub fn with_indent(mut self, indent: f64) -> Self {
-        self.layout.indent = indent;
+    pub fn with_indent(mut self, indent: impl Into<KeyOrValue<f64>>) -> Self {
+        self.layout.indent = indent.into();
         self
     }
 
     /// Set the indent of the inner widget
-    pub fn set_space(&mut self, space: f64) {
-        self.layout.space = space;
+    pub fn set_space(&mut self, space: impl Into<KeyOrValue<f64>>) {
+        self.layout.space = space.into();
     }
 
     /// Builder-style method to set the indent of the inner widget
-    pub fn with_space(mut self, space: f64) -> Self {
-        self.layout.space = space;
+    pub fn with_space(mut self, space: impl Into<KeyOrValue<f64>>) -> Self {
+        self.layout.space = space.into();
         self
     }
 
@@ -149,9 +147,7 @@ where
     fn update(&mut self, ctx: &mut UpdateCtx, _old_data: &T, data: &T, env: &Env) {
         self.inner.update(ctx, data, env);
         self.radio.update(ctx, &self.is_enabled(), env);
-        if self.layout.set_visible(self.is_enabled()) {
-            ctx.request_anim_frame();
-        }
+        self.layout.update_values(ctx, self.is_enabled());
     }
 
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> Size {
@@ -196,24 +192,24 @@ where
     }
 
     /// Set the indent of the inner widget
-    pub fn set_indent(&mut self, indent: f64) {
-        self.layout.indent = indent;
+    pub fn set_indent(&mut self, indent: impl Into<KeyOrValue<f64>>) {
+        self.layout.indent = indent.into();
     }
 
     /// Builder-style method to set the indent of the inner widget
-    pub fn with_indent(mut self, indent: f64) -> Self {
-        self.layout.indent = indent;
+    pub fn with_indent(mut self, indent: impl Into<KeyOrValue<f64>>) -> Self {
+        self.layout.indent = indent.into();
         self
     }
 
     /// Set the indent of the inner widget
-    pub fn set_space(&mut self, space: f64) {
-        self.layout.space = space;
+    pub fn set_space(&mut self, space: impl Into<KeyOrValue<f64>>) {
+        self.layout.space = space.into();
     }
 
     /// Builder-style method to set the indent of the inner widget
-    pub fn with_space(mut self, space: f64) -> Self {
-        self.layout.space = space;
+    pub fn with_space(mut self, space: impl Into<KeyOrValue<f64>>) -> Self {
+        self.layout.space = space.into();
         self
     }
 
@@ -320,9 +316,7 @@ where
     fn update(&mut self, ctx: &mut UpdateCtx, _old_data: &Option<T>, data: &Option<T>, env: &Env) {
         self.inner.update(ctx, data, env);
         self.check_box.update(ctx, &self.is_enabled(), env);
-        if self.layout.set_visible(self.is_enabled()) {
-            ctx.request_anim_frame();
-        }
+        self.layout.update_values(ctx, self.is_enabled());
     }
 
     fn layout(
@@ -357,9 +351,11 @@ where
     }
 }
 
-struct IndentLayout {
-    space: f64,
-    indent: f64,
+pub const INDENT: Key<f64> = Key::new("druid-widget-nursery.multivalue.indent");
+
+pub struct IndentLayout {
+    space: KeyOrValue<f64>,
+    indent: KeyOrValue<f64>,
     always_visible: bool,
     height: Animated<f64>,
 }
@@ -367,8 +363,8 @@ struct IndentLayout {
 impl IndentLayout {
     pub fn new() -> Self {
         IndentLayout {
-            space: 10.0,
-            indent: 30.0,
+            space: KeyOrValue::Key(WIDGET_PADDING_VERTICAL),
+            indent: KeyOrValue::Key(INDENT),
             always_visible: false,
             height: Animated::new(
                 0.0,
@@ -383,18 +379,16 @@ impl IndentLayout {
         self.height.update(*nanos, ctx);
     }
 
-    pub fn set_visible(&mut self, visible: bool) -> bool {
-        //TODO: update this when context traits are stabilised
+    pub fn update_values(&mut self, ctx: &mut UpdateCtx, visible: bool) {
         let new_value = if visible || self.always_visible {
             1.0
         } else {
             0.0
         };
-        if (new_value - self.height.end()).abs() > f64::EPSILON {
-            self.height.animate(new_value);
-            true
-        } else {
-            false
+        self.height.animate(ctx, new_value);
+
+        if ctx.env_key_changed(&self.indent) || ctx.env_key_changed(&self.space) {
+            ctx.request_layout();
         }
     }
 
@@ -421,7 +415,10 @@ impl IndentLayout {
         let radio_size = header.layout(ctx, bc, data_a, env);
         header.set_origin(ctx, data_a, env, Point::ZERO);
 
-        let inner_origin = Vec2::new(self.indent, radio_size.height + self.space);
+        let inner_origin = Vec2::new(
+            self.indent.resolve(env),
+            radio_size.height + self.space.resolve(env)
+        );
         let inner_bc = bc.shrink(inner_origin.to_size());
 
         let inner_size = body.layout(ctx, &inner_bc, data_b, env);
