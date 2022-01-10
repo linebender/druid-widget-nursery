@@ -134,6 +134,7 @@ impl<T: Data> Switcher<T> {
     /// updates the inner widget and returns true if the widget changed
     fn rebuild_if_needed(&mut self, data: &T) -> bool {
         if let Some(current) = self.current {
+            //In most cases the variant stays the same, therefore we check the current widget first.
             if self.widgets[current].is_active_for(data) {
                 return false;
             }
