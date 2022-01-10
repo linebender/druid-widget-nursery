@@ -3,8 +3,8 @@ use druid::{
     PaintCtx, RenderContext, Size, UnitPoint, UpdateCtx, Widget, WidgetExt, WindowDesc,
 };
 use druid_widget_nursery::animation::{Animated, SimpleCurve};
-use std::time::Duration;
 use druid_widget_nursery::RequestCtx;
+use std::time::Duration;
 
 static COLORS: [Color; 12] = [
     Color::RED,

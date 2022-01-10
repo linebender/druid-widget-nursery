@@ -1,7 +1,10 @@
 use druid::commands::CLOSE_WINDOW;
 use druid::widget::prelude::*;
 use druid::widget::{Controller, Label, LabelText};
-use druid::{Color, Data, Point, TimerToken, Vec2, Widget, WidgetExt, WindowConfig, WindowId, WindowLevel, WindowSizePolicy};
+use druid::{
+    Color, Data, Point, TimerToken, Vec2, Widget, WidgetExt, WindowConfig, WindowId, WindowLevel,
+    WindowSizePolicy,
+};
 use std::time::{Duration, Instant};
 
 use crate::WidgetExt as _;

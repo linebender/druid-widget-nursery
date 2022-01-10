@@ -1,8 +1,8 @@
 use crate::animation::AnimationCurve;
+use crate::RequestCtx;
 use druid::{Color, Data, EventCtx, Insets, Point, Rect, Size, Vec2};
 use std::ops::Deref;
 use std::time::Duration;
-use crate::RequestCtx;
 
 /// Animated provides simple transition-animations for single values or tuples of values that implement
 /// Interpolate.
@@ -117,7 +117,7 @@ impl<T: Interpolate + Data> Animated<T> {
         ctx: &mut impl RequestCtx,
         value: T,
         duration: Duration,
-        curve: impl Into<AnimationCurve>
+        curve: impl Into<AnimationCurve>,
     ) {
         self.set_curve(curve);
         self.set_duration(duration);
