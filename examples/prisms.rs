@@ -3,59 +3,11 @@ use druid::{AppLauncher, Data, UnitPoint, Widget, WidgetExt, WindowDesc};
 use druid_widget_nursery::prism::{Closures, Prism};
 use druid_widget_nursery::{MultiCheckbox, MultiRadio};
 
-#[derive(Data, Clone, PartialEq)]
+#[derive(Data, Clone, PartialEq, Prism)]
 enum TestData {
     A(f64),
     B(String),
     C(Option<String>),
-}
-
-struct TestDataA;
-
-impl Prism<TestData, f64> for TestDataA {
-    fn get(&self, data: &TestData) -> Option<f64> {
-        if let TestData::A(value) = data {
-            Some(*value)
-        } else {
-            None
-        }
-    }
-
-    fn put(&self, data: &mut TestData, inner: f64) {
-        *data = TestData::A(inner);
-    }
-}
-
-struct TestDataB;
-
-impl Prism<TestData, String> for TestDataB {
-    fn get(&self, data: &TestData) -> Option<String> {
-        if let TestData::B(str) = data {
-            Some(str.to_string())
-        } else {
-            None
-        }
-    }
-
-    fn put(&self, data: &mut TestData, inner: String) {
-        *data = TestData::B(inner);
-    }
-}
-
-struct TestDataC;
-
-impl Prism<TestData, Option<String>> for TestDataC {
-    fn get(&self, data: &TestData) -> Option<Option<String>> {
-        if let TestData::C(value) = data {
-            Some((*value).clone())
-        } else {
-            None
-        }
-    }
-
-    fn put(&self, data: &mut TestData, inner: Option<String>) {
-        *data = TestData::C(inner);
-    }
 }
 
 fn main_widget() -> impl Widget<TestData> {

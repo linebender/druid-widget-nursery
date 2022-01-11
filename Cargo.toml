@@ -7,6 +7,7 @@ license = "MIT OR Apache-2.0"
 
 [features]
 async = ["tokio/rt", "futures", "flume"]
+derive = ["druid-widget-nursery-derive"]
 hot-reload = ["libloading", "notify5", "rand"]
 
 [dependencies.druid]
@@ -27,6 +28,9 @@ tokio = { version = "1.0", features = ["rt", "time"], optional = true }
 futures = { version = "0.3", optional = true }
 flume = { version = "0.10", optional = true }
 
+# derive
+druid-widget-nursery-derive = { version = "=0.1.0", path = "druid-widget-nursery-derive", optional = true }
+
 # hot reload
 notify5 = { version = "5.0.0-pre.11", optional = true, package = "notify" }
 libloading = { version = "0.6.6", optional = true }
@@ -41,10 +45,17 @@ required-features = ["async", "tokio/rt-multi-thread", "tokio/macros", "tokio/ti
 name = "animator"
 
 [[example]]
+name = "prisms"
+required-features = ["derive"]
+
+[[example]]
 name = "splits"
 
 [workspace]
-members = ["examples/hot-reload"]
+members = [
+    "druid-widget-nursery-derive",
+    "examples/hot-reload",
+]
 
 [dev-dependencies]
 qu = "0.3.1"
