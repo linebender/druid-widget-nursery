@@ -3,7 +3,9 @@ use druid::{
     Point, Size, UpdateCtx, Widget, WidgetPod,
 };
 
-//TODO: Maybe write a derive macro
+#[cfg(feature = "derive")]
+pub use druid_widget_nursery_derive::Prism;
+
 /// A trait similar to druid::Lens that represents data which is not always present
 ///
 /// This is just a simple prototype for me to work with until [`#1136`] is merged.
