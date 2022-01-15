@@ -50,6 +50,9 @@ pub mod wedge;
 mod widget_ext;
 pub mod wrap;
 
+#[cfg(feature = "material-icons")]
+pub mod material_icons;
+
 #[cfg(feature = "async")]
 mod future_widget;
 
