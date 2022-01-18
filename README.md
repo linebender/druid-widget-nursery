@@ -52,6 +52,7 @@ If you add a new widget, please add its name and a short summary here.
  - An advanced version of the slider which also allows keyboard input.
 
    ![Advanced Slider example](advanced-slider-example.gif)
+ - `material_icons::Icon` : A helper for drawing material icons.
 
 
 ## ProgressBar Improvements
