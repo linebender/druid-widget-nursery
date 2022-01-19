@@ -13,7 +13,7 @@ impl From<fn(f64) -> f64> for AnimationCurve {
 pub enum AnimationCurve {
     Function(fn(f64) -> f64),
     Closure(Box<dyn FnMut(f64) -> f64>),
-    //    CubicBezier(CubicBezierAnimationCurve),
+    CubicBezier(CubicBezierAnimationCurve),
     //    Spring(SpringAnimationCurve),
 }
 
@@ -33,6 +33,13 @@ impl Debug for AnimationCurve {
                 .finish(),
             AnimationCurve::Closure(_) => formatter
                 .debug_struct("AnimationCurve::Closure")
+                .finish(),
+            AnimationCurve::CubicBezier(b) => formatter
+                .debug_struct("AnimationCurve::CubicBezier")
+                .field("a", &b.a)
+                .field("b", &b.b)
+                .field("c", &b.c)
+                .field("d", &b.d)
                 .finish(),
         }
     }
@@ -71,17 +78,62 @@ impl AnimationCurve {
 
     pub const EASE_OUT_SINE: Self = Self::Function(|t| (t * PI * 0.5).sin());
 
+    pub const EASE_IN_BACK: Self = Self::cubic(0.36, 0.0, 0.66, -0.56);
+    pub const EASE_OUT_BACK: Self = Self::cubic(0.34, 1.56, 0.64, 1.0);
+    pub const EASE_IN_OUT_BACK: Self = Self::cubic(0.68, -0.6, 0.32, 1.6);
+
     pub const BOUNCE_OUT: Self = Self::Function(|t| bounce(t));
+
+    pub const fn cubic(a: f64, b: f64, c: f64, d: f64) -> Self {
+        Self::CubicBezier(CubicBezierAnimationCurve { a, b, c, d })
+    }
 
     pub fn translate(&mut self, t: f64) -> f64 {
         match self {
             Self::Function(f) => f(t),
             Self::Closure(c) => c(t),
+            Self::CubicBezier(b) => b.translate(t),
         }
     }
 
     pub fn from_closure(f: impl FnMut(f64) -> f64 + 'static) -> AnimationCurve {
         AnimationCurve::Closure(Box::new(f))
+    }
+}
+
+pub struct CubicBezierAnimationCurve {
+    pub a: f64,
+    pub b: f64,
+    pub c: f64,
+    pub d: f64,
+}
+
+impl CubicBezierAnimationCurve {
+
+    fn evaluate_cubic(a: f64, b: f64, m: f64) -> f64 {
+        3.0 * a * (1.0 - m) * (1.0 - m) * m +
+        3.0 * b * (1.0 - m) *             m * m +
+                                          m * m * m
+    }
+
+    pub fn translate(&self, t: f64) -> f64 {
+        let mut start = 0.0;
+        let mut end = 1.0;
+
+        const CUBIC_ERROR_BOUND: f64 = 0.001;
+
+        loop {
+            let midpoint = (start + end) / 2.0;
+            let estimate = Self::evaluate_cubic(self.a, self.c, midpoint);
+            if (t - estimate).abs() < CUBIC_ERROR_BOUND {
+                return Self::evaluate_cubic(self.b, self.d, midpoint);
+            }
+            if estimate < t {
+                start = midpoint;
+            } else {
+                end = midpoint;
+            }
+        }
     }
 }
 
