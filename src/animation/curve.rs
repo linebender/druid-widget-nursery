@@ -49,40 +49,29 @@ impl AnimationCurve {
 
     pub const LINEAR: Self = Self::Function(|t| t);
 
-    pub const EASE_IN: Self = Self::Function(|t| t * t);
+    pub const EASE_IN: Self = Self::Function(ease_in);
+    pub const EASE_OUT: Self = Self::Function(|t| flip_curve(ease_in, t));
+    pub const EASE_IN_OUT: Self = Self::Function(|t| combine_in_out(ease_in, t));
 
-    pub const EASE_OUT: Self = Self::Function(|t| t * (2.0 - t));
+    pub const EASE_IN_ELASTIC: Self = Self::Function(|t| flip_curve(ease_out_elastic, t));
+    pub const EASE_OUT_ELASTIC: Self = Self::Function(ease_out_elastic);
+    pub const EASE_IN_OUT_ELASTIC: Self = Self::Function(|t| combine_in_out_rev(ease_out_elastic, t));
 
-    pub const EASE_IN_OUT: Self = Self::Function(|t| {
-        let t = t * 2.0;
-        if t < 1. {
-            0.5 * t * t
-        } else {
-            let t = t - 1.;
-            -0.5 * (t * (t - 2.) - 1.)
-        }
-    });
-
-    pub const EASE_OUT_ELASTIC: Self = Self::Function(|t| {
-        let p = 0.3;
-        let s = p / 4.0;
-
-        if t < 0.001 {
-            0.
-        } else if t > 0.999 {
-            1.
-        } else {
-            2.0f64.powf(-10.0 * t) * ((t - s) * (2.0 * PI) / p).sin() + 1.0
-        }
-    });
-
+    pub const EASE_IN_SINE: Self = Self::Function(|t| 1.0 - (t * PI * 0.5).cos());
     pub const EASE_OUT_SINE: Self = Self::Function(|t| (t * PI * 0.5).sin());
+    pub const EASE_IN_OUT_SINE: Self = Self::Function(|t| -0.5 * (t * PI).cos() + 0.5);
+
+    pub const EASE_IN_EXPO: Self = Self::Function(ease_in_expo);
+    pub const EASE_OUT_EXPO: Self = Self::Function(|t| flip_curve(ease_in_expo, t));
+    pub const EASE_IN_OUT_EXPO: Self = Self::Function(|t| combine_in_out(ease_in_expo, t));
 
     pub const EASE_IN_BACK: Self = Self::cubic(0.36, 0.0, 0.66, -0.56);
     pub const EASE_OUT_BACK: Self = Self::cubic(0.34, 1.56, 0.64, 1.0);
     pub const EASE_IN_OUT_BACK: Self = Self::cubic(0.68, -0.6, 0.32, 1.6);
 
-    pub const BOUNCE_OUT: Self = Self::Function(|t| bounce(t));
+    pub const BOUNCE_IN: Self = Self::Function(|t| flip_curve(bounce, t));
+    pub const BOUNCE_OUT: Self = Self::Function(bounce);
+    pub const BOUNCE_IN_OUT: Self = Self::Function(|t|  combine_in_out_rev(bounce, t));
 
     pub const fn cubic(a: f64, b: f64, c: f64, d: f64) -> Self {
         Self::CubicBezier(CubicBezierAnimationCurve { a, b, c, d })
@@ -149,5 +138,46 @@ fn bounce(t: f64) -> f64 {
     } else {
         let t = t - (2.625 / 2.75);
         7.5625 * t * t + 0.984375
+    }
+}
+
+fn ease_in(t: f64) -> f64 {
+    t * t
+}
+
+fn ease_in_expo(t: f64) -> f64 {
+    2.0f64.powf(10.0 * (t - 1.0))
+}
+
+fn ease_out_elastic(t: f64) -> f64 {
+    let p = 0.4;
+    let s = p / 4.0;
+
+    if t < 0.001 {
+        0.
+    } else if t > 0.999 {
+        1.
+    } else {
+        2.0f64.powf(-10.0 * t) * ((t - s) * (2.0 * PI) / p).sin() + 1.0
+    }
+}
+
+fn flip_curve(f: fn(f64) -> f64, t: f64) -> f64 {
+    1.0 - f(1.0 - t)
+}
+
+fn combine_in_out(f: fn(f64) -> f64, t: f64) -> f64 {
+    if t < 0.5 {
+        0.5 * f(t * 2.0)
+    } else {
+        0.5 * flip_curve(f, t * 2.0 - 1.0) + 0.5
+    }
+}
+
+fn combine_in_out_rev(f: fn(f64) -> f64, t: f64) -> f64 {
+    if t < 0.5 {
+        0.5 * flip_curve(f, t * 2.0)
+    } else {
+        0.5 * f(t * 2.0 - 1.0) + 0.5
     }
 }
