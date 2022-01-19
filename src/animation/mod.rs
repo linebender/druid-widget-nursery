@@ -10,7 +10,7 @@ mod test;
 pub use animated_value::{Animated, Interpolate};
 pub use animator::Animator;
 pub use context::AnimationCtx;
-pub use curve::{AnimationCurve, CustomCurve, SimpleCurve};
+pub use curve::AnimationCurve;
 pub use storage::AnimationId;
 
 use druid::Data;
