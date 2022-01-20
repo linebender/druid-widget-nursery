@@ -52,6 +52,9 @@ required-features = [
 name = "animator"
 
 [[example]]
+name = "animation-curves"
+
+[[example]]
 name = "prisms"
 required-features = ["derive"]
 
