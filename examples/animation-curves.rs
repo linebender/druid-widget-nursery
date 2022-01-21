@@ -23,7 +23,7 @@ use druid::widget::{Flex, Label};
 use druid::piet::{LineCap, LineJoin, RenderContext, StrokeStyle};
 use druid::kurbo::Line;
 
-use druid_widget_nursery::animation::AnimationCurve;
+use druid_widget_nursery::animation::{Animated, AnimationCurve};
 
 #[derive(Clone, Default, Data)]
 struct AppState;
@@ -95,6 +95,7 @@ pub fn main() {
 /// A widget to display AnimationCurves
 pub struct AnimationCurveGraph {
     curve: AnimationCurve,
+    progress: Animated<f64>,
 }
 
 const AXIS_INSET: f64 = 10.0;
@@ -103,12 +104,31 @@ const CURVE_HEIGHT: f64 = 120.0;
 
 impl AnimationCurveGraph {
     pub fn new(curve: AnimationCurve) -> Self {
-        Self { curve }
+        Self {
+            curve,
+            progress: Animated::new(
+                0.0,
+                std::time::Duration::from_secs_f64(1.0),
+                AnimationCurve::LINEAR,
+                false,
+            ),
+        }
     }
 }
 
 impl<T: Data> Widget<T> for AnimationCurveGraph {
-    fn event(&mut self, _ctx: &mut EventCtx<'_, '_>, _event: &Event, _data: &mut T, _env: &Env) {
+    fn event(&mut self, ctx: &mut EventCtx<'_, '_>, event: &Event, _data: &mut T, _env: &Env) {
+        match event {
+            Event::MouseDown(_) => {
+                self.progress.jump_to_value(0.0);
+                self.progress.animate(ctx, 1.0);
+            }
+            Event::AnimFrame(nanos) => {
+                self.progress.update(*nanos, ctx);
+            }
+            _ => {}
+        }
+
     }
 
     fn lifecycle(&mut self, _ctx: &mut LifeCycleCtx<'_, '_>, _event: &LifeCycle, _data: &T, _env: &Env) {
@@ -118,11 +138,10 @@ impl<T: Data> Widget<T> for AnimationCurveGraph {
     }
 
     fn layout(&mut self, _ctx: &mut LayoutCtx<'_, '_>, _bc: &BoxConstraints, _data: &T, _env: &Env) -> druid::Size {
-        Size::new(CURVE_WIDTH + AXIS_INSET, CURVE_HEIGHT + AXIS_INSET)
+        Size::new(CURVE_WIDTH + 2.0 * AXIS_INSET, CURVE_HEIGHT + 2.0 * AXIS_INSET)
     }
 
     fn paint(&mut self, ctx: &mut PaintCtx<'_, '_, '_>, _data: &T, _env: &Env) {
-
         let axis_color = Color::grey8(140);
 
         let style = StrokeStyle::new()
@@ -150,6 +169,13 @@ impl<T: Data> Widget<T> for AnimationCurveGraph {
             let y1 =  AXIS_INSET + CURVE_HEIGHT - self.curve.translate(((i + 1) as f64)/100.0) * CURVE_HEIGHT;
             let line = Line::new((x0, y0), (x1, y1));
             ctx.stroke_styled(line, &Color::BLUE, 3.0, &style);
+        }
+
+        let progress = self.progress.get();
+        if progress > 0.0 && progress < 1.0 {
+            let anim_y = AXIS_INSET + CURVE_HEIGHT - self.curve.translate(progress) * CURVE_HEIGHT;
+            let line = Line::new((AXIS_INSET / 2.0, anim_y), ( AXIS_INSET + CURVE_WIDTH, anim_y));
+            ctx.stroke_styled(line, &axis_color, 3.0, &style);
         }
     }
 }
