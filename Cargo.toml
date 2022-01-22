@@ -13,7 +13,7 @@ material-icons = ["druid-material-icons"]
 
 [dependencies.druid]
 git = "https://github.com/linebender/druid"
-rev = "2f5beb8faba648c170a485b8d6a00d0d991a1737" # update this when upgrading to newer druid
+rev = "fc05e965c85fced8720c655685e02478e0530e94" # update this when upgrading to newer druid
 # path = "../../projects/druid/druid"
 features = ["im"]
 

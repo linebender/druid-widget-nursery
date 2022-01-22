@@ -33,7 +33,12 @@ impl<T: Data> Dropdown<T> {
 
     fn show_dropdown(&mut self, data: &mut T, env: &Env, ctx: &mut EventCtx) {
         let widget = (self.drop)(data, env);
-        let origin = ctx.to_window(Point::new(0., ctx.size().height));
+        let mut origin = ctx.to_window(Point::new(0., ctx.size().height));
+
+        let insets = ctx.window().content_insets();
+        origin.x += insets.x0;
+        origin.y += insets.y0;
+
         self.window = Some(
             ctx.new_sub_window(
                 WindowConfig::default()
