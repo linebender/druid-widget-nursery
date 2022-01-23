@@ -1,4 +1,4 @@
-use crate::animation::{Animated, AnimationCurve, Interpolate, SimpleCurve};
+use crate::animation::{Animated, AnimationCurve, Interpolate};
 use crate::prism::{DisablePrismWrap, OptionSome, Prism};
 use druid::theme::WIDGET_PADDING_VERTICAL;
 use druid::widget::{Checkbox, Radio};
@@ -372,7 +372,7 @@ impl IndentLayout {
             height: Animated::new(
                 0.0,
                 Duration::from_secs_f64(0.2),
-                SimpleCurve::EaseOut,
+                AnimationCurve::EASE_OUT,
                 true,
             ),
         }

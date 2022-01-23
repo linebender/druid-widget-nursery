@@ -6,13 +6,37 @@ use druid::{
     theme, AppLauncher, BoxConstraints, Color, Data, Env, Event, EventCtx, LayoutCtx, Lens,
     LifeCycle, LifeCycleCtx, PaintCtx, UpdateCtx, Widget, WindowDesc,
 };
-use druid_widget_nursery::animation::{AnimationDirection, AnimationId, Animator, SimpleCurve};
+use druid_widget_nursery::animation::{AnimationDirection, AnimationId, Animator, AnimationCurve};
 
 use druid::widget::prelude::RenderContext;
 use std::time::Duration;
 
+#[derive(Data, Clone, Copy, PartialEq)]
+enum Curve {
+    Linear,
+    EaseIn,
+    EaseOut,
+    EaseInOut,
+    EaseOutElastic,
+    BounceOut,
+    EaseOutSine,
+}
+
+impl From<Curve> for AnimationCurve {
+    fn from(curve: Curve) -> AnimationCurve {
+        match curve {
+            Curve::Linear => AnimationCurve::LINEAR,
+            Curve::EaseIn => AnimationCurve::EASE_IN,
+            Curve::EaseOut => AnimationCurve::EASE_OUT,
+            Curve::EaseInOut => AnimationCurve::EASE_IN_OUT,
+            Curve::EaseOutElastic => AnimationCurve::EASE_OUT_ELASTIC,
+            Curve::BounceOut => AnimationCurve::BOUNCE_OUT,
+            Curve::EaseOutSine => AnimationCurve::EASE_OUT_SINE,
+        }
+    }
+}
+
 fn main_widget() -> impl Widget<AnimState> {
-    use SimpleCurve::*;
     fn group<T: Data>(t: impl Into<LabelText<T>>, w: impl Widget<T> + 'static) -> impl Widget<T> {
         Flex::column()
             .cross_axis_alignment(CrossAxisAlignment::Start)
@@ -31,13 +55,13 @@ fn main_widget() -> impl Widget<AnimState> {
         .with_child(group(
             "Curve",
             RadioGroup::new(vec![
-                ("Linear", Linear),
-                ("EaseIn", EaseIn),
-                ("EaseOut", EaseOut),
-                ("EaseInOut", EaseInOut),
-                ("OutElastic", OutElastic),
-                ("OutBounce", OutBounce),
-                ("OutSine", OutSine),
+                ("Linear", Curve::Linear),
+                ("EaseIn", Curve::EaseIn),
+                ("EaseOut", Curve::EaseOut),
+                ("EaseInOut", Curve::EaseInOut),
+                ("EaseOutElastic", Curve::EaseOutElastic),
+                ("BounceOut", Curve::BounceOut),
+                ("EaseOutSine", Curve::EaseOutSine),
             ])
             .lens(AnimState::curve),
         ))
@@ -92,7 +116,7 @@ fn main() {
 
     // create the initial app state
     let initial_state = AnimState {
-        curve: SimpleCurve::Linear,
+        curve: Curve::Linear,
         duration: Some(1000),
         direction: AnimationDirection::Forward,
         toggle_size: false,
@@ -109,7 +133,7 @@ fn main() {
 
 #[derive(Clone, Data, Lens)]
 struct AnimState {
-    curve: SimpleCurve,
+    curve: Curve,
     duration: Option<usize>,
     direction: AnimationDirection,
     repeat_limit: Option<usize>,

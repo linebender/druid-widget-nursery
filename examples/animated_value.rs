@@ -2,7 +2,7 @@ use druid::{
     AppLauncher, BoxConstraints, Color, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx,
     PaintCtx, RenderContext, Size, UnitPoint, UpdateCtx, Widget, WidgetExt, WindowDesc,
 };
-use druid_widget_nursery::animation::{Animated, SimpleCurve};
+use druid_widget_nursery::animation::{Animated, AnimationCurve};
 use druid_widget_nursery::RequestCtx;
 use std::time::Duration;
 
@@ -33,13 +33,13 @@ impl AnimatedWidget {
             color: Animated::new(
                 Color::RED,
                 Duration::from_secs_f64(0.8),
-                SimpleCurve::EaseInOut,
+                AnimationCurve::EASE_IN_OUT,
                 false,
             ),
             insets: Animated::new(
                 6.0,
                 Duration::from_secs_f64(0.2),
-                SimpleCurve::EaseOut,
+                AnimationCurve::EASE_OUT,
                 false,
             ),
             current_color: 0,
