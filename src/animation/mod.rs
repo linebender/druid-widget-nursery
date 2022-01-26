@@ -3,6 +3,7 @@
 mod animated_value;
 mod animator;
 mod context;
+mod controller;
 mod curve;
 mod state;
 mod storage;
@@ -12,6 +13,7 @@ mod test;
 pub use animated_value::{Animated, Interpolate};
 pub use animator::Animator;
 pub use context::AnimationCtx;
+pub use controller::AnimationController;
 pub use curve::{AnimationCurve, CubicBezierAnimationCurve};
 pub use storage::AnimationId;
 
