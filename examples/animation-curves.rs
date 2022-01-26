@@ -23,7 +23,7 @@ use druid::widget::{Flex, Label};
 use druid::piet::{LineCap, LineJoin, RenderContext, StrokeStyle};
 use druid::kurbo::Line;
 
-use druid_widget_nursery::animation::{Animated, AnimationCurve};
+use druid_widget_nursery::animation::{AnimationController, AnimationCurve, AnimationDirection};
 
 #[derive(Clone, Default, Data)]
 struct AppState;
@@ -95,7 +95,7 @@ pub fn main() {
 /// A widget to display AnimationCurves
 pub struct AnimationCurveGraph {
     curve: AnimationCurve,
-    progress: Animated<f64>,
+    animation: AnimationController,
 }
 
 const AXIS_INSET: f64 = 10.0;
@@ -106,12 +106,10 @@ impl AnimationCurveGraph {
     pub fn new(curve: AnimationCurve) -> Self {
         Self {
             curve,
-            progress: Animated::new(
-                0.0,
-                std::time::Duration::from_secs_f64(1.0),
-                AnimationCurve::LINEAR,
-                false,
-            ),
+            animation: AnimationController::new()
+                .duration(1.0)
+                .direction(AnimationDirection::Alternate)
+                .repeat_limit(Some(4)),
         }
     }
 }
@@ -120,15 +118,13 @@ impl<T: Data> Widget<T> for AnimationCurveGraph {
     fn event(&mut self, ctx: &mut EventCtx<'_, '_>, event: &Event, _data: &mut T, _env: &Env) {
         match event {
             Event::MouseDown(_) => {
-                self.progress.jump_to_value(0.0);
-                self.progress.animate(ctx, 1.0);
+                self.animation.start(ctx);
             }
             Event::AnimFrame(nanos) => {
-                self.progress.update(*nanos, ctx);
+                self.animation.update(ctx, *nanos);
             }
             _ => {}
         }
-
     }
 
     fn lifecycle(&mut self, _ctx: &mut LifeCycleCtx<'_, '_>, _event: &LifeCycle, _data: &T, _env: &Env) {
@@ -171,9 +167,9 @@ impl<T: Data> Widget<T> for AnimationCurveGraph {
             ctx.stroke_styled(line, &Color::BLUE, 3.0, &style);
         }
 
-        let progress = self.progress.get();
-        if progress > 0.0 && progress < 1.0 {
-            let anim_y = AXIS_INSET + CURVE_HEIGHT - self.curve.translate(progress) * CURVE_HEIGHT;
+        let fraction = self.animation.fraction();
+        if fraction > 0.0 && fraction < 1.0 {
+            let anim_y = AXIS_INSET + CURVE_HEIGHT - self.curve.translate(fraction) * CURVE_HEIGHT;
             let line = Line::new((AXIS_INSET / 2.0, anim_y), ( AXIS_INSET + CURVE_WIDTH, anim_y));
             ctx.stroke_styled(line, &axis_color, 3.0, &style);
         }
