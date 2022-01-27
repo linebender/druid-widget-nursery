@@ -5,16 +5,18 @@ mod animator;
 mod context;
 mod controller;
 mod curve;
+mod interpolate;
 mod state;
 mod storage;
 #[cfg(test)]
 mod test;
 
-pub use animated_value::{Animated, Interpolate};
+pub use animated_value::Animated;
 pub use animator::Animator;
 pub use context::AnimationCtx;
 pub use controller::AnimationController;
 pub use curve::{AnimationCurve, CubicBezierAnimationCurve};
+pub use interpolate::Interpolate;
 pub use storage::AnimationId;
 
 use druid::Data;
