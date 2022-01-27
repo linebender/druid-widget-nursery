@@ -21,7 +21,7 @@ use druid::{
 };
 use druid::widget::{Flex, Label};
 use druid::piet::{LineCap, LineJoin, RenderContext, StrokeStyle};
-use druid::kurbo::Line;
+use druid::kurbo::{BezPath, Circle, Line};
 
 use druid_widget_nursery::animation::{AnimationController, AnimationCurve, AnimationDirection};
 
@@ -96,6 +96,9 @@ pub fn main() {
 pub struct AnimationCurveGraph {
     curve: AnimationCurve,
     animation: AnimationController,
+
+    // paint cache
+    curve_path: BezPath,
 }
 
 const AXIS_INSET: f64 = 10.0;
@@ -103,14 +106,36 @@ const CURVE_WIDTH: f64 = 300.0;
 const CURVE_HEIGHT: f64 = 120.0;
 
 impl AnimationCurveGraph {
-    pub fn new(curve: AnimationCurve) -> Self {
+    pub fn new(mut curve: AnimationCurve) -> Self {
+        let curve_path = Self::curve_to_path(&mut curve);
         Self {
             curve,
+            curve_path,
             animation: AnimationController::new()
                 .duration(1.0)
                 .direction(AnimationDirection::Alternate)
                 .repeat_limit(Some(4)),
         }
+    }
+
+    fn curve_to_path(curve: &mut AnimationCurve) -> BezPath {
+        let dx = CURVE_WIDTH / 100.0;
+        let mut path = BezPath::new();
+
+        let x0 =  AXIS_INSET;
+        let y0 =  AXIS_INSET + CURVE_HEIGHT;
+        for i in 0..100 {
+
+            if i == 0 {
+                path.move_to((x0, y0));
+            }
+
+            let x1 = x0 + dx*((i+1) as f64);
+            let y1 =  y0 - curve.translate(((i + 1) as f64)/100.0) * CURVE_HEIGHT;
+            path.line_to((x1, y1));
+        }
+
+        path
     }
 }
 
@@ -157,21 +182,16 @@ impl<T: Data> Widget<T> for AnimationCurveGraph {
         let line = Line::new((AXIS_INSET / 2.0, AXIS_INSET), (AXIS_INSET + CURVE_WIDTH, AXIS_INSET));
         ctx.stroke_styled(line, &axis_color, 3.0, &dashed_style);
 
-        let dx = CURVE_WIDTH / 100.0;
-        for i in 0..100 {
-            let x0 =  AXIS_INSET + (i as f64) * dx;
-            let x1 = x0 + dx;
-            let y0 =  AXIS_INSET + CURVE_HEIGHT - self.curve.translate((i as f64)/100.0) *  CURVE_HEIGHT;
-            let y1 =  AXIS_INSET + CURVE_HEIGHT - self.curve.translate(((i + 1) as f64)/100.0) * CURVE_HEIGHT;
-            let line = Line::new((x0, y0), (x1, y1));
-            ctx.stroke_styled(line, &Color::BLUE, 3.0, &style);
-        }
+        ctx.stroke_styled(&self.curve_path, &Color::BLUE, 3.0, &style);
 
         let fraction = self.animation.fraction();
         if fraction > 0.0 && fraction < 1.0 {
             let anim_y = AXIS_INSET + CURVE_HEIGHT - self.curve.translate(fraction) * CURVE_HEIGHT;
             let line = Line::new((AXIS_INSET / 2.0, anim_y), ( AXIS_INSET + CURVE_WIDTH, anim_y));
             ctx.stroke_styled(line, &axis_color, 3.0, &style);
+
+            let circle = Circle::new((AXIS_INSET + CURVE_WIDTH * fraction, anim_y), 6.0);
+            ctx.fill(circle, &axis_color);
         }
     }
 }
