@@ -34,10 +34,9 @@ pub enum AnimationCurve {
     /// Defined with constant function.
     Function(fn(f64) -> f64),
     /// Defined with closure.
-    Closure(Box<dyn FnMut(f64) -> f64>),
+    Closure(Box<dyn Fn(f64) -> f64>),
     /// Defined as Cubic Bezier curve.
     CubicBezier(CubicBezierAnimationCurve),
-    //    Spring(SpringAnimationCurve),
 }
 
 impl Default for AnimationCurve {
@@ -122,7 +121,7 @@ impl AnimationCurve {
     }
 
     /// Returns the value of the curve at point `t`.
-    pub fn translate(&mut self, t: f64) -> f64 {
+    pub fn translate(&self, t: f64) -> f64 {
         match self {
             Self::Function(f) => f(t),
             Self::Closure(c) => c(t),
@@ -131,7 +130,7 @@ impl AnimationCurve {
     }
 
     /// Create an instance with the given closure.
-    pub fn from_closure(f: impl FnMut(f64) -> f64 + 'static) -> AnimationCurve {
+    pub fn from_closure(f: impl Fn(f64) -> f64 + 'static) -> AnimationCurve {
         AnimationCurve::Closure(Box::new(f))
     }
 }

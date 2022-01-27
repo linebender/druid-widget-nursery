@@ -106,8 +106,8 @@ const CURVE_WIDTH: f64 = 300.0;
 const CURVE_HEIGHT: f64 = 120.0;
 
 impl AnimationCurveGraph {
-    pub fn new(mut curve: AnimationCurve) -> Self {
-        let curve_path = Self::curve_to_path(&mut curve);
+    pub fn new(curve: AnimationCurve) -> Self {
+        let curve_path = Self::curve_to_path(&curve);
         Self {
             curve,
             curve_path,
@@ -118,7 +118,7 @@ impl AnimationCurveGraph {
         }
     }
 
-    fn curve_to_path(curve: &mut AnimationCurve) -> BezPath {
+    fn curve_to_path(curve: &AnimationCurve) -> BezPath {
         let dx = CURVE_WIDTH / 100.0;
         let mut path = BezPath::new();
 
