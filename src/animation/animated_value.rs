@@ -1,54 +1,99 @@
-use crate::animation::AnimationCurve;
-use crate::RequestCtx;
-use druid::{Color, Data, EventCtx, Insets, Point, Rect, Size, Vec2};
+use crate::animation::{AnimationCurve, AnimationController};
+use druid::{Color, Insets, Point, Rect, Size, Vec2};
 use std::ops::Deref;
-use std::time::Duration;
+
+use crate::RequestCtx;
 
 /// Animated provides simple transition-animations for single values or tuples of values that implement
-/// Interpolate.
+/// [`Interpolate`].
 pub struct Animated<T> {
     start: T,
     end: T,
-    full_duration: f64,
-    current_duration: f64,
+    controller: AnimationController,
     curve: AnimationCurve,
-    layout: bool,
 
     current: T,
 }
 
-impl<T: Interpolate + Data> Animated<T> {
-    /// Creates a new animation with a start value, a duration and a curve.
-    /// The paint and layout flags indicate if animate should request paint or layout when the value
-    /// changes.
-    pub fn new(
-        value: T,
-        duration: Duration,
-        curve: impl Into<AnimationCurve>,
-        layout: bool,
-    ) -> Self {
+impl<T: Interpolate> Animated<T> {
+    /// Creates a new animation with a start value.
+    ///
+    /// ```
+    /// # use druid::Color;
+    /// # use druid_widget_nursery::animation::{Animated, AnimationCurve};
+    /// let animated = Animated::new(Color::RED)
+    ///    .duration(0.8)
+    ///    .curve(AnimationCurve::EASE_IN_OUT);
+    /// ```
+    ///
+    pub fn new(value: T) -> Self {
+        let controller = AnimationController::new();
         Animated {
             start: value.clone(),
             end: value.clone(),
-            full_duration: duration.as_secs_f64(),
-            current_duration: duration.as_secs_f64(),
-            curve: curve.into(),
-            layout,
-
+            controller,
+            curve: Default::default(),
             current: value,
         }
     }
 
-    pub fn jump(value: T, layout: bool) -> Self {
+    /// Same as [`new`], but set duration to zero.
+    ///
+    /// [`new`]: #method.new
+    pub fn jump(value: T) -> Self {
+        let controller = AnimationController::new().duration(0.0);
         Animated {
             start: value.clone(),
             end: value.clone(),
-            full_duration: 0.0,
-            current_duration: 0.0,
+            controller,
             curve: Default::default(),
-            layout,
             current: value,
         }
+    }
+
+    /// Builder-style method for specifying the [`AnimationCurve`].
+    ///
+    /// For the non-builder varient, see [`set_curve`].
+    ///
+    /// [`set_curve`]: #method.set_curve
+    pub fn curve(mut self, curve: AnimationCurve) -> Self {
+        self.set_curve(curve);
+        self
+    }
+
+    /// Set the [`AnimationCurve`].
+    pub fn set_curve(&mut self, curve: AnimationCurve) {
+        self.curve = curve;
+    }
+
+    /// Builder-style method for specifying the duration.
+    ///
+    /// For the non-builder varient, see [`set_duration`].
+    ///
+    /// [`set_duration`]: #method.set_duration
+    pub fn duration(mut self, duration: f64) -> Self {
+        self.set_duration(duration);
+        self
+    }
+
+    /// Set the animation duration in seconds.
+    pub fn set_duration(&mut self, duration: f64) {
+        self.controller.set_duration(duration);
+    }
+
+    /// Builder-style method for specifying the layout flag.
+    ///
+    /// For the non-builder varient, see [`set_layout`].
+    ///
+    /// [`set_layout`]: #method.set_layout
+    pub fn layout(mut self, layout: bool) -> Self {
+        self.set_layout(layout);
+        self
+    }
+
+    /// Request widget layout after each update (instead of a paint request).
+    pub fn set_layout(&mut self, layout: bool) {
+        self.controller.set_layout(layout);
     }
 
     /// Returns the interpolated value.
@@ -56,68 +101,48 @@ impl<T: Interpolate + Data> Animated<T> {
         self.current.clone()
     }
 
+    /// Returns the start value.
     pub fn start(&self) -> T {
         self.start.clone()
     }
 
+    /// Returns the end value.
     pub fn end(&self) -> T {
         self.end.clone()
     }
 
-    pub fn duration(&self) -> Duration {
-        Duration::from_secs_f64(self.full_duration)
-    }
-
+    /// Returns the animation progress (between 0.0 and 1.0)
     pub fn progress(&self) -> f64 {
-        self.current_duration / self.full_duration
+        self.controller.fraction()
     }
 
-    pub fn curve(&self) -> &AnimationCurve {
-        &self.curve
-    }
-
-    pub fn set_duration(&mut self, duration: Duration) {
-        let ratio = self.full_duration / self.current_duration;
-        self.full_duration = duration.as_secs_f64();
-        self.current_duration = self.full_duration * ratio;
-    }
-
-    pub fn set_curve(&mut self, curve: impl Into<AnimationCurve>) {
-        self.curve = curve.into();
-    }
-
+    /// Returns true if the animation is running.
     pub fn animating(&self) -> bool {
-        self.current_duration < self.full_duration
+        self.controller.animating()
     }
 
-    /// Set the new end value. If the animation is currently running, it will start from the current
-    /// value.
+    /// Set the new end value.
+    ///
+    /// If the animation is currently running, it will start from the
+    /// current value.
     pub fn animate(&mut self, ctx: &mut impl RequestCtx, value: T) {
-        if !value.same(&self.end) {
+        if value != self.end {
             self.start = self.current.clone();
-            self.end = value.clone();
-            self.current_duration = 0.0;
-            if self.full_duration == 0.0 {
-                self.current = value;
-                if self.layout {
-                    ctx.request_layout();
-                } else {
-                    ctx.request_paint();
-                }
-            } else {
-                ctx.request_anim_frame();
-            }
+            self.end = value;
+            self.controller.reset();
+            self.controller.start(ctx);
         }
     }
 
     /// Set the new end value, curve and duration.
+    ///
     /// If the animation is currently running, it will start from the current value.
     pub fn animate_with(
         &mut self,
         ctx: &mut impl RequestCtx,
         value: T,
-        duration: Duration,
-        curve: impl Into<AnimationCurve>,
+        duration: f64,
+        curve: AnimationCurve,
     ) {
         self.set_curve(curve);
         self.set_duration(duration);
@@ -126,53 +151,36 @@ impl<T: Interpolate + Data> Animated<T> {
 
     /// Stop the animation and set the value.
     pub fn jump_to_value(&mut self, value: T) {
+        self.controller.reset();
         self.start = value.clone();
         self.end = value.clone();
         self.current = value;
-        self.current_duration = self.full_duration;
     }
 
     /// Stop the animation at the current value
     pub fn end_animation(&mut self) {
+        self.controller.reset();
         self.start = self.current.clone();
         self.end = self.current.clone();
-        self.current_duration = self.full_duration;
     }
 
-    /// This method should always be called in Event::AnimationFrame.
-    /// It updates the value according to duration and curve.
-    /// If the value changes and the specific flags are set paint or layout are requested.
-    /// If the transition's end isn't reached an additional animation-frame is requested.
+    /// Update animation state.
     ///
-    /// Returns `true` if the animation just finished.
+    /// This method should always be called in
+    /// [`Event::AnimFrame`](druid::Event::AnimFrame). It updates the
+    /// value according to the past period (`nanos` is added to that
+    /// period first). If the transition's end isn't reached an
+    /// additional animation-frame is requested.
     ///
-    pub fn update(&mut self, nanos: u64, ctx: &mut EventCtx) -> bool {
-        // This must happen before updating the value!
-        let animated = self.animating();
-
+    /// Note: This must be called to drive the animation.
+    pub fn update(&mut self, ctx: &mut impl RequestCtx, nanos: u64) {
+        self.controller.update(ctx, nanos);
         if self.animating() {
-            if self.layout {
-                ctx.request_layout();
-            } else {
-                ctx.request_paint();
-            }
-        }
-
-        self.current_duration += (nanos as f64) * 0.000000001;
-        self.current_duration = self.current_duration.min(self.full_duration);
-
-        if self.animating() {
-            ctx.request_anim_frame();
-            self.current = self.start.interpolate(
-                &self.end,
-                self.curve
-                    .translate(self.current_duration / self.full_duration),
-            );
+            let fraction = self.controller.fraction();
+            self.current = self.start.interpolate(&self.end, self.curve.translate(fraction));
         } else {
             self.current = self.end.clone();
         }
-
-        animated && !self.animating()
     }
 }
 
@@ -184,8 +192,12 @@ impl<T> Deref for Animated<T> {
     }
 }
 
+/// Interpolate between two values
 ///
-pub trait Interpolate: Clone {
+/// Interpolate between `self` and `other` where `value` is the
+/// position (between 0 and 1). For example, a simple linear
+/// interpolation is implemented as: `self + (other - self) * value`
+pub trait Interpolate: PartialEq + Clone {
     fn interpolate(&self, other: &Self, value: f64) -> Self;
 }
 
