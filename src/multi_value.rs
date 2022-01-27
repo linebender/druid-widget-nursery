@@ -7,7 +7,6 @@ use druid::{
     LifeCycleCtx, PaintCtx, Point, RenderContext, Size, UpdateCtx, Vec2, Widget, WidgetPod,
 };
 use std::fmt::Debug;
-use std::time::Duration;
 
 ///A Radio which has further configuration for the value it represents
 pub struct MultiRadio<W, T, U, P> {
@@ -69,12 +68,12 @@ where
 
     /// A Builder-style method to set the duration for the transition
     /// between shown and hidden.
-    pub fn set_transition_duration(&mut self, duration: Duration) {
+    pub fn set_transition_duration(&mut self, duration: f64) {
         self.layout.height.set_duration(duration);
     }
 
     /// Set the duration for the transition between shown and hidden.
-    pub fn with_transition_duration(mut self, duration: Duration) -> Self {
+    pub fn with_transition_duration(mut self, duration: f64) -> Self {
         self.layout.height.set_duration(duration);
         self
     }
@@ -126,7 +125,7 @@ where
 {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut T, env: &Env) {
         if let Event::AnimFrame(nanos) = event {
-            self.layout.update(nanos, ctx);
+            self.layout.update(ctx, *nanos);
         }
 
         let mut enabled = self.is_enabled();
@@ -230,12 +229,12 @@ where
 
     /// A Builder-style method to set the duration for the transition
     /// between shown and hidden.
-    pub fn set_transition_duration(&mut self, duration: Duration) {
+    pub fn set_transition_duration(&mut self, duration: f64) {
         self.layout.height.set_duration(duration);
     }
 
     /// Set the duration for the transition between shown and hidden.
-    pub fn with_transition_duration(mut self, duration: Duration) -> Self {
+    pub fn with_transition_duration(mut self, duration: f64) -> Self {
         self.layout.height.set_duration(duration);
         self
     }
@@ -285,7 +284,7 @@ where
 {
     fn event(&mut self, ctx: &mut EventCtx, event: &Event, data: &mut Option<T>, env: &Env) {
         if let Event::AnimFrame(nanos) = event {
-            self.layout.update(nanos, ctx);
+            self.layout.update(ctx, *nanos);
         }
 
         self.inner.event(ctx, event, data, env);
@@ -369,17 +368,15 @@ impl IndentLayout {
             space: KeyOrValue::Key(WIDGET_PADDING_VERTICAL),
             indent: KeyOrValue::Key(INDENT),
             always_visible: false,
-            height: Animated::new(
-                0.0,
-                Duration::from_secs_f64(0.2),
-                AnimationCurve::EASE_OUT,
-                true,
-            ),
+            height: Animated::new(0.0)
+                .duration(0.2)
+                .curve( AnimationCurve::EASE_OUT)
+                .layout(true),
         }
     }
 
-    pub fn update(&mut self, nanos: &u64, ctx: &mut EventCtx) {
-        self.height.update(*nanos, ctx);
+    pub fn update(&mut self, ctx: &mut EventCtx, nanos: u64) {
+        self.height.update(ctx, nanos);
     }
 
     pub fn update_values(&mut self, ctx: &mut UpdateCtx, visible: bool) {

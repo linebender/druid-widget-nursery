@@ -4,7 +4,6 @@ use druid::{
 };
 use druid_widget_nursery::animation::{Animated, AnimationCurve};
 use druid_widget_nursery::RequestCtx;
-use std::time::Duration;
 
 static COLORS: [Color; 12] = [
     Color::RED,
@@ -30,18 +29,12 @@ struct AnimatedWidget {
 impl AnimatedWidget {
     pub fn new() -> Self {
         AnimatedWidget {
-            color: Animated::new(
-                Color::RED,
-                Duration::from_secs_f64(0.8),
-                AnimationCurve::EASE_IN_OUT,
-                false,
-            ),
-            insets: Animated::new(
-                6.0,
-                Duration::from_secs_f64(0.2),
-                AnimationCurve::EASE_OUT,
-                false,
-            ),
+            color: Animated::new(Color::RED)
+                .duration(0.8)
+                .curve(AnimationCurve::EASE_IN_OUT),
+            insets: Animated::new(6.0)
+                .duration(0.2)
+                .curve(AnimationCurve::EASE_OUT),
             current_color: 0,
         }
     }
@@ -64,7 +57,6 @@ impl Widget<()> for AnimatedWidget {
         match event {
             Event::MouseDown(_) => {
                 ctx.set_active(true);
-                ctx.request_anim_frame();
                 self.set_insets(ctx, ctx.is_hot(), true);
             }
             Event::MouseUp(_) => {
@@ -74,12 +66,11 @@ impl Widget<()> for AnimatedWidget {
                         .animate(ctx, COLORS[self.current_color % COLORS.len()].clone());
                 }
                 ctx.set_active(false);
-                ctx.request_anim_frame();
                 self.set_insets(ctx, ctx.is_hot(), false);
             }
             Event::AnimFrame(nanos) => {
-                self.insets.update(*nanos, ctx);
-                self.color.update(*nanos, ctx);
+                self.insets.update(ctx, *nanos);
+                self.color.update(ctx, *nanos);
             }
             _ => {}
         }
@@ -87,7 +78,6 @@ impl Widget<()> for AnimatedWidget {
 
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, event: &LifeCycle, _: &(), _: &Env) {
         if let LifeCycle::HotChanged(hot) = event {
-            ctx.request_anim_frame();
             self.set_insets(ctx, *hot, ctx.is_active());
         }
     }
