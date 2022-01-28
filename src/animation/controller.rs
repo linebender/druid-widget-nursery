@@ -196,7 +196,7 @@ impl AnimationController {
                         self.status = Running;
                         ctx.request_anim_frame();
                     } else {
-                        let end_fraction = self.direction.end_fraction(even_repeat);
+                        let end_fraction = self.direction.end_fraction(!even_repeat);
                         self.fraction = end_fraction;
                         self.status = Retiring;
                     }
