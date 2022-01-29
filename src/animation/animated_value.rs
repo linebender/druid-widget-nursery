@@ -145,6 +145,9 @@ impl<T: Interpolate> Animated<T> {
             self.end = value;
             self.controller.reset();
             self.controller.start(ctx);
+            if !self.controller.animating() { // handle duration 0.0
+                self.current = self.end.clone();
+            }
         }
     }
 
