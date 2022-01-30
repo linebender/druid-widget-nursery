@@ -18,7 +18,7 @@ use druid::{
 };
 use druid::widget::{Container, Controller, Flex, Label, Slider, TextBox};
 
-use druid_widget_nursery::{Stack, StackChildPosition};
+use druid_widget_nursery::{Stack, StackChild, StackChildPosition};
 
 #[derive(Clone, Default, Data, Lens)]
 struct AppState {
@@ -67,15 +67,16 @@ fn build_stack_ui() -> impl Widget<AppState> {
                 .background(Color::GREEN)
         )
         .with_child(
-            TextBox::new().with_text_size(100.).lens(AppState::mytext1)
+            StackChild::new(TextBox::new().with_text_size(100.).lens(AppState::mytext1))
         )
-        .with_positioned_child(
-            TextBox::new().with_text_size(50.).lens(AppState::mytext2),
-            StackChildPosition::new().bottom(Some(0.)),
+        .with_child(
+            StackChild::new(TextBox::new().with_text_size(50.).lens(AppState::mytext2))
+                .position(StackChildPosition::new().bottom(Some(0.)))
         )
-        .with_dynamic_child(
-            Label::new("Animated").with_text_size(50.),
-            |state: &AppState, _| &state.position,
+        .with_child(
+            StackChild::new(Label::new("Animated").with_text_size(50.))
+                .dynamic_position(|state: &AppState, _| &state.position)
+                .duration(1.0)
         )
         .border(Color::WHITE, 1.0)
         .debug_paint_layout()

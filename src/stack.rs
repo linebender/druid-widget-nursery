@@ -124,7 +124,12 @@ enum Position<T> {
     Dynamic(PositionCallback<T>),
 }
 
-struct StackChild<T> {
+/// Stack child configuration
+///
+/// Any widget can be a stack child. This struct allows to configure
+/// additional aspects like the [`StackChildPosition`] or animation
+/// attributes for dynamic positioned children.
+pub struct StackChild<T> {
     widget: WidgetPod<T, Box<dyn Widget<T>>>,
     position: Position<T>,
     animated_position: Animated<StackChildPosition>,
@@ -132,28 +137,89 @@ struct StackChild<T> {
 
 impl <T: Data> StackChild<T> {
 
-    fn new(widget: WidgetPod<T, Box<dyn Widget<T>>>) -> Self {
+    pub fn new(widget: impl Widget<T> + 'static) -> Self {
         Self {
-            widget,
+            widget: WidgetPod::new(Box::new(widget)),
             position: Position::None,
             //animated_position: Animated::jump(StackChildPosition::new()).layout(true)
             animated_position: Animated::new(StackChildPosition::new())
                 .curve(AnimationCurve::EASE_OUT)
-                .duration(0.5)
+                .duration(0.3)
                 .layout(true),
         }
     }
 
-    fn position(mut self, position: StackChildPosition) -> Self {
-        self.position = Position::Fixed(position);
+    /// Builder-style method for specifying the [`StackChildPosition`].
+    ///
+    /// For the non-builder varient, see [`set_position`].
+    ///
+    /// [`set_position`]: #method.set_position
+    pub fn position(mut self, position: StackChildPosition) -> Self {
+        self.set_position(position);
         self
     }
 
-    fn dynamic_position<F>(mut self, position: F) -> Self
+    /// Set the [`StackChildPosition`].
+    pub fn set_position(&mut self, position: StackChildPosition) {
+        self.position = Position::Fixed(position);
+    }
+
+    /// Builder-style method for specifying the position callback function.
+    ///
+    /// For the non-builder varient, see [`set_dynamic_position`].
+    ///
+    /// [`set_dynamic_position`]: #method.set_dynamic_position
+    pub fn dynamic_position<F>(mut self, position: F) -> Self
+    where F: 'static + for<'a> Fn(&'a T, &Env) -> &'a StackChildPosition
+    {
+        self.set_dynamic_position(position);
+        self
+    }
+
+    /// Set the position callback function.
+    ///
+    /// The specified function is called on each data update and
+    /// should return the new [`StackChildPosition`].
+    pub fn set_dynamic_position<F>(&mut self, position: F)
     where F: 'static + for<'a> Fn(&'a T, &Env) -> &'a StackChildPosition
     {
         self.position = Position::Dynamic(Box::new(position));
+    }
+
+    /// Builder-style method for specifying the [`AnimationCurve`].
+    ///
+    /// For the non-builder varient, see [`set_curve`].
+    ///
+    /// [`set_curve`]: #method.set_curve
+    pub fn curve(mut self, curve: AnimationCurve) -> Self {
+        self.animated_position.set_curve(curve);
         self
+    }
+
+    /// Set the [`AnimationCurve`].
+    ///
+    /// The curve is used by dynamically positioned children to
+    /// animate the position change.
+    pub fn set_curve(&mut self, curve: AnimationCurve) {
+        self.animated_position.set_curve(curve);
+    }
+
+    /// Builder-style method for specifying the animation duration.
+    ///
+    /// For the non-builder varient, see [`set_duration`].
+    ///
+    /// [`set_duration`]: #method.set_duration
+    pub fn duration(mut self, duration: f64) -> Self {
+        self.animated_position.set_duration(duration);
+        self
+    }
+
+    /// Set the animation duration in seconds.
+    ///
+    /// The duration is used by dynamically positioned children to
+    /// animate the position change.
+    pub fn set_duration(&mut self, duration: f64) {
+        self.animated_position.set_duration(duration);
     }
 }
 
@@ -198,82 +264,54 @@ impl <T: Data> Stack<T> {
         }
     }
 
+    /// Builder-style method for specifying the `fit` attribute.
     pub fn fit(mut self, fit: bool) -> Self {
         self.set_fit(fit);
         self
     }
 
+    /// Set the `fit` attribute.
+    ///
+    /// Fit *non-positioned* children to the size of the container.
     pub fn set_fit(&mut self, fit: bool) {
         self.fit = fit;
     }
 
+    /// Builder-style method for specifying the `clip` attribute.
     pub fn clip(mut self, clip: bool) -> Self {
         self.set_clip(clip);
         self
     }
 
+    /// Set the `clip` attribute.
+    ///
+    /// Clip paint region at container boundaries.
     pub fn set_clip(&mut self, clip: bool) {
         self.clip = clip;
     }
 
+
+    /// Builder-style method for specifying the default child alignment.
     pub fn align(mut self, align: UnitPoint) -> Self {
         self.set_align(align);
         self
     }
 
+    /// Set the default child alignment.
     pub fn set_align(&mut self, align: UnitPoint) {
         self.align = align;
     }
 
-    pub fn with_child(mut self, child: impl Widget<T> + 'static) -> Self {
+    /// Builder-style variant of `add_child`.
+    pub fn with_child(mut self, child: impl Into<StackChild<T>> + 'static) -> Self {
         self.add_child(child);
         self
     }
 
-    pub fn add_child(&mut self, child: impl Widget<T> + 'static) {
-        let child = StackChild::new(WidgetPod::new(Box::new(child)));
-        self.children.push(child);
+    /// Add another stack child.
+    pub fn add_child(&mut self, child: impl Into<StackChild<T>> + 'static) {
+        self.children.push(child.into());
     }
-
-    pub fn with_positioned_child(
-        mut self,
-        child: impl Widget<T> + 'static,
-        position: StackChildPosition,
-    ) -> Self {
-        self.add_positioned_child(child, position);
-        self
-    }
-
-    pub fn add_positioned_child(
-        &mut self,
-        child: impl Widget<T> + 'static,
-        position: StackChildPosition,
-    ) {
-        let child = StackChild::new(WidgetPod::new(Box::new(child))).position(position);
-        self.children.push(child);
-    }
-
-    pub fn with_dynamic_child<F: 'static + for<'a> Fn(&'a T, &Env) -> &'a StackChildPosition>(
-        mut self,
-        child: impl Widget<T> + 'static,
-        position: F,
-    ) -> Self {
-        self.add_dynamic_child(child, position);
-        self
-    }
-
-    pub fn add_dynamic_child<F>(
-        &mut self,
-        child: impl Widget<T> + 'static,
-        position: F,
-    )
-    where F:  'static + for<'a>  Fn(&'a T, &Env) -> &'a StackChildPosition,
-    {
-        let child = StackChild::new(WidgetPod::new(Box::new(child)))
-            .dynamic_position(position);
-        self.children.push(child);
-    }
-
 }
 
 impl<T: Data> Widget<T> for Stack<T> {
@@ -437,5 +475,27 @@ impl<T: Data> Widget<T> for Stack<T> {
         for child in &mut self.children {
             child.widget.paint(ctx, data, env);
         }
+    }
+}
+
+
+// AFAIK it is not possible to implement From<Widget<T> for StackChild, so
+// we just implement it for common container types used as StackChild.
+
+impl <T: Data> From<druid::widget::SizedBox<T>> for StackChild<T> {
+    fn from(src: druid::widget::SizedBox<T>) -> Self {
+        Self::new(src)
+    }
+}
+
+impl <T: Data> From<druid::widget::Container<T>> for StackChild<T> {
+    fn from(src: druid::widget::Container<T>) -> Self {
+        Self::new(src)
+    }
+}
+
+impl <T: Data> From<druid::widget::Flex<T>> for StackChild<T> {
+    fn from(src: druid::widget::Flex<T>) -> Self {
+        Self::new(src)
     }
 }
