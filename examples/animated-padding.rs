@@ -32,16 +32,17 @@ fn build_ui() -> impl Widget<AppState> {
         )
         .with_child(
             AnimatedPadding::new(
-                Label::new("Animated Padding"),
+                // Seems setting the text width fixes the animation problem.
+                Label::new("Animated Padding").fix_width(200.),
+                // Label::new("Animated Padding"),
                 |data: &AppState, _env| Insets::uniform(if data.add_space { 30.0 } else { 10.0 }),
-            ).duration(2.0).curve(AnimationCurve::EASE_IN_OUT)
-
+            ).duration(0.3).curve(AnimationCurve::EASE_IN_OUT)
         )
         .debug_paint_layout()
 }
 
 pub fn main() {
-    let main_window = WindowDesc::new(build_ui().center())
+    let main_window = WindowDesc::new(build_ui())
         .title("Animated Padding Test");
 
     let state = AppState {
