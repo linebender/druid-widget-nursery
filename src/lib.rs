@@ -31,6 +31,7 @@ mod list_select;
 #[macro_use]
 mod macros;
 mod advanced_slider;
+mod mask;
 mod multi_value;
 pub mod navigator;
 mod on_change;
@@ -73,6 +74,7 @@ pub use dyn_lens::DynLens;
 pub use dynamic_sized_box::DynamicSizedBox;
 pub use list_filter::{FilterIter, ListFilter};
 pub use list_select::ListSelect;
+pub use mask::Mask;
 pub use multi_value::{MultiCheckbox, MultiRadio};
 pub use on_change::OnChange;
 pub use on_cmd::OnCmd;
