@@ -26,7 +26,7 @@ pub use flex_table::*;
 ///
 /// If a widget is smaller than the table cell, this determines
 /// where it is positioned.
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum TableCellVerticalAlignment {
     /// Align on the baseline.
     ///

@@ -7,8 +7,10 @@ use druid::WindowSizePolicy;
 use druid::{Point, WindowConfig};
 use druid::{WindowId, WindowLevel};
 
+type DropFn<T> = Box<dyn Fn(&T, &Env) -> Box<dyn Widget<T>>>;
+
 pub struct Dropdown<T> {
-    drop: Box<dyn Fn(&T, &Env) -> Box<dyn Widget<T>>>,
+    drop: DropFn<T>,
     window: Option<WindowId>,
 }
 
