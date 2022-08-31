@@ -178,7 +178,7 @@ impl From<std::io::Error> for ThemeLoadError {
 /// the actual values yet, pending validation.
 ///
 /// [`Value`]: druid::Value
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ValueKind {
     Color,
     Float,

@@ -2,9 +2,11 @@ use druid::widget::prelude::*;
 use druid::widget::Controller;
 use druid::Selector;
 
+type HandlerFn<CT, WT> = Box<dyn Fn(&mut EventCtx, &CT, &mut WT)>;
+
 pub struct OnCmd<CT, WT> {
     selector: Selector<CT>,
-    handler: Box<dyn Fn(&mut EventCtx, &CT, &mut WT)>,
+    handler: HandlerFn<CT, WT>,
 }
 
 impl<CT, WT> OnCmd<CT, WT> {

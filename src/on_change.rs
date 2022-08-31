@@ -1,6 +1,7 @@
 use druid::widget::prelude::*;
 use druid::widget::Controller;
 
+#[allow(clippy::type_complexity)]
 pub struct OnChange<T>(Box<dyn Fn(&mut EventCtx, &T, &mut T, &Env)>);
 
 impl<T> OnChange<T> {

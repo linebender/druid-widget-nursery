@@ -44,7 +44,7 @@ pub enum AnimationStatus {
 }
 
 /// Which direction should the animation run, and how should it repeat
-#[derive(Debug, Data, Copy, Clone, PartialOrd, PartialEq)]
+#[derive(Debug, Data, Copy, Clone, PartialOrd, Eq, PartialEq)]
 pub enum AnimationDirection {
     Forward,
     Reverse,

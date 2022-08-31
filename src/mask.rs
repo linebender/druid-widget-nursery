@@ -19,13 +19,14 @@ use druid::{
 };
 use druid::widget::{Align, BackgroundBrush, Flex, Label, LabelText, Spinner};
 
+type ShowMaskFn<T> = Box<dyn Fn(&T, &Env) -> bool>;
 
 /// A widget that conditionally masks the child content and displays
 /// other content instead (the mask).
 pub struct Mask<T> {
     child: WidgetPod<T, Box<dyn Widget<T>>>,
     mask: WidgetPod<T, Box<dyn Widget<T>>>,
-    show_mask_cb: Option<Box<dyn Fn(&T, &Env) -> bool>>,
+    show_mask_cb: Option<ShowMaskFn<T>>,
     show_mask: bool,
 }
 
