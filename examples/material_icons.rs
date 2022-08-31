@@ -22,11 +22,8 @@ fn ui_builder() -> impl Widget<()> {
         .center()
 }
 
-#[derive(Debug, StructOpt)]
-struct Opt {}
-
 #[qu::ick]
-pub fn main(_opt: Opt) -> Result {
+pub fn main() -> Result {
     // Create the main window
     let main_window = WindowDesc::new(ui_builder())
         .title(LocalizedString::new("material-icons").with_placeholder("Material Icons demo"));

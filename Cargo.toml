@@ -69,6 +69,6 @@ required-features = ["material-icons"]
 members = ["druid-widget-nursery-derive", "examples/hot-reload"]
 
 [dev-dependencies]
-qu = "0.3.1"
+clap = { version = "3.2.19", features = ["derive"] }
+qu = "0.5.1"
 serde_json = "1.0.71"
-structopt = "0.3.25"

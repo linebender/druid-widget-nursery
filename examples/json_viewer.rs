@@ -192,9 +192,8 @@ impl AppDelegate<JsonNode> for Delegate {
     }
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Parser)]
 struct Opt {
-    #[structopt(parse(from_os_str))]
     json_file: Option<PathBuf>,
 }
 
