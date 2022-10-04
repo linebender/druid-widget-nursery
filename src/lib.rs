@@ -46,6 +46,7 @@ pub mod table;
 pub mod theme_loader;
 mod titlebar;
 mod tooltip;
+pub mod stack_tooltip;
 pub mod tree;
 mod versioned;
 pub mod wedge;
