@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::f64::consts::PI;
 use std::fmt;
 use std::fmt::{Debug, Formatter};
-use std::f64::consts::PI;
 
 impl From<fn(f64) -> f64> for AnimationCurve {
     fn from(f: fn(f64) -> f64) -> Self {
@@ -53,9 +53,9 @@ impl Debug for AnimationCurve {
                 .debug_struct("AnimationCurve::Function")
                 .field("f", f)
                 .finish(),
-            AnimationCurve::Closure(_) => formatter
-                .debug_struct("AnimationCurve::Closure")
-                .finish(),
+            AnimationCurve::Closure(_) => {
+                formatter.debug_struct("AnimationCurve::Closure").finish()
+            }
             AnimationCurve::CubicBezier(b) => formatter
                 .debug_struct("AnimationCurve::CubicBezier")
                 .field("x1", &b.x1)
@@ -68,7 +68,6 @@ impl Debug for AnimationCurve {
 }
 
 impl AnimationCurve {
-
     /// F(t) -> t
     pub const LINEAR: Self = Self::Function(|t| t);
 
@@ -85,7 +84,8 @@ impl AnimationCurve {
     pub const EASE_OUT_ELASTIC: Self = Self::Function(ease_out_elastic);
     /// Oscillating curve that grows and then shrinks in magnitude
     /// while overshooting its bounds.
-    pub const EASE_IN_OUT_ELASTIC: Self = Self::Function(|t| combine_in_out_rev(ease_out_elastic, t));
+    pub const EASE_IN_OUT_ELASTIC: Self =
+        Self::Function(|t| combine_in_out_rev(ease_out_elastic, t));
 
     /// F(t) -> 1 - cos(tπ/2)
     pub const EASE_IN_SINE: Self = Self::Function(|t| 1.0 - (t * PI * 0.5).cos());
@@ -113,7 +113,7 @@ impl AnimationCurve {
     /// Flipped [`BOUNCE_IN`](AnimationCurve::BOUNCE_IN)
     pub const BOUNCE_OUT: Self = Self::Function(bounce);
     /// combines [`BOUNCE_IN`](AnimationCurve::BOUNCE_IN) and [`BOUNCE_OUT`](AnimationCurve::BOUNCE_OUT)
-    pub const BOUNCE_IN_OUT: Self = Self::Function(|t|  combine_in_out_rev(bounce, t));
+    pub const BOUNCE_IN_OUT: Self = Self::Function(|t| combine_in_out_rev(bounce, t));
 
     /// Create a Cubic Bezier curve.
     pub const fn cubic(x1: f64, y1: f64, x2: f64, y2: f64) -> Self {
@@ -159,11 +159,8 @@ pub struct CubicBezierAnimationCurve {
 }
 
 impl CubicBezierAnimationCurve {
-
     fn evaluate_cubic(a: f64, b: f64, m: f64) -> f64 {
-        3.0 * a * (1.0 - m) * (1.0 - m) * m +
-        3.0 * b * (1.0 - m) *             m * m +
-                                          m * m * m
+        3.0 * a * (1.0 - m) * (1.0 - m) * m + 3.0 * b * (1.0 - m) * m * m + m * m * m
     }
 
     /// Returns the value of the curve at point `t`.

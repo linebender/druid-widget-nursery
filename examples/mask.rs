@@ -12,10 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use druid::{
-    AppLauncher, Color, Data, Lens, Widget, WidgetExt, WindowDesc, WindowSizePolicy,
-};
 use druid::widget::{Button, Flex, TextBox};
+use druid::{AppLauncher, Color, Data, Lens, Widget, WidgetExt, WindowDesc, WindowSizePolicy};
 
 use druid_widget_nursery::Mask;
 
@@ -28,9 +26,11 @@ struct AppState {
 fn ui_builder() -> impl Widget<AppState> {
     Flex::column()
         .with_child(
-            Button::new("Toggle mask").on_click(|_, data: &mut AppState, _|  {
-                data.show_mask = !data.show_mask;
-            }).padding(5.)
+            Button::new("Toggle mask")
+                .on_click(|_, data: &mut AppState, _| {
+                    data.show_mask = !data.show_mask;
+                })
+                .padding(5.),
         )
         .with_child({
             let child = TextBox::new().with_text_size(100.).lens(AppState::text);
@@ -40,7 +40,6 @@ fn ui_builder() -> impl Widget<AppState> {
                 .border(Color::WHITE, 1.0)
         })
 }
-
 
 pub fn main() {
     let main_window = WindowDesc::new(ui_builder())

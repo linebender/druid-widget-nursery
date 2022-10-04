@@ -29,14 +29,9 @@ const POINT_UPDATED: Selector = Selector::new("tooltip.label.get_dims");
 
 type StatefulT<T> = (T, Option<String>, StackChildPosition);
 
+#[derive(Default)]
 pub struct TooltipFactory {
     id: Option<WidgetId>,
-}
-
-impl Default for TooltipFactory {
-    fn default() -> Self {
-        Self { id: None }
-    }
 }
 
 impl TooltipFactory {
@@ -44,19 +39,17 @@ impl TooltipFactory {
         &mut self,
         widget: W,
     ) -> Option<impl Widget<T>> {
-        if let Some(id) = self.id {
-            Some(Scope::from_lens(
+        self.id.map(|id| {
+            Scope::from_lens(
                 |input| (input, None, StackChildPosition::new().height(Some(0.0))),
                 lens!(StatefulT<T>, 0),
                 TooltipWrapper::new(widget, id).with_id(id),
-            ))
-        } else {
-            None
-        }
+            )
+        })
     }
 
     pub fn wrapper_id(&self) -> Option<WidgetId> {
-        self.id.clone()
+        self.id
     }
 
     pub fn tooltip<T: Data, W: Widget<T> + 'static>(
@@ -65,10 +58,10 @@ impl TooltipFactory {
         label: impl AsRef<str>,
     ) -> impl Widget<T> {
         let id = if let Some(id) = self.id {
-            id.clone()
+            id
         } else {
             let id = WidgetId::next();
-            self.id = Some(id.clone());
+            self.id = Some(id);
             id
         };
         let label = label.as_ref().to_owned();
@@ -105,10 +98,7 @@ impl<T: Data, W: Widget<T>> Widget<T> for TooltipTrigger<T, W> {
             if ctx.is_hot() && ctx.size().to_rect().contains(mouse.pos) {
                 ctx.submit_command(
                     SHOW_AT
-                        .with(SingleUse::new((
-                            mouse.window_pos.clone(),
-                            self.label.clone(),
-                        )))
+                        .with(SingleUse::new((mouse.window_pos, self.label.clone())))
                         .to(self.id),
                 );
             } else {
@@ -173,36 +163,29 @@ impl<T: Data> TooltipWrapper<StatefulT<T>> {
             .with_child(widget.lens(lens!(StatefulT<T>, 0)))
             .with_positioned_child(
                 ViewSwitcher::new(|(_, show, _): &StatefulT<T>, _| show.clone(), {
-                    let id = id.clone();
                     move |show: &Option<String>, (_, _, position): &StatefulT<T>, _| {
                         println!("rebuilding");
                         if let Some(label) = show {
                             if is_some_position(position) {
-                                return TooltipLabel::new(label.clone(), id.clone())
+                                return TooltipLabel::new(label.clone(), id)
                                     .background(druid::theme::BACKGROUND_DARK)
                                     .border(druid::theme::BORDER_DARK, 2.0)
                                     .on_added(move |_, ctx, _, _| {
                                         ctx.submit_command(
-                                            UPDATE_ID
-                                                .with(SingleUse::new(ctx.widget_id()))
-                                                .to(id.clone()),
+                                            UPDATE_ID.with(SingleUse::new(ctx.widget_id())).to(id),
                                         )
                                     })
                                     .on_command(POINT_UPDATED, |ctx, _, (_, _, position)| {
                                         if let Some(left) = position.left {
                                             let window_width = ctx.window().get_size().width;
-                                            if left + ctx.size().width
-                                                > window_width
-                                            {
+                                            if left + ctx.size().width > window_width {
                                                 position.left = None;
                                                 position.right.replace(window_width - left);
                                             }
                                         }
                                         if let Some(top) = position.top {
                                             let window_height = ctx.window().get_size().height;
-                                            if top + ctx.size().height
-                                                > window_height
-                                            {
+                                            if top + ctx.size().height > window_height {
                                                 position.top = None;
                                                 position.bottom.replace(window_height - top);
                                             }
@@ -316,11 +299,7 @@ impl<T: Data> Widget<StatefulT<T>> for TooltipLabel<T> {
         env: &druid::Env,
     ) {
         if let druid::Event::MouseMove(mouse) = event {
-            ctx.submit_command(
-                FORWARD
-                    .with(SingleUse::new(mouse.window_pos.clone()))
-                    .to(self.id),
-            )
+            ctx.submit_command(FORWARD.with(SingleUse::new(mouse.window_pos)).to(self.id))
         }
 
         self.label.event(ctx, event, data, env)

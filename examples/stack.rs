@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use druid::{
-    AppLauncher, Color, Data, Event, EventCtx, Env, Lens,
-    UnitPoint, Widget, WidgetExt, WindowDesc, WindowSizePolicy,
-};
 use druid::widget::{Container, Controller, Flex, Label, Slider, TextBox};
+use druid::{
+    AppLauncher, Color, Data, Env, Event, EventCtx, Lens, UnitPoint, Widget, WidgetExt, WindowDesc,
+    WindowSizePolicy,
+};
 
 use druid_widget_nursery::{Stack, StackChildParams, StackChildPosition};
 
@@ -32,7 +32,14 @@ struct AppState {
 struct UpdatePosition;
 
 impl<W: Widget<AppState>> Controller<AppState, W> for UpdatePosition {
-    fn event(&mut self, child: &mut W, ctx: &mut EventCtx, event: &Event, data: &mut AppState, env: &Env) {
+    fn event(
+        &mut self,
+        child: &mut W,
+        ctx: &mut EventCtx,
+        event: &Event,
+        data: &mut AppState,
+        env: &Env,
+    ) {
         data.position.top = Some(data.slider_top);
         child.event(ctx, event, data, env)
     }
@@ -52,9 +59,8 @@ fn build_toolbar_ui() -> impl Widget<AppState> {
                 .with_range(0f64, 400.0)
                 .lens(AppState::slider_top)
                 .fix_width(250.)
-                .controller(UpdatePosition)
+                .controller(UpdatePosition),
         )
-
 }
 
 fn build_stack_ui() -> impl Widget<AppState> {
@@ -64,19 +70,16 @@ fn build_stack_ui() -> impl Widget<AppState> {
             Container::new(Label::new("The Stack"))
                 .fix_width(500.)
                 .fix_height(400.)
-                .background(Color::GREEN)
+                .background(Color::GREEN),
         )
-        .with_child(
-            TextBox::new().with_text_size(100.).lens(AppState::mytext1)
-        )
+        .with_child(TextBox::new().with_text_size(100.).lens(AppState::mytext1))
         .with_positioned_child(
             TextBox::new().with_text_size(50.).lens(AppState::mytext2),
             StackChildPosition::new().bottom(Some(0.)),
         )
         .with_positioned_child(
             Label::new("Animated").with_text_size(50.),
-            StackChildParams::dynamic(|state: &AppState, _| &state.position)
-                .duration(1.0)
+            StackChildParams::dynamic(|state: &AppState, _| &state.position).duration(1.0),
         )
         .border(Color::WHITE, 1.0)
         .debug_paint_layout()

@@ -13,11 +13,11 @@
 // limitations under the License.
 
 use druid::theme;
-use druid::{
-    BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx,
-    PaintCtx, Point, Size, UpdateCtx, Widget, WidgetExt, WidgetPod,
-};
 use druid::widget::{Align, BackgroundBrush, Flex, Label, LabelText, Spinner};
+use druid::{
+    BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx,
+    Point, Size, UpdateCtx, Widget, WidgetExt, WidgetPod,
+};
 
 type ShowMaskFn<T> = Box<dyn Fn(&T, &Env) -> bool>;
 
@@ -30,8 +30,7 @@ pub struct Mask<T> {
     show_mask: bool,
 }
 
-impl <T: Data> Mask<T> {
-
+impl<T: Data> Mask<T> {
     /// Create a new instance with a child.
     ///
     /// The Mask widget simply shows the `child` unless the
@@ -64,7 +63,7 @@ impl <T: Data> Mask<T> {
 
     /// Builder-style method to dynamically compute the `show_mask`
     /// flag using a closure.
-    pub fn dynamic(mut self, show_mask_cb: impl  Fn(&T, &Env) -> bool + 'static) -> Self {
+    pub fn dynamic(mut self, show_mask_cb: impl Fn(&T, &Env) -> bool + 'static) -> Self {
         self.show_mask_cb = Some(Box::new(show_mask_cb));
         self
     }
@@ -129,7 +128,13 @@ impl<T: Data> Widget<T> for Mask<T> {
         self.mask.update(ctx, data, env);
     }
 
-    fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> druid::Size {
+    fn layout(
+        &mut self,
+        ctx: &mut LayoutCtx,
+        bc: &BoxConstraints,
+        data: &T,
+        env: &Env,
+    ) -> druid::Size {
         let size = self.child.layout(ctx, bc, data, env);
         let mask_bc = BoxConstraints::new(Size::ZERO, size);
         let _mask_size = self.mask.layout(ctx, &mask_bc, data, env);
