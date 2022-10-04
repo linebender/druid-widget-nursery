@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use druid::{AppLauncher, Color, Data, Lens, Widget, WidgetExt, WindowDesc};
 use druid::widget::{Container, Label};
+use druid::{AppLauncher, Color, Data, Lens, Widget, WidgetExt, WindowDesc};
 use druid_widget_nursery::Stack;
 
 #[derive(Clone, Default, Data, Lens)]
@@ -25,25 +25,24 @@ fn build_ui() -> impl Widget<AppState> {
             Container::new(Label::new("RED"))
                 .fix_width(200.)
                 .fix_height(200.)
-                .background(Color::RED)
+                .background(Color::RED),
         )
         .with_child(
             Container::new(Label::new("GREEN"))
                 .fix_width(180.)
                 .fix_height(180.)
-                .background(Color::GREEN)
+                .background(Color::GREEN),
         )
         .with_child(
             Container::new(Label::new("BLUE"))
                 .fix_width(160.)
                 .fix_height(160.)
-                .background(Color::BLUE)
+                .background(Color::BLUE),
         )
 }
 
 pub fn main() {
-    let main_window = WindowDesc::new(build_ui().center())
-        .title("Stack Test");
+    let main_window = WindowDesc::new(build_ui().center()).title("Stack Test");
 
     let state = AppState::default();
 

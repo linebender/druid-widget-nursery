@@ -370,7 +370,7 @@ impl IndentLayout {
             always_visible: false,
             height: Animated::new(0.0)
                 .duration(0.2)
-                .curve( AnimationCurve::EASE_OUT)
+                .curve(AnimationCurve::EASE_OUT)
                 .layout(true),
         }
     }

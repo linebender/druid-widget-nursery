@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use druid::widget::{Container, Label};
 use druid::{AppLauncher, Color, Data, Lens, Widget, WidgetExt, WindowDesc};
-use druid::widget:: {Container, Label};
 
 use druid_widget_nursery::{Stack, StackChildPosition};
 
@@ -24,9 +24,11 @@ fn build_ui() -> impl Widget<AppState> {
     Stack::new()
         .fit(true)
         .with_child(
-            Container::new(Label::new("Expanded non-positional Stack child (fit = true)"))
-                .padding(20.)
-                .background(Color::BLUE)
+            Container::new(Label::new(
+                "Expanded non-positional Stack child (fit = true)",
+            ))
+            .padding(20.)
+            .background(Color::BLUE),
         )
         .with_positioned_child(
             Container::new(Label::new("Positional Stack child"))
@@ -41,8 +43,7 @@ fn build_ui() -> impl Widget<AppState> {
 }
 
 pub fn main() {
-    let main_window = WindowDesc::new(build_ui().center())
-        .title("Stack Test");
+    let main_window = WindowDesc::new(build_ui().center()).title("Stack Test");
 
     let state = AppState::default();
 

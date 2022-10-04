@@ -42,6 +42,7 @@ mod progress_bar;
 mod separator;
 pub mod splits;
 mod stack;
+pub mod stack_tooltip;
 pub mod table;
 pub mod theme_loader;
 mod titlebar;

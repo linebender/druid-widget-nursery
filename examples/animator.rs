@@ -6,7 +6,7 @@ use druid::{
     theme, AppLauncher, BoxConstraints, Color, Data, Env, Event, EventCtx, LayoutCtx, Lens,
     LifeCycle, LifeCycleCtx, PaintCtx, UpdateCtx, Widget, WindowDesc,
 };
-use druid_widget_nursery::animation::{AnimationDirection, AnimationId, Animator, AnimationCurve};
+use druid_widget_nursery::animation::{AnimationCurve, AnimationDirection, AnimationId, Animator};
 
 use druid::widget::prelude::RenderContext;
 use std::time::Duration;

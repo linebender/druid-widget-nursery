@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::{AnimationStatus, AnimationDirection};
+use super::{AnimationDirection, AnimationStatus};
 
 use crate::RequestCtx;
 
@@ -38,7 +38,6 @@ impl Default for AnimationController {
 }
 
 impl AnimationController {
-
     /// Create a new forward animation with duration of one second.
     pub fn new() -> Self {
         Self {
@@ -73,7 +72,7 @@ impl AnimationController {
     /// For the non-builder varient, see [`set_direction`].
     ///
     /// [`set_direction`]: #method.set_direction
-     pub fn direction(mut self, direction: AnimationDirection) -> Self {
+    pub fn direction(mut self, direction: AnimationDirection) -> Self {
         self.set_direction(direction);
         self
     }
@@ -120,7 +119,6 @@ impl AnimationController {
         self.fraction
     }
 
-
     /// Get the current [`AnimationStatus`].
     pub fn status(&self) -> AnimationStatus {
         self.status
@@ -130,9 +128,9 @@ impl AnimationController {
     pub fn animating(&self) -> bool {
         use AnimationStatus::*;
         match &self.status {
-             NotRunning | Retiring => false,
-             Enlisting | Running | Repeating => true,
-         }
+            NotRunning | Retiring => false,
+            Enlisting | Running | Repeating => true,
+        }
     }
 
     /// Reset the controller.
@@ -142,12 +140,12 @@ impl AnimationController {
         self.since_start = 0.0;
         self.status = AnimationStatus::NotRunning;
 
-         match self.direction {
-             Forward => self.fraction = 0.0,
-             Reverse => self.fraction = 1.0,
-             Alternate => self.fraction = 0.0,
-             AlternateReverse => self.fraction = 1.0,
-         }
+        match self.direction {
+            Forward => self.fraction = 0.0,
+            Reverse => self.fraction = 1.0,
+            Alternate => self.fraction = 0.0,
+            AlternateReverse => self.fraction = 1.0,
+        }
     }
 
     /// Start the animation.
@@ -175,7 +173,6 @@ impl AnimationController {
                 // do nothing
             }
             Enlisting | Running | Repeating => {
-
                 self.since_start += (nanos as f64) * 0.000000001;
 
                 if self.duration <= 0.0 {
@@ -188,8 +185,7 @@ impl AnimationController {
                     let repeat_count = factor as usize;
                     let even_repeat = repeat_count % 2 == 0;
 
-                    let allow_repeat = self.repeat_limit
-                        .map_or(true, |limit| repeat_count < limit);
+                    let allow_repeat = self.repeat_limit.map_or(true, |limit| repeat_count < limit);
 
                     if allow_repeat {
                         self.fraction = self.direction.translate(fraction, even_repeat);

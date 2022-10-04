@@ -14,7 +14,7 @@
 
 use std::ops::Deref;
 
-use crate::animation::{AnimationCurve, AnimationController, Interpolate};
+use crate::animation::{AnimationController, AnimationCurve, Interpolate};
 
 use crate::RequestCtx;
 
@@ -145,7 +145,8 @@ impl<T: Interpolate> Animated<T> {
             self.end = value;
             self.controller.reset();
             self.controller.start(ctx);
-            if !self.controller.animating() { // handle duration 0.0
+            if !self.controller.animating() {
+                // handle duration 0.0
                 self.current = self.end.clone();
             }
         }
@@ -194,7 +195,9 @@ impl<T: Interpolate> Animated<T> {
         self.controller.update(ctx, nanos);
         if self.animating() {
             let fraction = self.controller.fraction();
-            self.current = self.start.interpolate(&self.end, self.curve.translate(fraction));
+            self.current = self
+                .start
+                .interpolate(&self.end, self.curve.translate(fraction));
         } else {
             self.current = self.end.clone();
         }

@@ -13,13 +13,13 @@
 // limitations under the License.
 
 use druid::{
-    BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx,
-    PaintCtx, Point, Rect, RenderContext, Size, UpdateCtx, Widget, WidgetPod, UnitPoint,
+    BoxConstraints, Data, Env, Event, EventCtx, LayoutCtx, LifeCycle, LifeCycleCtx, PaintCtx,
+    Point, Rect, RenderContext, Size, UnitPoint, UpdateCtx, Widget, WidgetPod,
 };
 use tracing::warn;
 
-use druid::kurbo::Shape;
 use crate::animation::{Animated, AnimationCurve, Interpolate};
+use druid::kurbo::Shape;
 
 /// Stack child position
 ///
@@ -55,9 +55,21 @@ impl Interpolate for StackChildPosition {
     fn interpolate(&self, other: &Self, fraction: f64) -> Self {
         let lerp = |a: Option<f64>, b: Option<f64>, f: f64| -> Option<f64> {
             match (a, b) {
-                (Some(a), Some(b)) => Some(a + (b -a)*f),
-                (Some(a), None) => if fraction < 0.5 { Some(a) } else { None },
-                (None, Some(b)) => if fraction < 0.5 { None } else { Some(b) },
+                (Some(a), Some(b)) => Some(a + (b - a) * f),
+                (Some(a), None) => {
+                    if fraction < 0.5 {
+                        Some(a)
+                    } else {
+                        None
+                    }
+                }
+                (None, Some(b)) => {
+                    if fraction < 0.5 {
+                        None
+                    } else {
+                        Some(b)
+                    }
+                }
                 (None, None) => None,
             }
         };
@@ -73,7 +85,6 @@ impl Interpolate for StackChildPosition {
 }
 
 impl StackChildPosition {
-
     /// Create a new instance, all values set to `None`.
     pub fn new() -> Self {
         Self::default()
@@ -135,19 +146,18 @@ pub struct StackChildParams<T> {
     animated_position: Animated<StackChildPosition>,
 }
 
-impl <T> From<StackChildPosition> for StackChildParams<T> {
+impl<T> From<StackChildPosition> for StackChildParams<T> {
     fn from(position: StackChildPosition) -> Self {
         StackChildParams::fixed(position)
     }
 }
 
-impl <T> StackChildParams<T> {
-
+impl<T> StackChildParams<T> {
     // setup for non-positioned children
     fn new() -> Self {
         Self {
             position: Position::None,
-            animated_position: Animated::jump(StackChildPosition::new()).layout(true)
+            animated_position: Animated::jump(StackChildPosition::new()).layout(true),
         }
     }
 
@@ -155,13 +165,14 @@ impl <T> StackChildParams<T> {
     pub fn fixed(position: StackChildPosition) -> Self {
         Self {
             position: Position::Fixed(position),
-            animated_position: Animated::jump(StackChildPosition::new()).layout(true)
+            animated_position: Animated::jump(StackChildPosition::new()).layout(true),
         }
     }
 
     /// Create a dynamically *positioned* stack child
     pub fn dynamic<F>(position: F) -> Self
-    where F: 'static + for<'a> Fn(&'a T, &Env) -> &'a StackChildPosition
+    where
+        F: 'static + for<'a> Fn(&'a T, &Env) -> &'a StackChildPosition,
     {
         Self {
             position: Position::Dynamic(Box::new(position)),
@@ -214,7 +225,7 @@ struct StackChild<T> {
     params: StackChildParams<T>,
 }
 
-impl <T: Data> StackChild<T> {
+impl<T: Data> StackChild<T> {
     pub fn new(widget: impl Widget<T> + 'static, params: StackChildParams<T>) -> Self {
         Self {
             widget: WidgetPod::new(Box::new(widget)),
@@ -243,14 +254,13 @@ pub struct Stack<T> {
     clip: bool,
 }
 
-impl <T: Data>  Default for Stack<T> {
+impl<T: Data> Default for Stack<T> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl <T: Data> Stack<T> {
-
+impl<T: Data> Stack<T> {
     /// Create a new Stack widget.
     ///
     /// Child alignment is set to [UnitPoint::TOP_LEFT], `fit` and
@@ -289,7 +299,6 @@ impl <T: Data> Stack<T> {
     pub fn set_clip(&mut self, clip: bool) {
         self.clip = clip;
     }
-
 
     /// Builder-style method for specifying the default child alignment.
     pub fn align(mut self, align: UnitPoint) -> Self {
@@ -344,17 +353,19 @@ impl<T: Data> Widget<T> for Stack<T> {
 
             let rect = child.widget.layout_rect();
             let pos_match = match event {
-                Event::MouseMove(mouse_event) | Event::MouseDown(mouse_event) |
-                Event::MouseUp(mouse_event) | Event::Wheel(mouse_event) => {
-                    rect.winding(mouse_event.pos) != 0
-                }
+                Event::MouseMove(mouse_event)
+                | Event::MouseDown(mouse_event)
+                | Event::MouseUp(mouse_event)
+                | Event::Wheel(mouse_event) => rect.winding(mouse_event.pos) != 0,
                 _ => false,
             };
 
             child.widget.event(ctx, event, data, env);
 
             // only send to one widget (top widget)
-            if pos_match { break; }
+            if pos_match {
+                break;
+            }
         }
 
         if let Event::AnimFrame(nanos) = event {
@@ -366,13 +377,22 @@ impl<T: Data> Widget<T> for Stack<T> {
         }
     }
 
-    fn lifecycle(&mut self, ctx: &mut LifeCycleCtx<'_, '_>, event: &LifeCycle, data: &T, env: &Env) {
+    fn lifecycle(
+        &mut self,
+        ctx: &mut LifeCycleCtx<'_, '_>,
+        event: &LifeCycle,
+        data: &T,
+        env: &Env,
+    ) {
         for child in &mut self.children {
             child.widget.lifecycle(ctx, event, data, env);
             if let LifeCycle::WidgetAdded = event {
                 if let Position::Dynamic(position_cb) = &child.params.position {
-                    child.params.animated_position.jump_to_value(position_cb(data, env).clone());
-                 }
+                    child
+                        .params
+                        .animated_position
+                        .jump_to_value(position_cb(data, env).clone());
+                }
             }
         }
     }
@@ -384,21 +404,35 @@ impl<T: Data> Widget<T> for Stack<T> {
             if let Position::Dynamic(position_cb) = &child.params.position {
                 let new_position = position_cb(data, env);
                 if new_position != &child.params.animated_position.end() {
-                    child.params.animated_position.animate(ctx, new_position.clone());
+                    child
+                        .params
+                        .animated_position
+                        .animate(ctx, new_position.clone());
                 }
             };
         }
     }
 
-    fn layout(&mut self, ctx: &mut LayoutCtx<'_, '_>, bc: &BoxConstraints, data: &T, env: &Env) -> druid::Size {
-
-        let child_bc = if self.fit { BoxConstraints::tight(bc.max()) } else { bc.loosen() };
+    fn layout(
+        &mut self,
+        ctx: &mut LayoutCtx<'_, '_>,
+        bc: &BoxConstraints,
+        data: &T,
+        env: &Env,
+    ) -> druid::Size {
+        let child_bc = if self.fit {
+            BoxConstraints::tight(bc.max())
+        } else {
+            bc.loosen()
+        };
 
         // Compute size for non-positioned children
         let mut stack_width = 0f64;
         let mut stack_height = 0f64;
         for child in &mut self.children {
-            if !matches!(child.params.position, Position::None) { continue; }
+            if !matches!(child.params.position, Position::None) {
+                continue;
+            }
             let child_size = child.widget.layout(ctx, &child_bc, data, env);
             stack_width = stack_width.max(child_size.width);
             stack_height = stack_height.max(child_size.height);
@@ -438,7 +472,7 @@ impl<T: Data> Widget<T> for Stack<T> {
             let mut min_height = 0f64;
             let mut max_height = std::f64::INFINITY;
 
-             match (position.top, position.bottom, position.height) {
+            match (position.top, position.bottom, position.height) {
                 (Some(top), Some(bottom), unused) => {
                     let height = (stack_height - bottom - top).max(0.);
                     min_height = height;
@@ -476,7 +510,10 @@ impl<T: Data> Widget<T> for Stack<T> {
                 (None, Some(bottom)) => stack_height - bottom - child_size.height,
                 (None, None) => {
                     let extra_height = stack_height - child_size.height;
-                    align.resolve(Rect::new(0., 0., 0., extra_height)).expand().y
+                    align
+                        .resolve(Rect::new(0., 0., 0., extra_height))
+                        .expand()
+                        .y
                 }
             };
 
