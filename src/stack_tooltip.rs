@@ -103,7 +103,7 @@ impl<T: Data, W: Widget<T>> Widget<T> for TooltipTrigger<T, W> {
         env: &druid::Env,
     ) {
         if let druid::Event::MouseMove(mouse) = event {
-            if ctx.is_hot() && ctx.size().to_rect().contains(mouse.pos) {
+            if ctx.is_hot() && ctx.size().to_rect().inset(1.0).contains(mouse.pos) {
                 ctx.submit_command(
                     SHOW_AT
                         .with(SingleUse::new((mouse.window_pos, self.label.clone())))
