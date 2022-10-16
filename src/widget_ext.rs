@@ -1,8 +1,9 @@
 use druid::widget::prelude::*;
 use druid::widget::{ControllerHost, LabelText};
-use druid::{Selector, WidgetExt as _, WindowHandle};
+use druid::{Point, Selector, WidgetExt as _, WindowHandle};
 
 use crate::on_cmd::OnCmd;
+use crate::stack_tooltip::{StackTooltip, ADVISE_TOOLTIP_SHOW, CANCEL_TOOLTIP_SHOW};
 use crate::tooltip::TooltipState;
 use crate::{OnChange, OnMonitor, TooltipController};
 
@@ -43,6 +44,21 @@ pub trait WidgetExt<T: Data>: Widget<T> + Sized + 'static {
             inner: self,
             parent: parent.clone(),
         }
+    }
+
+    /// A convenience method to cancel the display of a tooltip from a parent/ancestor widget.
+    fn cancel_stack_tooltip(self) -> ControllerHost<Self, OnCmd<Point, T>> {
+        self.controller(OnCmd::new(ADVISE_TOOLTIP_SHOW, move |ctx, point, _| {
+            let window_rect = ctx.size().to_rect().with_origin(ctx.window_origin());
+            if window_rect.contains(*point) {
+                ctx.submit_notification(CANCEL_TOOLTIP_SHOW)
+            }
+        }))
+    }
+
+    /// Open a stack based tooltip when the mouse is hovered over this widget
+    fn stack_tooltip(self, label: impl Into<LabelText<T>>) -> StackTooltip<T> {
+        StackTooltip::new(self, label)
     }
 }
 
