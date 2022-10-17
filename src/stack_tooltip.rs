@@ -12,81 +12,40 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! A stack based tooltip widget + manager.
+//! A stack based tooltip widget.
 
-use crate::{Stack, StackChildParams, StackChildPosition, WidgetExt as _};
+use crate::{Stack, StackChildParams, StackChildPosition};
 use druid::{
-    lens,
-    widget::{Label, Scope, SizedBox, ViewSwitcher},
-    Data, Point, Selector, SingleUse, Widget, WidgetExt, WidgetId, WidgetPod,
+    widget::{
+        DefaultScopePolicy, Either, Label, LabelText, LensScopeTransfer, LensWrap, Scope, SizedBox,
+    },
+    Data, Lens, Point, RenderContext, Selector, SingleUse, Size, Widget, WidgetExt, WidgetId,
+    WidgetPod,
 };
 
-const SHOW_AT: Selector<SingleUse<(Point, String)>> = Selector::new("tooltip.show_at");
-const HIDE: Selector = Selector::new("tooltip.hide");
-const FORWARD: Selector<SingleUse<Point>> = Selector::new("tooltip.forward");
-const UPDATE_ID: Selector<SingleUse<WidgetId>> = Selector::new("tooltip.update.id");
-const POINT_UPDATED: Selector = Selector::new("tooltip.label.get_dims");
+const FORWARD: Selector<SingleUse<(WidgetId, Point)>> = Selector::new("tooltip.forward");
+const POINT_UPDATED: Selector = Selector::new("tooltip.label.point_updated");
+pub(crate) const ADVISE_TOOLTIP_SHOW: Selector<Point> =
+    Selector::new("tooltip.advise_show_tooltip");
+pub(crate) const CANCEL_TOOLTIP_SHOW: Selector = Selector::new("tooltip.cancel_show_tooltip");
 
-type StatefulT<T> = (T, Option<String>, StackChildPosition);
+type StackTooltipActual<T> = Scope<
+    DefaultScopePolicy<
+        fn(T) -> TooltipState<T>,
+        LensScopeTransfer<tooltip_state_derived_lenses::data<T>, T, TooltipState<T>>,
+    >,
+    StackTooltipInternal<T>,
+>;
 
-#[derive(Default)]
-pub struct TooltipFactory {
-    id: Option<WidgetId>,
-}
+pub struct StackTooltip<T: Data>(StackTooltipActual<T>);
 
-impl TooltipFactory {
-    pub fn wrapper<T: Data, W: Widget<T> + 'static>(
-        &mut self,
-        widget: W,
-    ) -> Option<impl Widget<T>> {
-        self.id.map(|id| {
-            Scope::from_lens(
-                |input| (input, None, StackChildPosition::new().height(Some(0.0))),
-                lens!(StatefulT<T>, 0),
-                TooltipWrapper::new(widget, id).with_id(id),
-            )
-        })
-    }
-
-    pub fn wrapper_id(&self) -> Option<WidgetId> {
-        self.id
-    }
-
-    pub fn tooltip<T: Data, W: Widget<T> + 'static>(
-        &mut self,
-        trigger: W,
-        label: impl AsRef<str>,
-    ) -> impl Widget<T> {
-        let id = if let Some(id) = self.id {
-            id
-        } else {
-            let id = WidgetId::next();
-            self.id = Some(id);
-            id
-        };
-        let label = label.as_ref().to_owned();
-
-        TooltipTrigger::new(trigger, label, id)
+impl<T: Data> StackTooltip<T> {
+    pub fn new<W: Widget<T> + 'static>(widget: W, label: impl Into<LabelText<T>>) -> Self {
+        Self(StackTooltipInternal::new(widget, label))
     }
 }
 
-pub struct TooltipTrigger<W, T> {
-    widget: WidgetPod<W, T>,
-    label: String,
-    id: WidgetId,
-}
-
-impl<T: Data, W: Widget<T>> TooltipTrigger<T, W> {
-    fn new(widget: W, label: String, id: WidgetId) -> Self {
-        Self {
-            widget: WidgetPod::new(widget),
-            label,
-            id,
-        }
-    }
-}
-
-impl<T: Data, W: Widget<T>> Widget<T> for TooltipTrigger<T, W> {
+impl<T: Data> Widget<T> for StackTooltip<T> {
     fn event(
         &mut self,
         ctx: &mut druid::EventCtx,
@@ -94,33 +53,7 @@ impl<T: Data, W: Widget<T>> Widget<T> for TooltipTrigger<T, W> {
         data: &mut T,
         env: &druid::Env,
     ) {
-        if let druid::Event::MouseMove(mouse) = event {
-            if ctx.is_hot() && ctx.size().to_rect().contains(mouse.pos) {
-                ctx.submit_command(
-                    SHOW_AT
-                        .with(SingleUse::new((mouse.window_pos, self.label.clone())))
-                        .to(self.id),
-                );
-            } else {
-                ctx.submit_command(HIDE.to(self.id));
-            }
-            return;
-        } else if let druid::Event::Command(cmd) = event {
-            if let Some(point) = cmd.get(FORWARD).and_then(SingleUse::take) {
-                let rect = ctx.size().to_rect().with_origin(ctx.window_origin());
-                if rect.contains(point) {
-                    ctx.submit_command(
-                        SHOW_AT
-                            .with(SingleUse::new((point, self.label.clone())))
-                            .to(self.id),
-                    );
-                } else {
-                    ctx.submit_command(HIDE.to(self.id));
-                }
-            }
-        }
-
-        self.widget.event(ctx, event, data, env)
+        self.0.event(ctx, event, data, env)
     }
 
     fn lifecycle(
@@ -130,11 +63,11 @@ impl<T: Data, W: Widget<T>> Widget<T> for TooltipTrigger<T, W> {
         data: &T,
         env: &druid::Env,
     ) {
-        self.widget.lifecycle(ctx, event, data, env)
+        self.0.lifecycle(ctx, event, data, env)
     }
 
-    fn update(&mut self, ctx: &mut druid::UpdateCtx, _old_data: &T, data: &T, env: &druid::Env) {
-        self.widget.update(ctx, data, env)
+    fn update(&mut self, ctx: &mut druid::UpdateCtx, old_data: &T, data: &T, env: &druid::Env) {
+        self.0.update(ctx, old_data, data, env)
     }
 
     fn layout(
@@ -143,101 +76,138 @@ impl<T: Data, W: Widget<T>> Widget<T> for TooltipTrigger<T, W> {
         bc: &druid::BoxConstraints,
         data: &T,
         env: &druid::Env,
-    ) -> druid::Size {
-        self.widget.layout(ctx, bc, data, env)
+    ) -> Size {
+        self.0.layout(ctx, bc, data, env)
     }
 
     fn paint(&mut self, ctx: &mut druid::PaintCtx, data: &T, env: &druid::Env) {
-        self.widget.paint(ctx, data, env)
+        self.0.paint(ctx, data, env)
     }
 }
 
-pub struct TooltipWrapper<T> {
-    widget: WidgetPod<T, Stack<T>>,
+#[derive(Clone, Data, Lens)]
+struct TooltipState<T> {
+    data: T,
+    show: bool,
+    position: StackChildPosition,
+    label_size: Option<Size>,
+}
+
+struct StackTooltipInternal<T> {
+    widget: WidgetPod<TooltipState<T>, Stack<TooltipState<T>>>,
     label_id: Option<WidgetId>,
 }
 
-impl<T: Data> TooltipWrapper<StatefulT<T>> {
-    pub fn new<W: Widget<T> + 'static>(widget: W, id: WidgetId) -> impl Widget<StatefulT<T>> {
-        let stack = Stack::new()
-            .with_child(widget.lens(lens!(StatefulT<T>, 0)))
-            .with_positioned_child(
-                ViewSwitcher::new(|(_, show, _): &StatefulT<T>, _| show.clone(), {
-                    move |show: &Option<String>, (_, _, position): &StatefulT<T>, _| {
-                        println!("rebuilding");
-                        if let Some(label) = show {
-                            if is_some_position(position) {
-                                return TooltipLabel::new(label.clone(), id)
-                                    .background(druid::theme::BACKGROUND_DARK)
-                                    .border(druid::theme::BORDER_DARK, 2.0)
-                                    .on_added(move |_, ctx, _, _| {
-                                        ctx.submit_command(
-                                            UPDATE_ID.with(SingleUse::new(ctx.widget_id())).to(id),
-                                        )
-                                    })
-                                    .on_command(POINT_UPDATED, |ctx, _, (_, _, position)| {
-                                        if let Some(left) = position.left {
-                                            let window_width = ctx.window().get_size().width;
-                                            if left + ctx.size().width > window_width {
-                                                position.left = None;
-                                                position.right.replace(window_width - left);
-                                            }
-                                        }
-                                        if let Some(top) = position.top {
-                                            let window_height = ctx.window().get_size().height;
-                                            if top + ctx.size().height > window_height {
-                                                position.top = None;
-                                                position.bottom.replace(window_height - top);
-                                            }
-                                        }
-                                    })
-                                    .boxed();
-                            }
-                        }
-
-                        SizedBox::empty().boxed()
-                    }
-                }),
-                StackChildParams::dynamic(|(_, _, position): &StatefulT<T>, _| dbg!(position)),
-            );
-        TooltipWrapper {
-            widget: WidgetPod::new(stack),
-            label_id: None,
-        }
+fn make_state<T: Data>(data: T) -> TooltipState<T> {
+    TooltipState {
+        data,
+        show: false,
+        position: StackChildPosition::new().height(Some(0.0)),
+        label_size: None,
     }
 }
 
-impl<T: Data> Widget<StatefulT<T>> for TooltipWrapper<StatefulT<T>> {
+impl<T: Data> StackTooltipInternal<T> {
+    fn new<W: Widget<T> + 'static>(
+        widget: W,
+        label: impl Into<LabelText<T>>,
+    ) -> StackTooltipActual<T> {
+        let label_id = WidgetId::next();
+        let stack = Stack::new()
+            .with_child(widget.lens(TooltipState::data))
+            .with_positioned_child(
+                Either::new(
+                    |state: &TooltipState<T>, _| state.show && is_some_position(&state.position),
+                    TooltipLabel::new(label, label_id),
+                    SizedBox::empty(),
+                ),
+                StackChildParams::dynamic(|TooltipState { position, .. }: &TooltipState<T>, _| {
+                    position
+                }),
+            );
+
+        Scope::from_lens(
+            make_state as fn(T) -> TooltipState<T>,
+            TooltipState::data,
+            Self {
+                widget: WidgetPod::new(stack),
+                label_id: Some(label_id),
+            },
+        )
+    }
+}
+
+impl<T: Data> Widget<TooltipState<T>> for StackTooltipInternal<T> {
     fn event(
         &mut self,
         ctx: &mut druid::EventCtx,
         event: &druid::Event,
-        data: &mut StatefulT<T>,
+        data: &mut TooltipState<T>,
         env: &druid::Env,
     ) {
-        let (_, label, position) = data;
-        if let druid::Event::Command(cmd) = event {
-            if cmd.target() == druid::Target::Widget(ctx.widget_id()) {
-                if let Some((coord, new_label)) = cmd.get(SHOW_AT).and_then(SingleUse::take) {
-                    let diff = coord - ctx.window_origin();
-                    println!("setting coords");
-                    *position = StackChildPosition::new()
-                        .left(Some(diff.x))
-                        .top(Some(diff.y))
-                        .height(None);
+        if let Some(pos) = if let druid::Event::MouseMove(mouse) = event {
+            Some(mouse.pos)
+        } else if let druid::Event::Command(cmd) = event {
+            cmd.get(FORWARD)
+                .and_then(SingleUse::take)
+                .and_then(|(id, point)| {
+                    self.label_id
+                        .filter(|label_id| label_id == &id)
+                        .and(Some(point))
+                })
+                .map(|point| (point - ctx.window_origin()).to_point())
+        } else {
+            None
+        } {
+            if ctx.is_hot() && ctx.size().to_rect().contains(pos) {
+                let mut x = pos.x;
+                let mut y = pos.y;
 
-                    label.replace(new_label);
-
-                    if let Some(label_id) = self.label_id {
-                        ctx.submit_command(POINT_UPDATED.to(label_id))
-                    }
-                } else if cmd.is(HIDE) {
-                    label.take();
-                } else if let Some(label_id) = cmd.get(UPDATE_ID).and_then(SingleUse::take) {
-                    self.label_id = Some(label_id)
+                if let Some(size) = data.label_size {
+                    if x + size.width + ctx.window_origin().x
+                        > ctx.window().get_size().width - ctx.window().content_insets().x_value()
+                    {
+                        x -= size.width
+                    };
+                    if y + size.height + ctx.window_origin().y
+                        > ctx.window().get_size().height - ctx.window().content_insets().y_value()
+                    {
+                        y -= size.height
+                    };
                 }
+
+                data.position = StackChildPosition::new()
+                    .left(Some(x))
+                    .top(Some(y))
+                    .height(None);
+
+                data.show = true;
+
+                if let Some(label_id) = self.label_id {
+                    if data.label_size.is_none() {
+                        ctx.submit_command(POINT_UPDATED.to(label_id));
+                    }
+                    ctx.submit_command(ADVISE_TOOLTIP_SHOW.with(ctx.to_window(pos)));
+                }
+            } else {
+                reset_position(&mut data.position);
+                data.position.height = Some(0.0);
+                data.show = false;
             }
-        }
+
+            if let druid::Event::Command(_) = event {
+                return;
+            }
+        } else if let druid::Event::Notification(notif) = event {
+            if notif.is(CANCEL_TOOLTIP_SHOW) && notif.route() == self.widget.id() {
+                reset_position(&mut data.position);
+                data.position.height = Some(0.0);
+                data.show = false;
+
+                ctx.set_handled();
+            }
+        };
+
         self.widget.event(ctx, event, data, env)
     }
 
@@ -245,7 +215,7 @@ impl<T: Data> Widget<StatefulT<T>> for TooltipWrapper<StatefulT<T>> {
         &mut self,
         ctx: &mut druid::LifeCycleCtx,
         event: &druid::LifeCycle,
-        data: &StatefulT<T>,
+        data: &TooltipState<T>,
         env: &druid::Env,
     ) {
         self.widget.lifecycle(ctx, event, data, env)
@@ -254,8 +224,8 @@ impl<T: Data> Widget<StatefulT<T>> for TooltipWrapper<StatefulT<T>> {
     fn update(
         &mut self,
         ctx: &mut druid::UpdateCtx,
-        _old_data: &StatefulT<T>,
-        data: &StatefulT<T>,
+        _old_data: &TooltipState<T>,
+        data: &TooltipState<T>,
         env: &druid::Env,
     ) {
         self.widget.update(ctx, data, env)
@@ -265,41 +235,64 @@ impl<T: Data> Widget<StatefulT<T>> for TooltipWrapper<StatefulT<T>> {
         &mut self,
         ctx: &mut druid::LayoutCtx,
         bc: &druid::BoxConstraints,
-        data: &StatefulT<T>,
+        data: &TooltipState<T>,
         env: &druid::Env,
     ) -> druid::Size {
         self.widget.layout(ctx, bc, data, env)
     }
 
-    fn paint(&mut self, ctx: &mut druid::PaintCtx, data: &StatefulT<T>, env: &druid::Env) {
+    fn paint(&mut self, ctx: &mut druid::PaintCtx, data: &TooltipState<T>, env: &druid::Env) {
         self.widget.paint(ctx, data, env)
     }
 }
 
 struct TooltipLabel<T> {
-    label: WidgetPod<StatefulT<T>, Label<StatefulT<T>>>,
     id: WidgetId,
+    label: WidgetPod<
+        TooltipState<T>,
+        LensWrap<TooltipState<T>, T, tooltip_state_derived_lenses::data<T>, Label<T>>,
+    >,
 }
 
 impl<T: Data> TooltipLabel<T> {
-    pub fn new(label: impl AsRef<str>, id: WidgetId) -> Self {
-        Self {
-            label: WidgetPod::new(Label::new(label.as_ref().to_owned())),
-            id,
-        }
+    pub fn new(label: impl Into<LabelText<T>>, id: WidgetId) -> Self {
+        let label = WidgetPod::new(Label::new(label.into()).lens(TooltipState::data));
+
+        Self { id, label }
     }
 }
 
-impl<T: Data> Widget<StatefulT<T>> for TooltipLabel<T> {
+impl<T: Data> Widget<TooltipState<T>> for TooltipLabel<T> {
     fn event(
         &mut self,
         ctx: &mut druid::EventCtx,
         event: &druid::Event,
-        data: &mut StatefulT<T>,
+        data: &mut TooltipState<T>,
         env: &druid::Env,
     ) {
         if let druid::Event::MouseMove(mouse) = event {
-            ctx.submit_command(FORWARD.with(SingleUse::new(mouse.window_pos)).to(self.id))
+            ctx.submit_command(FORWARD.with(SingleUse::new((ctx.widget_id(), mouse.window_pos))))
+        } else if let druid::Event::Command(cmd) = event {
+            if cmd.is(POINT_UPDATED) {
+                if let Some(left) = data.position.left {
+                    let label_width = ctx.size().width;
+                    if left + label_width + ctx.window_origin().x > ctx.window().get_size().width {
+                        data.position.left.replace(left - label_width);
+                    }
+                }
+                if let Some(top) = data.position.top {
+                    let label_height = ctx.size().height;
+                    if top + label_height + ctx.window_origin().y > ctx.window().get_size().height {
+                        data.position.top.replace(top - label_height);
+                    }
+                }
+
+                if !ctx.size().is_empty() {
+                    data.label_size.replace(ctx.size());
+                }
+
+                ctx.request_paint();
+            }
         }
 
         self.label.event(ctx, event, data, env)
@@ -309,7 +302,7 @@ impl<T: Data> Widget<StatefulT<T>> for TooltipLabel<T> {
         &mut self,
         ctx: &mut druid::LifeCycleCtx,
         event: &druid::LifeCycle,
-        data: &StatefulT<T>,
+        data: &TooltipState<T>,
         env: &druid::Env,
     ) {
         self.label.lifecycle(ctx, event, data, env)
@@ -318,8 +311,8 @@ impl<T: Data> Widget<StatefulT<T>> for TooltipLabel<T> {
     fn update(
         &mut self,
         ctx: &mut druid::UpdateCtx,
-        _old_data: &StatefulT<T>,
-        data: &StatefulT<T>,
+        _old_data: &TooltipState<T>,
+        data: &TooltipState<T>,
         env: &druid::Env,
     ) {
         self.label.update(ctx, data, env)
@@ -329,14 +322,28 @@ impl<T: Data> Widget<StatefulT<T>> for TooltipLabel<T> {
         &mut self,
         ctx: &mut druid::LayoutCtx,
         bc: &druid::BoxConstraints,
-        data: &StatefulT<T>,
+        data: &TooltipState<T>,
         env: &druid::Env,
     ) -> druid::Size {
         self.label.layout(ctx, bc, data, env)
     }
 
-    fn paint(&mut self, ctx: &mut druid::PaintCtx, data: &StatefulT<T>, env: &druid::Env) {
-        self.label.paint(ctx, data, env)
+    fn paint(&mut self, ctx: &mut druid::PaintCtx, data: &TooltipState<T>, env: &druid::Env) {
+        let mut rect = ctx.size().to_rect();
+        rect.x0 -= 2.0;
+        rect.y1 += 2.0;
+
+        let fill_brush = ctx.solid_brush(env.get(druid::theme::BACKGROUND_DARK));
+        ctx.fill(rect, &fill_brush);
+
+        self.label.paint(ctx, data, env);
+
+        let border_brush = ctx.solid_brush(env.get(druid::theme::BORDER_DARK));
+        ctx.stroke(rect, &border_brush, 1.0);
+    }
+
+    fn id(&self) -> Option<WidgetId> {
+        Some(self.id)
     }
 }
 
@@ -345,4 +352,13 @@ fn is_some_position(position: &StackChildPosition) -> bool {
         || position.bottom.is_some()
         || position.left.is_some()
         || position.right.is_some()
+}
+
+fn reset_position(position: &mut StackChildPosition) {
+    position.top = None;
+    position.bottom = None;
+    position.left = None;
+    position.right = None;
+    position.width = None;
+    position.height = None;
 }
