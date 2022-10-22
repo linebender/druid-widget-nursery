@@ -606,12 +606,12 @@ impl Clone for YetAnotherAttribute {
             Self::UnresolvedStyle(attr) => Self::UnresolvedStyle(attr.clone()),
             Self::Resolved(attr) => Self::Resolved(match attr {
                 TextAttribute::FontFamily(val) => TextAttribute::FontFamily(val.clone()),
-                TextAttribute::FontSize(val) => TextAttribute::FontSize(val.clone()),
-                TextAttribute::Weight(val) => TextAttribute::Weight(val.clone()),
+                TextAttribute::FontSize(val) => TextAttribute::FontSize(*val),
+                TextAttribute::Weight(val) => TextAttribute::Weight(*val),
                 TextAttribute::TextColor(val) => TextAttribute::TextColor(val.clone()),
-                TextAttribute::Style(val) => TextAttribute::Style(val.clone()),
-                TextAttribute::Underline(val) => TextAttribute::Underline(val.clone()),
-                TextAttribute::Strikethrough(val) => TextAttribute::Strikethrough(val.clone()),
+                TextAttribute::Style(val) => TextAttribute::Style(*val),
+                TextAttribute::Underline(val) => TextAttribute::Underline(*val),
+                TextAttribute::Strikethrough(val) => TextAttribute::Strikethrough(*val),
             }),
         }
     }
