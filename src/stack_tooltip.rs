@@ -14,13 +14,15 @@
 
 //! A stack based tooltip widget.
 
+use std::{sync::Arc, rc::Rc, cell::RefCell, convert::{TryFrom, TryInto}};
+
 use crate::{Stack, StackChildParams, StackChildPosition};
 use druid::{
     widget::{
-        DefaultScopePolicy, Either, Label, LabelText, LensScopeTransfer, LensWrap, Scope, SizedBox,
+        DefaultScopePolicy, Either, Label, LensScopeTransfer, Scope, SizedBox, RawLabel, WidgetWrapper,
     },
     Data, Lens, Point, RenderContext, Selector, SingleUse, Size, Widget, WidgetExt, WidgetId,
-    WidgetPod,
+    WidgetPod, piet::{Text, TextLayoutBuilder, TextStorage, TextAttribute}, text::{RichText, Attribute}, KeyOrValue, Color,
 };
 
 const FORWARD: Selector<SingleUse<(WidgetId, Point)>> = Selector::new("tooltip.forward");
@@ -40,8 +42,58 @@ type StackTooltipActual<T> = Scope<
 pub struct StackTooltip<T: Data>(StackTooltipActual<T>);
 
 impl<T: Data> StackTooltip<T> {
-    pub fn new<W: Widget<T> + 'static>(widget: W, label: impl Into<LabelText<T>>) -> Self {
+    pub fn new<W: Widget<T> + 'static>(widget: W, label: impl Into<PlainOrRich>) -> Self {
         Self(StackTooltipInternal::new(widget, label))
+    }
+
+    pub fn set_text_attribute(&mut self, attribute: Attribute) {
+        self.0.wrapped_mut().set_text_attribute(attribute);
+    }
+
+    pub fn with_text_attribute(mut self, attribute: Attribute) -> Self {
+        self.set_text_attribute(attribute);
+
+        self
+    }
+
+    pub fn set_background_color(&mut self, color: impl Into<KeyOrValue<Color>>) {
+        self.0.wrapped_mut().set_background_color(color)
+    }
+
+    pub fn with_background_color(mut self, color: impl Into<KeyOrValue<Color>>) -> Self {
+        self.set_background_color(color);
+
+        self
+    }
+
+    pub fn set_border_width(&mut self, width: f64) {
+        self.0.wrapped_mut().set_border_width(width)
+    }
+
+    pub fn with_border_width(mut self, width: f64) -> Self {
+        self.set_border_width(width);
+
+        self
+    }
+
+    pub fn set_border_color(&mut self, color: impl Into<KeyOrValue<Color>>) {
+        self.0.wrapped_mut().set_border_color(color);
+    }
+
+    pub fn with_border_color(mut self, color: impl Into<KeyOrValue<Color>>) -> Self {
+        self.set_border_color(color);
+
+        self
+    }
+
+    pub fn set_crosshair(&mut self, crosshair: bool) {
+        self.0.wrapped_mut().set_crosshair(crosshair)
+    }
+
+    pub fn with_crosshair(mut self, crosshair: bool) -> Self {
+        self.set_crosshair(crosshair);
+
+        self
     }
 }
 
@@ -93,9 +145,17 @@ struct TooltipState<T> {
     label_size: Option<Size>,
 }
 
+type RichTextCell = Rc<RefCell<(RichText, Vec<YetAnotherAttribute>)>>;
+type BackgroundCell = Rc<RefCell<Option<KeyOrValue<Color>>>>;
+type BorderCell = Rc<RefCell<(Option<KeyOrValue<Color>>, Option<f64>)>>;
+
 struct StackTooltipInternal<T> {
     widget: WidgetPod<TooltipState<T>, Stack<TooltipState<T>>>,
     label_id: Option<WidgetId>,
+    text: RichTextCell,
+    background: BackgroundCell,
+    border: BorderCell,
+    use_crosshair: bool,
 }
 
 fn make_state<T: Data>(data: T) -> TooltipState<T> {
@@ -110,15 +170,24 @@ fn make_state<T: Data>(data: T) -> TooltipState<T> {
 impl<T: Data> StackTooltipInternal<T> {
     fn new<W: Widget<T> + 'static>(
         widget: W,
-        label: impl Into<LabelText<T>>,
+        label: impl Into<PlainOrRich>,
     ) -> StackTooltipActual<T> {
+        let rich_text = match label.into() {
+            PlainOrRich::Plain(plain) => RichText::new(plain.into()),
+            PlainOrRich::Rich(rich) => rich
+        };
+        let attrs = vec![];
+
+        let text = Rc::new(RefCell::new((rich_text, attrs)));
+        let background = BackgroundCell::default();
+        let border = BorderCell::default();
         let label_id = WidgetId::next();
         let stack = Stack::new()
             .with_child(widget.lens(TooltipState::data))
             .with_positioned_child(
                 Either::new(
                     |state: &TooltipState<T>, _| state.show && is_some_position(&state.position),
-                    TooltipLabel::new(label, label_id),
+                    TooltipLabel::new(text.clone(), label_id, background.clone(), border.clone()),
                     SizedBox::empty(),
                 ),
                 StackChildParams::dynamic(|TooltipState { position, .. }: &TooltipState<T>, _| {
@@ -132,8 +201,38 @@ impl<T: Data> StackTooltipInternal<T> {
             Self {
                 widget: WidgetPod::new(stack),
                 label_id: Some(label_id),
+                text,
+                background,
+                border,
+                use_crosshair: false
             },
         )
+    }
+
+    pub fn set_text_attribute(&mut self, attribute: Attribute) {
+        self.text.borrow_mut().0.add_attribute(0.., attribute.clone());
+        match attribute.try_into() {
+            Ok(attr) => self.text.borrow_mut().1.push(attr),
+            Err(attrs) => {
+                self.text.borrow_mut().1.extend(attrs)
+            },
+        };
+    }
+
+    pub fn set_background_color(&mut self, color: impl Into<KeyOrValue<Color>>) {
+        self.background.borrow_mut().replace(color.into());
+    }
+
+    pub fn set_border_width(&mut self, width: f64) {
+        self.border.borrow_mut().1.replace(width);
+    }
+
+    pub fn set_border_color(&mut self, color: impl Into<KeyOrValue<Color>>) {
+        self.border.borrow_mut().0.replace(color.into());
+    }
+
+    pub fn set_crosshair(&mut self, crosshair: bool) {
+        self.use_crosshair = crosshair
     }
 }
 
@@ -182,6 +281,10 @@ impl<T: Data> Widget<TooltipState<T>> for StackTooltipInternal<T> {
                     .height(None);
 
                 data.show = true;
+
+                if self.use_crosshair {
+                    ctx.set_cursor(&druid::Cursor::Crosshair);
+                }
 
                 if let Some(label_id) = self.label_id {
                     if data.label_size.is_none() {
@@ -246,23 +349,29 @@ impl<T: Data> Widget<TooltipState<T>> for StackTooltipInternal<T> {
     }
 }
 
-struct TooltipLabel<T> {
+struct TooltipLabel {
     id: WidgetId,
-    label: WidgetPod<
-        TooltipState<T>,
-        LensWrap<TooltipState<T>, T, tooltip_state_derived_lenses::data<T>, Label<T>>,
-    >,
+    label: WidgetPod<RichText, RawLabel<RichText>>,
+    text: RichTextCell,
+    background: BackgroundCell,
+    border: BorderCell,
 }
 
-impl<T: Data> TooltipLabel<T> {
-    pub fn new(label: impl Into<LabelText<T>>, id: WidgetId) -> Self {
-        let label = WidgetPod::new(Label::new(label.into()).lens(TooltipState::data));
+impl TooltipLabel {
+    pub fn new(text: RichTextCell, id: WidgetId, background: BackgroundCell, border: BorderCell) -> Self {
+        let label = WidgetPod::new(Label::raw());
 
-        Self { id, label }
+        Self {
+            id,
+            label,
+            text,
+            background,
+            border,
+        }
     }
 }
 
-impl<T: Data> Widget<TooltipState<T>> for TooltipLabel<T> {
+impl<T: Data> Widget<TooltipState<T>> for TooltipLabel {
     fn event(
         &mut self,
         ctx: &mut druid::EventCtx,
@@ -295,51 +404,79 @@ impl<T: Data> Widget<TooltipState<T>> for TooltipLabel<T> {
             }
         }
 
-        self.label.event(ctx, event, data, env)
+        self.label.event(ctx, event, &mut self.text.borrow_mut().0, env)
     }
 
     fn lifecycle(
         &mut self,
         ctx: &mut druid::LifeCycleCtx,
         event: &druid::LifeCycle,
-        data: &TooltipState<T>,
+        _data: &TooltipState<T>,
         env: &druid::Env,
     ) {
-        self.label.lifecycle(ctx, event, data, env)
+        self.label.lifecycle(ctx, event, &self.text.borrow().0, env)
     }
 
     fn update(
         &mut self,
         ctx: &mut druid::UpdateCtx,
         _old_data: &TooltipState<T>,
-        data: &TooltipState<T>,
+        _data: &TooltipState<T>,
         env: &druid::Env,
     ) {
-        self.label.update(ctx, data, env)
+        self.label.update(ctx, &self.text.borrow().0, env)
     }
 
     fn layout(
         &mut self,
         ctx: &mut druid::LayoutCtx,
         bc: &druid::BoxConstraints,
-        data: &TooltipState<T>,
+        _data: &TooltipState<T>,
         env: &druid::Env,
     ) -> druid::Size {
-        self.label.layout(ctx, bc, data, env)
+        self.label.layout(ctx, bc, &self.text.borrow().0, env)
     }
 
-    fn paint(&mut self, ctx: &mut druid::PaintCtx, data: &TooltipState<T>, env: &druid::Env) {
+    fn paint(&mut self, ctx: &mut druid::PaintCtx, _data: &TooltipState<T>, env: &druid::Env) {
         let mut rect = ctx.size().to_rect();
         rect.x0 -= 2.0;
         rect.y1 += 2.0;
 
-        let fill_brush = ctx.solid_brush(env.get(druid::theme::BACKGROUND_DARK));
-        ctx.fill(rect, &fill_brush);
+        let fill_brush = ctx.solid_brush(if let Some(background) = self.background.borrow().as_ref() {
+            background.resolve(env)
+        } else {
+            env.get(druid::theme::BACKGROUND_DARK)
+        });
+        let border_brush = ctx.solid_brush(if let Some(border) = self.border.borrow().0.as_ref() {
+            border.resolve(env)
+        } else {
+            env.get(druid::theme::BORDER_DARK)
+        });
+        let border_width = if let Some(width) = self.border.borrow().1.as_ref() {
+            *width
+        } else {
+            env.get(druid::theme::TEXTBOX_BORDER_WIDTH)
+        };
 
-        self.label.paint(ctx, data, env);
+        let mut text = ctx.text().new_text_layout(<&str as Into<Arc<str>>>::into(self.text.borrow().0.as_str()));
+        text = text.default_attribute(TextAttribute::FontFamily(env.get(druid::theme::UI_FONT).family));
+        text = text.default_attribute(TextAttribute::FontSize(env.get(druid::theme::UI_FONT).size));
+        text = text.default_attribute(TextAttribute::Style(env.get(druid::theme::UI_FONT).style));
+        text = text.default_attribute(TextAttribute::Weight(env.get(druid::theme::UI_FONT).weight));
+        text = text.default_attribute(TextAttribute::TextColor(env.get(druid::theme::TEXT_COLOR)));
+        for attribute in self.text.borrow().1.iter() {
+            text = text.default_attribute(attribute.clone().resolve(env));
+        }
+        if let Ok(text) = text.build() {
+            ctx.paint_with_z_index(1_000_000, move |ctx| {
+                ctx.fill(rect, &fill_brush);
 
-        let border_brush = ctx.solid_brush(env.get(druid::theme::BORDER_DARK));
-        ctx.stroke(rect, &border_brush, 1.0);
+                ctx.draw_text(&text, (0.0, 0.0));
+                
+                ctx.stroke(rect, &border_brush, border_width);
+            });
+        };
+
     }
 
     fn id(&self) -> Option<WidgetId> {
@@ -361,4 +498,101 @@ fn reset_position(position: &mut StackChildPosition) {
     position.right = None;
     position.width = None;
     position.height = None;
+}
+
+pub enum PlainOrRich {
+    Plain(String),
+    Rich(RichText)
+}
+
+impl From<String> for PlainOrRich {
+    fn from(plain: String) -> Self {
+        PlainOrRich::Plain(plain)
+    }
+}
+
+impl From<&str> for PlainOrRich {
+    fn from(plain: &str) -> Self {
+        PlainOrRich::Plain(plain.to_owned())
+    }
+}
+
+impl From<Arc<str>> for PlainOrRich {
+    fn from(plain: Arc<str>) -> Self {
+        PlainOrRich::Plain(plain.to_string())
+    }
+}
+
+impl From<RichText> for PlainOrRich {
+    fn from(rich: RichText) -> Self {
+        PlainOrRich::Rich(rich)
+    }
+}
+
+#[derive(Clone)]
+enum YetAnotherAttribute {
+    Unresolved(Attribute),
+    UnresolvedFamily(Attribute),
+    UnresolvedSize(Attribute),
+    UnresolvedWeight(Attribute),
+    UnresolvedStyle(Attribute),
+    Resolved(TextAttribute),
+}
+
+impl YetAnotherAttribute {
+    fn resolve(self, env: &druid::Env) -> TextAttribute {
+        match self {
+            YetAnotherAttribute::Unresolved(unresolved) => match unresolved {
+                Attribute::FontSize(size) => TextAttribute::FontSize(size.resolve(env)),
+                Attribute::TextColor(color) => TextAttribute::TextColor(color.resolve(env)),
+                _ => unreachable!()
+            },
+            YetAnotherAttribute::UnresolvedFamily(desc) => if let Attribute::Descriptor(desc) = desc {
+                TextAttribute::FontFamily(desc.resolve(env).family)
+            } else {
+                unreachable!()
+            },
+            YetAnotherAttribute::UnresolvedSize(desc) => if let Attribute::Descriptor(desc) = desc {
+                TextAttribute::FontSize(desc.resolve(env).size)
+            } else {
+                unreachable!()
+            },
+            YetAnotherAttribute::UnresolvedWeight(desc) => if let Attribute::Descriptor(desc) = desc {
+                TextAttribute::Weight(desc.resolve(env).weight)
+            } else {
+                unreachable!()
+            },
+            YetAnotherAttribute::UnresolvedStyle(desc) => if let Attribute::Descriptor(desc) = desc {
+                TextAttribute::Style(desc.resolve(env).style)
+            } else {
+                unreachable!()
+            },
+            YetAnotherAttribute::Resolved(attr) => attr,
+        }
+    }
+}
+
+impl TryFrom<Attribute> for YetAnotherAttribute {
+    type Error = [YetAnotherAttribute; 4];
+
+    fn try_from(value: Attribute) -> Result<Self, Self::Error> {
+        let res = match value {
+            Attribute::FontFamily(family) => Self::Resolved(TextAttribute::FontFamily(family)),
+            Attribute::Weight(attr) => Self::Resolved(TextAttribute::Weight(attr)),
+            Attribute::Style(attr) => Self::Resolved(TextAttribute::Style(attr)),
+            Attribute::Underline(attr) => Self::Resolved(TextAttribute::Underline(attr)),
+            Attribute::Strikethrough(attr) => Self::Resolved(TextAttribute::Strikethrough(attr)),
+            unresolved @ Attribute::FontSize(_) | unresolved @ Attribute::TextColor(_) => YetAnotherAttribute::Unresolved(unresolved),
+            descriptor @ Attribute::Descriptor(_) => {
+                Err([
+                    YetAnotherAttribute::UnresolvedFamily(descriptor.clone()),
+                    YetAnotherAttribute::UnresolvedSize(descriptor.clone()),
+                    YetAnotherAttribute::UnresolvedWeight(descriptor.clone()),
+                    YetAnotherAttribute::UnresolvedStyle(descriptor),
+                ])?
+            },
+        };
+    
+        Ok(res)
+    }
 }
