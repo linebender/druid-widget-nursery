@@ -39,6 +39,7 @@ fn main() {
                         Label::new("MID LEFT"),
                         String::from("TOOLTIP LOREM IPSUM DORUM"),
                     )
+                    .with_crosshair(true)
                     .cancel_stack_tooltip(),
                 )
                 .with_flex_spacer(1.0)

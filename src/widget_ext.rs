@@ -3,7 +3,7 @@ use druid::widget::{ControllerHost, LabelText};
 use druid::{Point, Selector, WidgetExt as _, WindowHandle};
 
 use crate::on_cmd::OnCmd;
-use crate::stack_tooltip::{StackTooltip, ADVISE_TOOLTIP_SHOW, CANCEL_TOOLTIP_SHOW};
+use crate::stack_tooltip::{StackTooltip, ADVISE_TOOLTIP_SHOW, CANCEL_TOOLTIP_SHOW, PlainOrRich};
 use crate::tooltip::TooltipState;
 use crate::{OnChange, OnMonitor, TooltipController};
 
@@ -57,7 +57,7 @@ pub trait WidgetExt<T: Data>: Widget<T> + Sized + 'static {
     }
 
     /// Open a stack based tooltip when the mouse is hovered over this widget
-    fn stack_tooltip(self, label: impl Into<LabelText<T>>) -> StackTooltip<T> {
+    fn stack_tooltip(self, label: impl Into<PlainOrRich>) -> StackTooltip<T> {
         StackTooltip::new(self, label)
     }
 }
