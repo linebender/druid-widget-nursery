@@ -529,7 +529,6 @@ impl From<RichText> for PlainOrRich {
     }
 }
 
-#[derive(Clone)]
 enum YetAnotherAttribute {
     Unresolved(Attribute),
     UnresolvedFamily(Attribute),
@@ -594,5 +593,26 @@ impl TryFrom<Attribute> for YetAnotherAttribute {
         };
     
         Ok(res)
+    }
+}
+
+impl Clone for YetAnotherAttribute {
+    fn clone(&self) -> Self {
+        match self {
+            Self::Unresolved(attr) => Self::Unresolved(attr.clone()),
+            Self::UnresolvedFamily(attr) => Self::UnresolvedFamily(attr.clone()),
+            Self::UnresolvedSize(attr) => Self::UnresolvedSize(attr.clone()),
+            Self::UnresolvedWeight(attr) => Self::UnresolvedWeight(attr.clone()),
+            Self::UnresolvedStyle(attr) => Self::UnresolvedStyle(attr.clone()),
+            Self::Resolved(attr) => Self::Resolved(match attr {
+                TextAttribute::FontFamily(val) => TextAttribute::FontFamily(val.clone()),
+                TextAttribute::FontSize(val) => TextAttribute::FontSize(val.clone()),
+                TextAttribute::Weight(val) => TextAttribute::Weight(val.clone()),
+                TextAttribute::TextColor(val) => TextAttribute::TextColor(val.clone()),
+                TextAttribute::Style(val) => TextAttribute::Style(val.clone()),
+                TextAttribute::Underline(val) => TextAttribute::Underline(val.clone()),
+                TextAttribute::Strikethrough(val) => TextAttribute::Strikethrough(val.clone()),
+            }),
+        }
     }
 }
