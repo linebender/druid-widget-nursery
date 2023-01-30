@@ -67,7 +67,7 @@ fn copy_and_load_library(lib_path: &Path) -> (Library, PathBuf) {
         path.set_extension(lib_path.extension().unwrap());
         path
     };
-    fs::copy(&lib_path, &unique_path).expect("Failed to copy lib to unique path");
+    fs::copy(lib_path, &unique_path).expect("Failed to copy lib to unique path");
     let lib = Library::new(unique_path.as_os_str()).expect("Failed to load library");
 
     (lib, unique_path)

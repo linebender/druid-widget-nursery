@@ -482,7 +482,7 @@ impl<T: Data> Widget<T> for FlexTable<T> {
                 };
 
                 let child_pos = Point::new(row_width, table_height + dh);
-                cell.set_origin(ctx, data, env, child_pos);
+                cell.set_origin(ctx, child_pos);
                 row_width += col_widths[col_num];
             }
 

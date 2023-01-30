@@ -161,8 +161,7 @@ where
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, _data: &T, env: &Env) -> Size {
         let size = self.widget.layout(ctx, bc, &self.current_data, env);
         ctx.set_baseline_offset(self.widget.baseline_offset());
-        self.widget
-            .set_origin(ctx, &self.current_data, env, Point::ORIGIN);
+        self.widget.set_origin(ctx, Point::ORIGIN);
         size
     }
 
@@ -228,7 +227,7 @@ impl<T, U: Data, P: Prism<T, U>, W: Widget<U>> Widget<T> for PrismWrap<W, P, U> 
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, _data: &T, env: &Env) -> Size {
         if let Some(data) = &self.cached_data {
             let size = self.inner.layout(ctx, bc, data, env);
-            self.inner.set_origin(ctx, data, env, Point::ORIGIN);
+            self.inner.set_origin(ctx, Point::ORIGIN);
             size
         } else {
             bc.min()

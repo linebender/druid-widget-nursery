@@ -54,7 +54,7 @@ fn main_widget() -> impl Widget<AnimState> {
     let controls = Flex::column()
         .with_child(group(
             "Curve",
-            RadioGroup::new(vec![
+            RadioGroup::row(vec![
                 ("Linear", Curve::Linear),
                 ("EaseIn", Curve::EaseIn),
                 ("EaseOut", Curve::EaseOut),
@@ -74,7 +74,7 @@ fn main_widget() -> impl Widget<AnimState> {
         .with_child(
             group(
                 "Direction",
-                RadioGroup::new(vec![
+                RadioGroup::row(vec![
                     ("Forward", AnimationDirection::Forward),
                     ("Reverse", AnimationDirection::Reverse),
                     ("Alternate", AnimationDirection::Alternate),

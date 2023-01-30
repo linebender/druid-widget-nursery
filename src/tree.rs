@@ -183,7 +183,7 @@ where
 
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> Size {
         let size = self.widget.layout(ctx, bc, data, env);
-        self.widget.set_origin(ctx, data, env, Point::ORIGIN);
+        self.widget.set_origin(ctx, Point::ORIGIN);
         bc.constrain(size)
     }
 
@@ -537,7 +537,7 @@ impl<T: TreeNode, L: Lens<T, bool> + Clone> Widget<T> for TreeNodeWidget<T, L> {
             let chroot = &mut self.children[idx];
             let data = data.get_child(idx);
             let size = chroot.layout(ctx, bc, data, env);
-            chroot.set_origin(ctx, data, env, Point::ORIGIN);
+            chroot.set_origin(ctx, Point::ORIGIN);
             return size;
         }
 
@@ -553,7 +553,7 @@ impl<T: TreeNode, L: Lens<T, bool> + Clone> Widget<T> for TreeNodeWidget<T, L> {
             data,
             env,
         );
-        self.opener.set_origin(ctx, data, env, Point::ORIGIN);
+        self.opener.set_origin(ctx, Point::ORIGIN);
 
         // Immediately on the right, the node widget
         let widget_size = self.widget.layout(
@@ -565,8 +565,7 @@ impl<T: TreeNode, L: Lens<T, bool> + Clone> Widget<T> for TreeNodeWidget<T, L> {
             data,
             env,
         );
-        self.widget
-            .set_origin(ctx, data, env, Point::new(basic_size, 0.0));
+        self.widget.set_origin(ctx, Point::new(basic_size, 0.0));
 
         // This is the computed size of this node. We start with the size of the widget,
         // and will increase for each child node.
@@ -598,7 +597,7 @@ impl<T: TreeNode, L: Lens<T, bool> + Clone> Widget<T> for TreeNodeWidget<T, L> {
                 );
                 let child_size = child_widget_node.layout(ctx, &child_bc, child_tree_node, env);
                 let child_pos = Point::new(indent, size.height); // We position the child at the current height
-                child_widget_node.set_origin(ctx, child_tree_node, env, child_pos);
+                child_widget_node.set_origin(ctx, child_pos);
                 size.height += child_size.height; // Increment the height of this node by the height of this child node
                 if indent + child_size.width > size.width {
                     size.width = indent + child_size.width;
@@ -759,7 +758,7 @@ impl<T: TreeNode, L: Lens<T, bool> + Clone + 'static> Widget<T> for Tree<T, L> {
 
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, data: &T, env: &Env) -> Size {
         let size = self.root_node.layout(ctx, bc, data, env);
-        self.root_node.set_origin(ctx, data, env, Point::ORIGIN);
+        self.root_node.set_origin(ctx, Point::ORIGIN);
         // TODO: ctx.set_paint_insets...
         size
     }

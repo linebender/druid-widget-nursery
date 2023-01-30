@@ -69,7 +69,7 @@ impl<T: Data> Widget<T> for HotReloaderWidget<T> {
         self.inner
             .as_mut()
             .unwrap()
-            .set_origin(ctx, data, env, (0.0, 0.0).into());
+            .set_origin(ctx, (0.0, 0.0).into());
         self.inner.as_mut().unwrap().layout(ctx, bc, data, env)
     }
 

@@ -40,7 +40,7 @@ fn main_widget() -> impl Widget<DropDownState> {
                                 .into_iter()
                                 .map(|item| (item, item.to_owned()))
                                 .collect();
-                        RadioGroup::new(places)
+                        RadioGroup::row(places)
                     },
                 )
                 .align_left()
@@ -55,7 +55,7 @@ fn main_widget() -> impl Widget<DropDownState> {
                             ctx.submit_notification(DROPDOWN_SHOW)
                         })),
                     |_, _| {
-                        RadioGroup::new(vec![
+                        RadioGroup::row(vec![
                             ("Apple", Fruit::Apple),
                             ("Pear", Fruit::Pear),
                             ("Orange", Fruit::Orange),
@@ -72,7 +72,7 @@ fn main_widget() -> impl Widget<DropDownState> {
                         |ctx: &mut EventCtx, _, _| ctx.submit_notification(DROPDOWN_SHOW),
                     ),
                     |_, _| {
-                        RadioGroup::new(vec![
+                        RadioGroup::row(vec![
                             ("Apple", Fruit::Apple),
                             ("Pear", Fruit::Pear),
                             ("Orange", Fruit::Orange),

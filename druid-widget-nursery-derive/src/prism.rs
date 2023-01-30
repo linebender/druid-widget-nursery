@@ -42,7 +42,7 @@ pub fn expand_prism(input: DeriveInput) -> syn::Result<TokenStream> {
             match &v.fields {
                 Fields::Named(_) => {
                     return Err(syn::Error::new_spanned(
-                        &v,
+                        v,
                         "variants with named fields are not supported for deriving `Prism`",
                     ));
                 }

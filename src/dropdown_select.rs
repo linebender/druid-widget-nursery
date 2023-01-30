@@ -227,7 +227,7 @@ impl<T: Data> Widget<DropdownState<T>> for DropdownButton<T> {
         let wedge_bc = BoxConstraints::tight(Size::new(basic_width, basic_width));
         let wedge_pos = Point::new(0.0, (height - basic_width) / 2.0);
         self.wedge.layout(ctx, &wedge_bc, &data.expanded, env);
-        self.wedge.set_origin(ctx, &data.expanded, env, wedge_pos);
+        self.wedge.set_origin(ctx, wedge_pos);
 
         bc.constrain(Size::new(
             self.label_size.width + padding.width + basic_width,

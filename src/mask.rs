@@ -139,8 +139,8 @@ impl<T: Data> Widget<T> for Mask<T> {
         let mask_bc = BoxConstraints::new(Size::ZERO, size);
         let _mask_size = self.mask.layout(ctx, &mask_bc, data, env);
         let origin = Point::new(0f64, 0f64);
-        self.child.set_origin(ctx, data, env, origin);
-        self.mask.set_origin(ctx, data, env, origin);
+        self.child.set_origin(ctx, origin);
+        self.mask.set_origin(ctx, origin);
 
         let baseline_offset = self.child.baseline_offset();
         if baseline_offset > 0f64 {
