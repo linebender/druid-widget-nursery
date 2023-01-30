@@ -678,7 +678,7 @@ impl<T: TreeNode, L: Lens<T, bool> + Clone + 'static> Tree<T, L> {
 impl<T: TreeNode + Display, L: Lens<T, bool> + Clone + 'static> Tree<T, L> {
     pub fn default(expand_lens: L) -> Self {
         let make_widget: TreeItemFactory<T> =
-            Arc::new(|| Box::new(Label::dynamic(|data: &T, _env| format!("{}", data))));
+            Arc::new(|| Box::new(Label::dynamic(|data: &T, _env| data.to_string())));
         let el = expand_lens.clone();
         let make_opener: Arc<Box<OpenerFactory<T>>> =
             Arc::new(Box::new(move || Box::new(make_wedge(el.clone()))));

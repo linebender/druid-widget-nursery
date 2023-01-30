@@ -134,7 +134,7 @@ impl<T: Data> Splits<T> {
             if (new_pos - previous_end) < self.min_size {
                 break;
             }
-            self.major_pos_vec[i as usize] = new_pos;
+            self.major_pos_vec[i] = new_pos;
             previous_end = new_pos;
         }
     }

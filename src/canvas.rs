@@ -121,7 +121,7 @@ impl<W: Widget<T>, T: Data, F: Fn(&T) -> Point> CanvasLayout<T> for CanvasWrap<W
             data,
             env,
         );
-        println!("{} {}", desired_origin, desired_size);
+        println!("{desired_origin} {desired_size}");
         self.inner.set_origin(ctx, (self.closure)(data));
         (desired_origin, desired_size)
     }
