@@ -15,7 +15,7 @@ fn main_widget() -> impl Widget<AppState> {
         .with_child(Container::new(
             Scroll::new(
                 Splits::new(|| {
-                    Label::new(|text: &String, _: &Env| format!("Collection: {}", text))
+                    Label::new(|text: &String, _: &Env| format!("Collection: {text}"))
                         .fix_height(120.)
                 })
                 .horizontal()

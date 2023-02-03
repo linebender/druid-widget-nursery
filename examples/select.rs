@@ -49,7 +49,7 @@ fn main_widget() -> impl Widget<AppData> {
                 ("to Tokyo", Destination::Tokyo),
                 ("to Paris", Destination::Paris),
             ])
-            .on_select(|_, item, _| println!("Selected destination: {:?}", item)),
+            .on_select(|_, item, _| println!("Selected destination: {item:?}")),
         )
         .vertical()
         .lens(AppData::destination),

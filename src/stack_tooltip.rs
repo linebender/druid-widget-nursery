@@ -14,15 +14,23 @@
 
 //! A stack based tooltip widget.
 
-use std::{sync::Arc, rc::Rc, cell::RefCell, convert::{TryFrom, TryInto}};
+use std::{
+    cell::RefCell,
+    convert::{TryFrom, TryInto},
+    rc::Rc,
+    sync::Arc,
+};
 
 use crate::{Stack, StackChildParams, StackChildPosition};
 use druid::{
+    piet::{Text, TextAttribute, TextLayoutBuilder, TextStorage},
+    text::{Attribute, RichText},
     widget::{
-        DefaultScopePolicy, Either, Label, LensScopeTransfer, Scope, SizedBox, RawLabel, WidgetWrapper,
+        DefaultScopePolicy, Either, Label, LensScopeTransfer, RawLabel, Scope, SizedBox,
+        WidgetWrapper,
     },
-    Data, Lens, Point, RenderContext, Selector, SingleUse, Size, Widget, WidgetExt, WidgetId,
-    WidgetPod, piet::{Text, TextLayoutBuilder, TextStorage, TextAttribute}, text::{RichText, Attribute}, KeyOrValue, Color,
+    Color, Data, KeyOrValue, Lens, Point, RenderContext, Selector, SingleUse, Size, Widget,
+    WidgetExt, WidgetId, WidgetPod,
 };
 
 const FORWARD: Selector<SingleUse<(WidgetId, Point)>> = Selector::new("tooltip.forward");
@@ -174,7 +182,7 @@ impl<T: Data> StackTooltipInternal<T> {
     ) -> StackTooltipActual<T> {
         let rich_text = match label.into() {
             PlainOrRich::Plain(plain) => RichText::new(plain.into()),
-            PlainOrRich::Rich(rich) => rich
+            PlainOrRich::Rich(rich) => rich,
         };
         let attrs = vec![];
 
@@ -204,18 +212,19 @@ impl<T: Data> StackTooltipInternal<T> {
                 text,
                 background,
                 border,
-                use_crosshair: false
+                use_crosshair: false,
             },
         )
     }
 
     pub fn set_text_attribute(&mut self, attribute: Attribute) {
-        self.text.borrow_mut().0.add_attribute(0.., attribute.clone());
+        self.text
+            .borrow_mut()
+            .0
+            .add_attribute(0.., attribute.clone());
         match attribute.try_into() {
             Ok(attr) => self.text.borrow_mut().1.push(attr),
-            Err(attrs) => {
-                self.text.borrow_mut().1.extend(attrs)
-            },
+            Err(attrs) => self.text.borrow_mut().1.extend(attrs),
         };
     }
 
@@ -358,7 +367,12 @@ struct TooltipLabel {
 }
 
 impl TooltipLabel {
-    pub fn new(text: RichTextCell, id: WidgetId, background: BackgroundCell, border: BorderCell) -> Self {
+    pub fn new(
+        text: RichTextCell,
+        id: WidgetId,
+        background: BackgroundCell,
+        border: BorderCell,
+    ) -> Self {
         let label = WidgetPod::new(Label::raw());
 
         Self {
@@ -404,7 +418,8 @@ impl<T: Data> Widget<TooltipState<T>> for TooltipLabel {
             }
         }
 
-        self.label.event(ctx, event, &mut self.text.borrow_mut().0, env)
+        self.label
+            .event(ctx, event, &mut self.text.borrow_mut().0, env)
     }
 
     fn lifecycle(
@@ -442,11 +457,13 @@ impl<T: Data> Widget<TooltipState<T>> for TooltipLabel {
         rect.x0 -= 2.0;
         rect.y1 += 2.0;
 
-        let fill_brush = ctx.solid_brush(if let Some(background) = self.background.borrow().as_ref() {
-            background.resolve(env)
-        } else {
-            env.get(druid::theme::BACKGROUND_DARK)
-        });
+        let fill_brush = ctx.solid_brush(
+            if let Some(background) = self.background.borrow().as_ref() {
+                background.resolve(env)
+            } else {
+                env.get(druid::theme::BACKGROUND_DARK)
+            },
+        );
         let border_brush = ctx.solid_brush(if let Some(border) = self.border.borrow().0.as_ref() {
             border.resolve(env)
         } else {
@@ -458,8 +475,12 @@ impl<T: Data> Widget<TooltipState<T>> for TooltipLabel {
             env.get(druid::theme::TEXTBOX_BORDER_WIDTH)
         };
 
-        let mut text = ctx.text().new_text_layout(<&str as Into<Arc<str>>>::into(self.text.borrow().0.as_str()));
-        text = text.default_attribute(TextAttribute::FontFamily(env.get(druid::theme::UI_FONT).family));
+        let mut text = ctx.text().new_text_layout(<&str as Into<Arc<str>>>::into(
+            self.text.borrow().0.as_str(),
+        ));
+        text = text.default_attribute(TextAttribute::FontFamily(
+            env.get(druid::theme::UI_FONT).family,
+        ));
         text = text.default_attribute(TextAttribute::FontSize(env.get(druid::theme::UI_FONT).size));
         text = text.default_attribute(TextAttribute::Style(env.get(druid::theme::UI_FONT).style));
         text = text.default_attribute(TextAttribute::Weight(env.get(druid::theme::UI_FONT).weight));
@@ -472,11 +493,10 @@ impl<T: Data> Widget<TooltipState<T>> for TooltipLabel {
                 ctx.fill(rect, &fill_brush);
 
                 ctx.draw_text(&text, (0.0, 0.0));
-                
+
                 ctx.stroke(rect, &border_brush, border_width);
             });
         };
-
     }
 
     fn id(&self) -> Option<WidgetId> {
@@ -502,7 +522,7 @@ fn reset_position(position: &mut StackChildPosition) {
 
 pub enum PlainOrRich {
     Plain(String),
-    Rich(RichText)
+    Rich(RichText),
 }
 
 impl From<String> for PlainOrRich {
@@ -544,28 +564,36 @@ impl YetAnotherAttribute {
             YetAnotherAttribute::Unresolved(unresolved) => match unresolved {
                 Attribute::FontSize(size) => TextAttribute::FontSize(size.resolve(env)),
                 Attribute::TextColor(color) => TextAttribute::TextColor(color.resolve(env)),
-                _ => unreachable!()
+                _ => unreachable!(),
             },
-            YetAnotherAttribute::UnresolvedFamily(desc) => if let Attribute::Descriptor(desc) = desc {
-                TextAttribute::FontFamily(desc.resolve(env).family)
-            } else {
-                unreachable!()
-            },
-            YetAnotherAttribute::UnresolvedSize(desc) => if let Attribute::Descriptor(desc) = desc {
-                TextAttribute::FontSize(desc.resolve(env).size)
-            } else {
-                unreachable!()
-            },
-            YetAnotherAttribute::UnresolvedWeight(desc) => if let Attribute::Descriptor(desc) = desc {
-                TextAttribute::Weight(desc.resolve(env).weight)
-            } else {
-                unreachable!()
-            },
-            YetAnotherAttribute::UnresolvedStyle(desc) => if let Attribute::Descriptor(desc) = desc {
-                TextAttribute::Style(desc.resolve(env).style)
-            } else {
-                unreachable!()
-            },
+            YetAnotherAttribute::UnresolvedFamily(desc) => {
+                if let Attribute::Descriptor(desc) = desc {
+                    TextAttribute::FontFamily(desc.resolve(env).family)
+                } else {
+                    unreachable!()
+                }
+            }
+            YetAnotherAttribute::UnresolvedSize(desc) => {
+                if let Attribute::Descriptor(desc) = desc {
+                    TextAttribute::FontSize(desc.resolve(env).size)
+                } else {
+                    unreachable!()
+                }
+            }
+            YetAnotherAttribute::UnresolvedWeight(desc) => {
+                if let Attribute::Descriptor(desc) = desc {
+                    TextAttribute::Weight(desc.resolve(env).weight)
+                } else {
+                    unreachable!()
+                }
+            }
+            YetAnotherAttribute::UnresolvedStyle(desc) => {
+                if let Attribute::Descriptor(desc) = desc {
+                    TextAttribute::Style(desc.resolve(env).style)
+                } else {
+                    unreachable!()
+                }
+            }
             YetAnotherAttribute::Resolved(attr) => attr,
         }
     }
@@ -581,17 +609,17 @@ impl TryFrom<Attribute> for YetAnotherAttribute {
             Attribute::Style(attr) => Self::Resolved(TextAttribute::Style(attr)),
             Attribute::Underline(attr) => Self::Resolved(TextAttribute::Underline(attr)),
             Attribute::Strikethrough(attr) => Self::Resolved(TextAttribute::Strikethrough(attr)),
-            unresolved @ Attribute::FontSize(_) | unresolved @ Attribute::TextColor(_) => YetAnotherAttribute::Unresolved(unresolved),
-            descriptor @ Attribute::Descriptor(_) => {
-                Err([
-                    YetAnotherAttribute::UnresolvedFamily(descriptor.clone()),
-                    YetAnotherAttribute::UnresolvedSize(descriptor.clone()),
-                    YetAnotherAttribute::UnresolvedWeight(descriptor.clone()),
-                    YetAnotherAttribute::UnresolvedStyle(descriptor),
-                ])?
-            },
+            unresolved @ Attribute::FontSize(_) | unresolved @ Attribute::TextColor(_) => {
+                YetAnotherAttribute::Unresolved(unresolved)
+            }
+            descriptor @ Attribute::Descriptor(_) => Err([
+                YetAnotherAttribute::UnresolvedFamily(descriptor.clone()),
+                YetAnotherAttribute::UnresolvedSize(descriptor.clone()),
+                YetAnotherAttribute::UnresolvedWeight(descriptor.clone()),
+                YetAnotherAttribute::UnresolvedStyle(descriptor),
+            ])?,
         };
-    
+
         Ok(res)
     }
 }
@@ -608,7 +636,7 @@ impl Clone for YetAnotherAttribute {
                 TextAttribute::FontFamily(val) => TextAttribute::FontFamily(val.clone()),
                 TextAttribute::FontSize(val) => TextAttribute::FontSize(*val),
                 TextAttribute::Weight(val) => TextAttribute::Weight(*val),
-                TextAttribute::TextColor(val) => TextAttribute::TextColor(val.clone()),
+                TextAttribute::TextColor(val) => TextAttribute::TextColor(*val),
                 TextAttribute::Style(val) => TextAttribute::Style(*val),
                 TextAttribute::Underline(val) => TextAttribute::Underline(*val),
                 TextAttribute::Strikethrough(val) => TextAttribute::Strikethrough(*val),
