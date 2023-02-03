@@ -11,12 +11,6 @@ derive = ["druid-widget-nursery-derive"]
 hot-reload = ["libloading", "notify5", "rand"]
 material-icons = ["druid-material-icons"]
 
-#[dependencies.druid]
-#git = "https://github.com/linebender/druid"
-#rev = "fc05e965c85fced8720c655685e02478e0530e94" # update this when upgrading to newer druid
-# path = "../../projects/druid/druid"
-#features = ["im"]
-
 [dependencies]
 # TODO convert to using tracing
 log = "0.4.11"
