@@ -15,7 +15,7 @@ fn build_titlebar() -> impl Widget<u32> {
             // New titlebar with a label
             TitleBar::new(
                 // label is dynamic, using the value from data
-                Label::dynamic(|data: &u32, _env| format!("TitleBar: Value = {}", data))
+                Label::dynamic(|data: &u32, _env| format!("TitleBar: Value = {data}"))
                     // Center the label in the titlebar.
                     .center(),
             ),

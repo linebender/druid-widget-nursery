@@ -50,4 +50,4 @@ jobs:
       uses: actions-rs/cargo@v1
       with:
         command: clippy
-        args: -p druid-widget-nursery --all-targets --all-features -- -D warnings
+        args: --all-targets --all-features -- -D warnings

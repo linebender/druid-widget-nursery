@@ -151,12 +151,12 @@ pub enum ThemeLoadError {
 impl std::fmt::Display for ThemeLoadError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Self::IoError(err) => write!(f, "io error loading theme: '{}'", err),
-            Self::UnknownType(t) => write!(f, "Unsupported theme key type '{}'", t),
-            Self::MissingKey(k) => write!(f, "Theme is missing expected key '{}'", k),
-            Self::ParseColorError(e) => write!(f, "Theme failed to parse color: '{}'", e),
-            Self::ParseFloatError(e) => write!(f, "Theme failed to parse float: '{}'", e),
-            Self::ValueTypeError(e) => write!(f, "Theme value type mismatch: '{}'", e),
+            Self::IoError(err) => write!(f, "io error loading theme: '{err}'"),
+            Self::UnknownType(t) => write!(f, "Unsupported theme key type '{t}'"),
+            Self::MissingKey(k) => write!(f, "Theme is missing expected key '{k}'"),
+            Self::ParseColorError(e) => write!(f, "Theme failed to parse color: '{e}'"),
+            Self::ParseFloatError(e) => write!(f, "Theme failed to parse float: '{e}'"),
+            Self::ValueTypeError(e) => write!(f, "Theme value type mismatch: '{e}'"),
             Self::ParseThemeLineError(s) => {
                 write!(f, "Theme contained malformed line: '{}'", s.escape_debug())
             }

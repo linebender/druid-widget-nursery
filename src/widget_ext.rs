@@ -3,7 +3,7 @@ use druid::widget::{ControllerHost, LabelText};
 use druid::{Point, Selector, WidgetExt as _, WindowHandle};
 
 use crate::on_cmd::OnCmd;
-use crate::stack_tooltip::{StackTooltip, ADVISE_TOOLTIP_SHOW, CANCEL_TOOLTIP_SHOW, PlainOrRich};
+use crate::stack_tooltip::{PlainOrRich, StackTooltip, ADVISE_TOOLTIP_SHOW, CANCEL_TOOLTIP_SHOW};
 use crate::tooltip::TooltipState;
 use crate::{OnChange, OnMonitor, TooltipController};
 

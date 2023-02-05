@@ -1,5 +1,5 @@
 use druid::widget::prelude::*;
-use druid::{Data, InternalLifeCycle, Point, Rect, Scalable, Screen, Vec2, WindowHandle};
+use druid::{Data, Point, Rect, Scalable, Screen, Vec2, WindowHandle};
 
 /// This is a wrapper widget that attempts to ensure that the widget it wraps is fully contained in
 /// one monitor.
@@ -49,7 +49,7 @@ impl<T: Data, W: Widget<T>> Widget<T> for OnMonitor<W> {
 
     fn lifecycle(&mut self, ctx: &mut LifeCycleCtx, ev: &LifeCycle, data: &T, env: &Env) {
         match ev {
-            LifeCycle::Size(_) | LifeCycle::Internal(InternalLifeCycle::ParentWindowOrigin) => {
+            LifeCycle::Size(_) | LifeCycle::ViewContextChanged(_) => {
                 let w = ctx.window();
                 let rect = Rect::from_origin_size(ctx.window_origin(), ctx.size());
                 let current_window_pos = w.get_position();

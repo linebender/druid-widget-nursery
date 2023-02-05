@@ -11,6 +11,7 @@ crate-type = ["dylib"]
 druid-widget-nursery = { path = "../..", features = ["hot-reload"] }
 
 [dependencies.druid]
-git = "https://github.com/linebender/druid"
-rev = "fc05e965c85fced8720c655685e02478e0530e94" # update this when upgrading to newer druid
+#git = "https://github.com/linebender/druid"
+#rev = "fc05e965c85fced8720c655685e02478e0530e94" # update this when upgrading to newer druid
 # path = "../../projects/druid/druid"
+version = "0.8"

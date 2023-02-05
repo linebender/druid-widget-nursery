@@ -135,7 +135,7 @@ impl<H: View, T: Data + ViewController<H>> Widget<T> for Navigator<T, H> {
         let current_view = self.state.last_mut().unwrap();
         let child_size = current_view.layout(ctx, bc, data, env);
         // I think the origin is (0,0) which should be the top left corner of the parent
-        current_view.set_origin(ctx, data, env, Point::ORIGIN);
+        current_view.set_origin(ctx, Point::ORIGIN);
 
         child_size
     }

@@ -96,7 +96,7 @@ fn make_row_alignment_example() -> impl Widget<DemoState> {
         let mut row = TableRow::new().min_height(40.).vertical_alignment(align);
 
         row.add_child(
-            Label::new(format!("{:?}", align))
+            Label::new(format!("{align:?}"))
                 .with_text_color(Color::BLACK)
                 .background(theme::BORDER_LIGHT)
                 .border(Color::WHITE, 1.)
@@ -107,7 +107,7 @@ fn make_row_alignment_example() -> impl Widget<DemoState> {
 
         for row_num in 1..6 {
             row.add_child(
-                Label::new(format!("{}", row_num))
+                Label::new(format!("{row_num}"))
                     .with_text_color(Color::BLACK)
                     .background(theme::BORDER_LIGHT)
                     .border(Color::WHITE, 1.)
@@ -141,7 +141,7 @@ fn make_cell_alignment_example() -> impl Widget<DemoState> {
     for (i, alignment) in alignments.iter().enumerate() {
         row.add_child(
             Align::new(*alignment, {
-                let label = Label::new(format!("{}", i))
+                let label = Label::new(format!("{i}"))
                     .with_text_color(Color::BLACK)
                     .center();
                 Container::new(label)

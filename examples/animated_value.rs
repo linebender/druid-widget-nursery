@@ -63,7 +63,7 @@ impl Widget<()> for AnimatedWidget {
                 if ctx.is_hot() {
                     self.current_color += 1;
                     self.color
-                        .animate(ctx, COLORS[self.current_color % COLORS.len()].clone());
+                        .animate(ctx, COLORS[self.current_color % COLORS.len()]);
                 }
                 ctx.set_active(false);
                 self.set_insets(ctx, ctx.is_hot(), false);

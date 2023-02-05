@@ -1,10 +1,10 @@
 use druid::kurbo::{Circle, Point, Size};
 use druid::widget::{
-    Button, CrossAxisAlignment, Flex, Label, LabelText, Parse, RadioGroup, TextBox, WidgetExt,
+    Button, CrossAxisAlignment, Flex, Label, LabelText, RadioGroup, TextBox, WidgetExt,
 };
 use druid::{
-    theme, AppLauncher, BoxConstraints, Color, Data, Env, Event, EventCtx, LayoutCtx, Lens,
-    LifeCycle, LifeCycleCtx, PaintCtx, UpdateCtx, Widget, WindowDesc,
+    text::ParseFormatter, theme, AppLauncher, BoxConstraints, Color, Data, Env, Event, EventCtx,
+    LayoutCtx, Lens, LifeCycle, LifeCycleCtx, PaintCtx, UpdateCtx, Widget, WindowDesc,
 };
 use druid_widget_nursery::animation::{AnimationCurve, AnimationDirection, AnimationId, Animator};
 
@@ -54,7 +54,7 @@ fn main_widget() -> impl Widget<AnimState> {
     let controls = Flex::column()
         .with_child(group(
             "Curve",
-            RadioGroup::new(vec![
+            RadioGroup::row(vec![
                 ("Linear", Curve::Linear),
                 ("EaseIn", Curve::EaseIn),
                 ("EaseOut", Curve::EaseOut),
@@ -67,14 +67,15 @@ fn main_widget() -> impl Widget<AnimState> {
         ))
         .with_child(group(
             "Duration ms",
-            Parse::new(TextBox::new())
+            TextBox::new()
+                .with_formatter(ParseFormatter::new())
                 .expand_width()
                 .lens(AnimState::duration),
         ))
         .with_child(
             group(
                 "Direction",
-                RadioGroup::new(vec![
+                RadioGroup::row(vec![
                     ("Forward", AnimationDirection::Forward),
                     ("Reverse", AnimationDirection::Reverse),
                     ("Alternate", AnimationDirection::Alternate),
@@ -84,9 +85,12 @@ fn main_widget() -> impl Widget<AnimState> {
             .lens(AnimState::direction),
         )
         .with_child(
-            group("Repeat", Parse::new(TextBox::new()))
-                .expand_width()
-                .lens(AnimState::repeat_limit),
+            group(
+                "Repeat",
+                TextBox::new().with_formatter(ParseFormatter::new()),
+            )
+            .expand_width()
+            .lens(AnimState::repeat_limit),
         )
         .with_child(
             Flex::row()
@@ -117,11 +121,11 @@ fn main() {
     // create the initial app state
     let initial_state = AnimState {
         curve: Curve::Linear,
-        duration: Some(1000),
+        duration: 1000,
         direction: AnimationDirection::Forward,
         toggle_size: false,
         toggle_alpha: false,
-        repeat_limit: Some(1),
+        repeat_limit: 1,
     };
 
     // start the application
@@ -134,9 +138,9 @@ fn main() {
 #[derive(Clone, Data, Lens)]
 struct AnimState {
     curve: Curve,
-    duration: Option<usize>,
+    duration: usize,
     direction: AnimationDirection,
-    repeat_limit: Option<usize>,
+    repeat_limit: usize,
     toggle_size: bool,
     toggle_alpha: bool,
 }
@@ -171,7 +175,7 @@ impl AnimatedWidget {
             .curve(data.curve)
             .repeat_limit(data.repeat_limit)
             .direction(data.direction)
-            .duration(Duration::from_millis(data.duration.unwrap_or(1000) as u64))
+            .duration(Duration::from_millis(data.duration as u64))
             .id()
     }
 
@@ -197,7 +201,7 @@ impl Widget<AnimState> for AnimatedWidget {
                     draw.circle.radius = anim_ctx.progress() * draw.max_radius
                 });
                 anim_ctx.with_animation(alpha, |anim_ctx| {
-                    draw.color = draw.color.clone().with_alpha(1. - anim_ctx.progress())
+                    draw.color = draw.color.with_alpha(1. - anim_ctx.progress())
                 })
             });
 

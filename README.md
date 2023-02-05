@@ -8,6 +8,8 @@ We don't insist that all widgets always build when updating to a newer version o
 
 So, in summary, the default assumption for PRs to this repo will be to merge, but this policy includes future PRs that might change or reverse stuff in previous PRs. For more information I recommend reading [the optimistic merging article linked here and above][optimistic merging], which offers an interesting approach to managing open source projects irrespective of its use here.
 
+Note that for CI we use `cargo clippy --all-targets --all-features`
+
 ## Using this library
 
 Add the following to your `Cargo.toml`. You will need to get the current druid `rev` from this repository's [Cargo.toml](Cargo.toml).
@@ -38,7 +40,7 @@ If you add a new widget, please add its name and a short summary here.
  - Animator : a helper for running multiple animations with different curves/timing/dependencies
  - Animated : a helper for simple transitions.
  - PartialWidget : a widget that shows a widget if its data is present
-   
+
    ![Multivalue example](multi-value-example.gif)
  - MultiRadio : a Radio that represents multiple values through an inner widget
  - MultiCheckbox : a Checkbox that represents multiple values through an inner widget

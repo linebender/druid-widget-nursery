@@ -436,7 +436,7 @@ impl<T: Data> Widget<T> for Stack<T> {
             let child_size = child.widget.layout(ctx, &child_bc, data, env);
             stack_width = stack_width.max(child_size.width);
             stack_height = stack_height.max(child_size.height);
-            child.widget.set_origin(ctx, data, env, Point::ORIGIN);
+            child.widget.set_origin(ctx, Point::ORIGIN);
         }
 
         let size = Size::new(stack_width, stack_height);
@@ -518,7 +518,7 @@ impl<T: Data> Widget<T> for Stack<T> {
             };
 
             let origin = Point::new(offset_x, offset_y);
-            child.widget.set_origin(ctx, data, env, origin);
+            child.widget.set_origin(ctx, origin);
         }
 
         size

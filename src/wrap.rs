@@ -272,8 +272,6 @@ impl<T: Data> Widget<T> for Wrap<T> {
 
                 child.set_origin(
                     ctx,
-                    data,
-                    env,
                     dir.pack(child_main_position, child_cross_axis_offset)
                         .into(),
                 );

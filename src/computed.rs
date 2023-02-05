@@ -60,8 +60,7 @@ impl<T, U: Data> Widget<T> for ComputedWidget<T, U> {
 
     fn layout(&mut self, ctx: &mut LayoutCtx, bc: &BoxConstraints, _data: &T, env: &Env) -> Size {
         let size = self.child.layout(ctx, bc, self.data.as_ref().unwrap(), env);
-        self.child
-            .set_origin(ctx, self.data.as_ref().unwrap(), env, Point::ORIGIN);
+        self.child.set_origin(ctx, Point::ORIGIN);
         size
     }
 

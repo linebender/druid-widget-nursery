@@ -134,7 +134,7 @@ impl<T: Data> Splits<T> {
             if (new_pos - previous_end) < self.min_size {
                 break;
             }
-            self.major_pos_vec[i as usize] = new_pos;
+            self.major_pos_vec[i] = new_pos;
             previous_end = new_pos;
         }
     }
@@ -277,7 +277,7 @@ impl<C: Data, T: ListIter<C>> Widget<T> for Splits<C> {
             let child_bc = axis_constraints(axis, bc, new_major_size, new_major_size);
             let child_size = child.layout(ctx, &child_bc, child_data, env);
 
-            child.set_origin(ctx, child_data, env, child_pos);
+            child.set_origin(ctx, child_pos);
 
             paint_rect = paint_rect.union(child.paint_rect());
             minor = minor.max(axis.minor(child_size));

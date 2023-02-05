@@ -115,8 +115,8 @@ impl fmt::Display for JsonValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             JsonValue::Null => f.write_str("null"),
-            JsonValue::Bool(b) => write!(f, "{}", b),
-            JsonValue::Number(num) => write!(f, "{}", num),
+            JsonValue::Bool(b) => write!(f, "{b}"),
+            JsonValue::Number(num) => write!(f, "{num}"),
             JsonValue::String(s) => f.write_str(s),
             JsonValue::Array(_) => f.write_str("[ ]"),
             JsonValue::Object(_) => f.write_str("{ }"),

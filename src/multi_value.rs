@@ -413,7 +413,7 @@ impl IndentLayout {
         env: &Env,
     ) -> Size {
         let radio_size = header.layout(ctx, bc, data_a, env);
-        header.set_origin(ctx, data_a, env, Point::ZERO);
+        header.set_origin(ctx, Point::ZERO);
 
         let inner_origin = Vec2::new(
             self.indent.resolve(env),
@@ -422,7 +422,7 @@ impl IndentLayout {
         let inner_bc = bc.shrink(inner_origin.to_size());
 
         let inner_size = body.layout(ctx, &inner_bc, data_b, env);
-        body.set_origin(ctx, data_b, env, inner_origin.to_point());
+        body.set_origin(ctx, inner_origin.to_point());
 
         if !inner_size.is_empty() {
             Size::new(
