@@ -1,7 +1,9 @@
 [package]
 name = "druid-widget-nursery-derive"
+description = "A proc-macro helper library for `druid-widget-nursery`"
 version = "0.1.0"
 edition = "2021"
+license = "MIT/Apache-2.0"
 
 [lib]
 proc-macro = true

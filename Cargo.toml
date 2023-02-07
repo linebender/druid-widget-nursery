@@ -1,5 +1,6 @@
 [package]
 name = "druid-widget-nursery"
+description = "Extra widgets for `druid` that are not yet ready for inclusion in Druid proper"
 version = "0.1.0"
 authors = ["Richard Dodd <richard.o.dodd@gmail.com>"]
 edition = "2018"
