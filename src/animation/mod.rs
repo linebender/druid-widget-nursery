@@ -5,6 +5,7 @@ mod animator;
 mod context;
 mod controller;
 mod curve;
+mod curved_animation;
 mod interpolate;
 mod state;
 mod storage;
@@ -16,6 +17,7 @@ pub use animator::Animator;
 pub use context::AnimationCtx;
 pub use controller::AnimationController;
 pub use curve::{AnimationCurve, CubicBezierAnimationCurve};
+pub use curved_animation::CurvedAnimation;
 pub use interpolate::Interpolate;
 pub use storage::AnimationId;
 
