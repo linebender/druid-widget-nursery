@@ -7,8 +7,6 @@ use druid::{
 };
 use std::time::{Duration, Instant};
 
-use crate::WidgetExt as _;
-
 #[derive(Clone)]
 pub(crate) enum TooltipState {
     Off,
@@ -50,7 +48,7 @@ impl<T: Data, W: Widget<T>> Controller<T, W> for TooltipController<T> {
                     last_mouse_move: Instant::now(),
                     last_mouse_pos: ev.window_pos,
                 },
-                Event::MouseDown(_) | Event::MouseUp(_) | Event::MouseMove(_) => TooltipState::Off,
+                Event::MouseDown(_) | Event::MouseUp(_) | Event::MouseMove(_) | Event::Wheel(_) => TooltipState::Off,
                 Event::Timer(tok) if tok == &timer => {
                     ctx.set_handled();
                     let elapsed = Instant::now().duration_since(last_mouse_move);
@@ -68,7 +66,6 @@ impl<T: Data, W: Widget<T>> Controller<T, W> for TooltipController<T> {
                             // resolving, but LabelText isn't Clone
                             Label::new(self.text.display_text())
                                 .border(TOOLTIP_BORDER_COLOR, TOOLTIP_BORDER_WIDTH)
-                                .on_monitor(ctx.window()),
                             data.clone(),
                             env.clone(),
                         );
