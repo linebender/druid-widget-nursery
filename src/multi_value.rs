@@ -1,3 +1,6 @@
+// Copyright 2021 the Druid Authors
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 use crate::animation::{Animated, AnimationCurve, Interpolate};
 use crate::prism::{DisablePrismWrap, OptionSome, Prism};
 use druid::theme::WIDGET_PADDING_VERTICAL;

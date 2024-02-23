@@ -1,3 +1,6 @@
+// Copyright 2021 the Druid Authors
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 use druid::lens::Map;
 use druid::widget::{Button, Flex, Label, LabelText, Split, TextBox};
 use druid::{AppLauncher, Data, Env, Lens, Point, Size, Widget, WidgetExt, WindowDesc};

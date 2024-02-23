@@ -1,3 +1,6 @@
+// Copyright 2022 the Druid Authors
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 use druid::{widget::Flex, AppLauncher, Color, LocalizedString, Widget, WidgetExt, WindowDesc};
 use druid_widget_nursery::material_icons::{
     normal::action::{ABC, ADD_CARD, ADD_TASK, ADD_TO_DRIVE},

@@ -1,3 +1,6 @@
+// Copyright 2021 the Druid Authors
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 use druid::widget::{CrossAxisAlignment, Flex, Slider, TextBox};
 use druid::{AppLauncher, Data, UnitPoint, Widget, WidgetExt, WindowDesc};
 use druid_widget_nursery::prism::{Closures, Prism};

@@ -1,3 +1,6 @@
+// Copyright 2022 the Druid Authors
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{parse_quote, spanned::Spanned, Data, DeriveInput, Fields, GenericParam, WherePredicate};

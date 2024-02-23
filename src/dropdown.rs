@@ -1,3 +1,6 @@
+// Copyright 2021 the Druid Authors
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 use druid::commands::CLOSE_WINDOW;
 use druid::widget::prelude::*;
 use druid::widget::Controller;
