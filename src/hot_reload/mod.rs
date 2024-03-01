@@ -1,3 +1,6 @@
+// Copyright 2021 the Druid Authors
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 // TODO: survive a change in AppData.
 
 use std::marker::PhantomData;

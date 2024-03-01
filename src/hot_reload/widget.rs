@@ -1,3 +1,6 @@
+// Copyright 2021 the Druid Authors
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 use super::{hot_reload_lib::HotReloadLib, RELOAD};
 use druid::{widget::prelude::*, WidgetPod};
 

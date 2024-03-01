@@ -1,3 +1,6 @@
+// Copyright 2022 the Druid Authors
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 use proc_macro::TokenStream;
 use syn::{parse_macro_input, DeriveInput};
 

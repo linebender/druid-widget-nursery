@@ -1,3 +1,6 @@
+// Copyright 2021 the Druid Authors
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 //! Loading themes from files.
 //!
 //! This module consists of two parts: A macro for declaring 'themes'

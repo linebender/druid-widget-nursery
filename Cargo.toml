@@ -4,7 +4,7 @@ description = "Extra widgets for `druid` that are not yet ready for inclusion in
 version = "0.1.0"
 authors = ["Richard Dodd <richard.o.dodd@gmail.com>"]
 edition = "2018"
-license = "MIT OR Apache-2.0"
+license = "Apache-2.0 OR MIT"
 
 [features]
 async = ["tokio/rt", "futures", "flume"]

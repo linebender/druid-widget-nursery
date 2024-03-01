@@ -1,3 +1,6 @@
+// Copyright 2022 the Druid Authors
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 #![cfg(feature = "derive")]
 
 use std::{fmt::Debug, marker::PhantomData};

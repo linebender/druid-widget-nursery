@@ -1,3 +1,6 @@
+// Copyright 2021 the Druid Authors
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 use druid::im::Vector;
 use druid::widget::{Button, Checkbox, CrossAxisAlignment, Flex, Label, List, Radio, TextBox};
 use druid::{AppLauncher, ArcStr, UnitPoint, Widget, WidgetExt};
