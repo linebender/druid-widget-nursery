@@ -14,10 +14,15 @@
 //
 // Author: Dietmar Maurer <dietmar@proxmox.com>
 
-use druid::{Data, Widget, WidgetPod};
+use std::collections::HashMap;
+
+use druid::{Data, Widget, WidgetExt, WidgetPod};
 
 mod table_column_width;
 pub use table_column_width::*;
+
+mod table_data;
+pub use table_data::*;
 
 mod flex_table;
 pub use flex_table::*;
@@ -48,25 +53,32 @@ pub enum TableCellVerticalAlignment {
 /// A table row is a horizontal group of widgets.
 ///
 /// All rows in a table must have the same number of children.
-pub struct TableRow<T> {
+pub struct TableRow<T: RowData> {
+    id: T::Id,
     min_height: Option<f64>,
     vertical_alignment: Option<TableCellVerticalAlignment>,
-    children: Vec<WidgetPod<T, Box<dyn Widget<T>>>>,
+    children: HashMap<T::Column, WidgetPod<T, Box<dyn Widget<T>>>>,
+    visible: bool,
 }
 
-impl<T: Data> Default for TableRow<T> {
+impl<T: RowData> Default for TableRow<T>
+where
+    T::Id: Default,
+{
     fn default() -> Self {
-        Self::new()
+        Self::new(T::Id::default())
     }
 }
 
-impl<T: Data> TableRow<T> {
+impl<T: RowData> TableRow<T> {
     /// Create a new, empty table
-    pub fn new() -> Self {
+    pub fn new(id: T::Id) -> Self {
         Self {
+            id,
             min_height: None,
-            children: Vec::new(),
+            children: HashMap::new(),
             vertical_alignment: None,
+            visible: true,
         }
     }
 
@@ -92,6 +104,20 @@ impl<T: Data> TableRow<T> {
         self.vertical_alignment = Some(align);
     }
 
+    pub fn children(&mut self) -> &mut HashMap<T::Column, WidgetPod<T, Box<dyn Widget<T>>>> {
+        &mut self.children
+    }
+
+    pub fn id(&self) -> &T::Id {
+        &self.id
+    }
+
+    pub fn visible(&mut self) -> &mut bool {
+        &mut self.visible
+    }
+}
+
+impl<T: Data> TableRow<FixedRow<T>> {
     /// Builder-style variant of [`Self::add_child`].
     pub fn with_child(mut self, child: impl Widget<T> + 'static) -> Self {
         self.add_child(child);
@@ -102,8 +128,8 @@ impl<T: Data> TableRow<T> {
     ///
     /// See also [`Self::with_child`].
     pub fn add_child(&mut self, child: impl Widget<T> + 'static) {
-        let child: Box<dyn Widget<T>> = Box::new(child);
+        let child: Box<dyn Widget<FixedRow<T>>> = child.lens(FixedRow::data).boxed();
         let child = WidgetPod::new(child);
-        self.children.push(child);
+        self.children.insert(self.children.len(), child);
     }
 }

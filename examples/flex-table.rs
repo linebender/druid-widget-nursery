@@ -20,7 +20,7 @@ use druid::widget::{
 use druid::{theme, AppLauncher, Color, Data, Env, Lens, UnitPoint, Widget, WindowDesc};
 
 use druid_widget_nursery::table::{
-    FlexTable, TableCellVerticalAlignment, TableColumnWidth, TableRow,
+    FlexTable, FlexTableFixed, TableCellVerticalAlignment, TableColumnWidth, TableRow,
 };
 
 #[derive(Clone, Data, Default, Lens)]
@@ -33,41 +33,40 @@ struct DemoState {
 fn make_imput_form_example() -> impl Widget<DemoState> {
     use TableColumnWidth::*;
 
-    FlexTable::new()
+    FlexTableFixed::new()
         .inner_border(theme::BORDER_LIGHT, 1.)
         .with_column_width(Intrinsic)
         .with_column_width((Flex(1.), 100.))
-        .with_row(
-            TableRow::new()
-                .with_child(Label::new("Username:").align_horizontal(UnitPoint::RIGHT))
+        .with_row_auto(|row| {
+            row.with_child(Label::new("Username:").align_horizontal(UnitPoint::RIGHT))
                 .with_child(
                     TextBox::new()
                         .with_placeholder("Username")
                         .expand_width()
                         .lens(DemoState::input_username),
-                ),
-        )
-        .with_row(
-            TableRow::new()
-                .with_child(Label::new("Password:").align_horizontal(UnitPoint::RIGHT))
+                )
+        })
+        .with_row_auto(|row| {
+            row.with_child(Label::new("Password:").align_horizontal(UnitPoint::RIGHT))
                 .with_child(
                     TextBox::new()
                         .with_placeholder("Password")
                         .expand_width()
                         .lens(DemoState::input_password),
-                ),
-        )
+                )
+        })
+        .adapt()
         .border(Color::WHITE, 1.)
 }
 
 fn make_row_alignment_example() -> impl Widget<DemoState> {
-    let mut table = FlexTable::new()
+    let mut table = FlexTableFixed::new()
         .inner_border(theme::BORDER_LIGHT, 1.)
         .default_column_width(TableColumnWidth::Intrinsic);
 
     use TableCellVerticalAlignment::*;
 
-    let mut row = TableRow::new().vertical_alignment(Baseline);
+    let mut row = TableRow::new(0).vertical_alignment(Baseline);
 
     row.add_child(Label::new("Baseline"));
 
@@ -93,7 +92,7 @@ fn make_row_alignment_example() -> impl Widget<DemoState> {
     table.add_row(row);
 
     for align in [Bottom, Middle, Top, Fill] {
-        let mut row = TableRow::new().min_height(40.).vertical_alignment(align);
+        let mut row = TableRow::new(1).min_height(40.).vertical_alignment(align);
 
         row.add_child(
             Label::new(format!("{align:?}"))
@@ -120,7 +119,7 @@ fn make_row_alignment_example() -> impl Widget<DemoState> {
         table.add_row(row);
     }
 
-    table.border(Color::WHITE, 1.)
+    table.adapt().border(Color::WHITE, 1.)
 }
 
 fn make_cell_alignment_example() -> impl Widget<DemoState> {
@@ -136,7 +135,7 @@ fn make_cell_alignment_example() -> impl Widget<DemoState> {
         UnitPoint::CENTER,
     ];
 
-    let mut row = TableRow::new().min_height(40.);
+    let mut row = TableRow::new(0).min_height(40.);
 
     for (i, alignment) in alignments.iter().enumerate() {
         row.add_child(
@@ -157,6 +156,7 @@ fn make_cell_alignment_example() -> impl Widget<DemoState> {
     FlexTable::new()
         .inner_border(theme::BORDER_LIGHT, 1.)
         .with_row(row)
+        .adapt()
         .border(Color::WHITE, 1.)
         .fix_height(42.)
 }
