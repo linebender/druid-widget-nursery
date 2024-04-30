@@ -1,5 +1,4 @@
 use std::{
-    cell::RefCell,
     fmt::Debug,
     hash::Hash,
     ops::{Deref, Index, IndexMut},
@@ -7,13 +6,10 @@ use std::{
 };
 
 use druid::{
+    im::Vector,
     lens::{Identity, InArc},
-    Data, Lens, Widget, WidgetExt,
+    Data, Widget, WidgetExt,
 };
-
-use self::private::Sealed;
-
-use super::FlexTable;
 
 pub trait RowData: Data {
     type Id: Hash + Eq + Clone + Debug;
@@ -40,18 +36,10 @@ impl<T: RowData> RowData for Arc<T> {
     }
 }
 
-pub(super) mod private {
-    pub enum Local {}
-
-    pub trait Sealed {}
-
-    impl Sealed for Local {}
-}
-
 pub trait TableData:
     Data
-    + for<'a> Index<&'a <Self::Row as RowData>::Id, Output = Self::Row>
-    + for<'a> IndexMut<&'a <Self::Row as RowData>::Id, Output = Self::Row>
+    + Index<<Self::Row as RowData>::Id, Output = Self::Row>
+    + IndexMut<<Self::Row as RowData>::Id, Output = Self::Row>
 {
     type Row: RowData<Column = Self::Column>;
     type Column: Hash + Eq + Clone;
@@ -59,31 +47,43 @@ pub trait TableData:
     fn keys(&self) -> impl Iterator<Item = <Self::Row as RowData>::Id>;
 
     fn columns(&self) -> impl Iterator<Item = Self::Column>;
+}
 
-    #[doc(hidden)]
-    fn _or_fixed<T: Sealed>(&self, _table: &FlexTable<Self>) -> &Self {
-        self
+pub type WidgetFactoryRow = Vector<Arc<dyn Fn() -> Box<dyn Widget<()>>>>;
+
+impl RowData for (usize, WidgetFactoryRow) {
+    type Id = usize;
+    type Column = usize;
+
+    fn id(&self) -> Self::Id {
+        self.0
+    }
+
+    fn cell(&self, column: &Self::Column) -> Box<dyn Widget<Self>> {
+        (self.1[*column])().lens(druid::lens::Unit).boxed()
     }
 }
 
-#[derive(Clone, Data, Default, Lens)]
-pub struct FixedRow<T: Data> {
-    data: T,
-}
+pub type WidgetFactoryTable = Vector<(usize, WidgetFactoryRow)>;
 
-impl<T: Data> FixedTable<T> {
-    pub fn new(data: T) -> Self {
-        Self {
-            dummy: FixedRow {
-                data,
-            },
-            columns: Default::default(),
-            len: Default::default(),
+impl TableData for WidgetFactoryTable {
+    type Row = (usize, WidgetFactoryRow);
+    type Column = usize;
+
+    fn keys(&self) -> impl Iterator<Item = <Self::Row as RowData>::Id> {
+        0..self.len()
+    }
+
+    fn columns(&self) -> impl Iterator<Item = Self::Column> {
+        if self.is_empty() {
+            0..0
+        } else {
+            0..self[0].1.len()
         }
     }
 }
 
-impl<T: Data> RowData for FixedRow<T> {
+impl RowData for () {
     type Id = usize;
     type Column = usize;
 
@@ -92,49 +92,19 @@ impl<T: Data> RowData for FixedRow<T> {
     }
 
     fn cell(&self, _: &Self::Column) -> Box<dyn Widget<Self>> {
-        unimplemented!()
+        unreachable!()
     }
 }
 
-#[derive(Clone, Data, Default, Lens)]
-pub struct FixedTable<T: Data> {
-    dummy: FixedRow<T>,
-    #[data(ignore)]
-    len: RefCell<usize>,
-    #[data(ignore)]
-    columns: RefCell<usize>,
-}
-
-impl<T: Data> Index<&usize> for FixedTable<T> {
-    type Output = FixedRow<T>;
-
-    fn index(&self, _: &usize) -> &Self::Output {
-        &self.dummy
-    }
-}
-
-impl<T: Data> IndexMut<&usize> for FixedTable<T> {
-    fn index_mut(&mut self, _: &usize) -> &mut Self::Output {
-        &mut self.dummy
-    }
-}
-
-impl<T: Data> TableData for FixedTable<T> {
-    type Row = FixedRow<T>;
-    type Column = <Self::Row as RowData>::Column;
+impl TableData for [(); 0] {
+    type Row = ();
+    type Column = usize;
 
     fn keys(&self) -> impl Iterator<Item = <Self::Row as RowData>::Id> {
-        0..*self.len.borrow()
+        0..0
     }
 
     fn columns(&self) -> impl Iterator<Item = Self::Column> {
-        0..*self.columns.borrow()
-    }
-
-    fn _or_fixed<U: Sealed>(&self, table: &FlexTable<Self>) -> &Self {
-        *self.columns.borrow_mut() = table.column_count();
-        *self.len.borrow_mut() = table.rows().count();
-
-        self
+        0..0
     }
 }
