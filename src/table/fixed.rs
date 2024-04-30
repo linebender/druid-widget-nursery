@@ -27,8 +27,16 @@ impl<T: Data> FixedFlexTable<T> {
         }
     }
 
-    fn data(data: &T) -> FixedTable<T> {
-        FixedTable::new(data.clone())
+    fn data(&self, data: &T) -> FixedTable<T> {
+        FixedTable {
+            data: FixedRow { data: data.clone() },
+            len: self.table.children.len(),
+            columns: if self.table.children.is_empty() {
+                0
+            } else {
+                self.table.children.values().next().unwrap().children.len()
+            },
+        }
     }
 
     /// Builder-style method to add a table row.
@@ -249,7 +257,7 @@ impl<T: Data> Widget<T> for FixedFlexTable<T> {
         data: &mut T,
         env: &druid::Env,
     ) {
-        let mut table_data = Self::data(data);
+        let mut table_data = self.data(data);
         self.table.event(ctx, event, &mut table_data, env);
         *data = table_data.data.data
     }
@@ -261,13 +269,13 @@ impl<T: Data> Widget<T> for FixedFlexTable<T> {
         data: &T,
         env: &druid::Env,
     ) {
-        let table_data = Self::data(data);
+        let table_data = self.data(data);
         self.table.lifecycle(ctx, event, &table_data, env);
     }
 
     fn update(&mut self, ctx: &mut druid::UpdateCtx, old_data: &T, data: &T, env: &druid::Env) {
-        let old_data = Self::data(old_data);
-        let data = Self::data(data);
+        let old_data = self.data(old_data);
+        let data = self.data(data);
         self.table.update(ctx, &old_data, &data, env);
     }
 
@@ -278,12 +286,12 @@ impl<T: Data> Widget<T> for FixedFlexTable<T> {
         data: &T,
         env: &druid::Env,
     ) -> druid::Size {
-        let data = Self::data(data);
+        let data = self.data(data);
         self.table.layout(ctx, bc, &data, env)
     }
 
     fn paint(&mut self, ctx: &mut druid::PaintCtx, data: &T, env: &druid::Env) {
-        let data = Self::data(data);
+        let data = self.data(data);
         self.table.paint(ctx, &data, env)
     }
 }
@@ -366,16 +374,6 @@ impl<T: Data> TableRow<T> {
 #[derive(Clone, Data, Default, Lens)]
 struct FixedRow<T: Data> {
     data: T,
-}
-
-impl<T: Data> FixedTable<T> {
-    pub fn new(data: T) -> Self {
-        Self {
-            data: FixedRow { data },
-            columns: 0,
-            len: 0,
-        }
-    }
 }
 
 impl<T: Data> RowData for FixedRow<T> {
