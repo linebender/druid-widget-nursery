@@ -12,3 +12,4 @@ proc-macro = true
 proc-macro2 = "1.0.36"
 quote = "1.0.14"
 syn = "1.0.85"
+syn2 = { package = "syn", version = "2" }
