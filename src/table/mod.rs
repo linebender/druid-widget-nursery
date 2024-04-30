@@ -50,6 +50,8 @@ pub enum TableCellVerticalAlignment {
     Middle,
 }
 
+pub type TableChildren<T> = HashMap<<T as RowData>::Column, WidgetPod<T, Box<dyn Widget<T>>>>;
+
 /// A table row is a horizontal group of widgets.
 ///
 /// All rows in a table must have the same number of children.
@@ -57,7 +59,7 @@ pub struct TableRow<T: RowData> {
     id: T::Id,
     min_height: Option<f64>,
     vertical_alignment: Option<TableCellVerticalAlignment>,
-    children: HashMap<T::Column, WidgetPod<T, Box<dyn Widget<T>>>>,
+    children: TableChildren<T>,
     visible: bool,
 }
 
@@ -104,7 +106,7 @@ impl<T: RowData> TableRow<T> {
         self.vertical_alignment = Some(align);
     }
 
-    pub fn children(&mut self) -> &mut HashMap<T::Column, WidgetPod<T, Box<dyn Widget<T>>>> {
+    pub fn children(&mut self) -> &mut TableChildren<T> {
         &mut self.children
     }
 
