@@ -48,42 +48,42 @@ pub(crate) struct TableBorderStyle {
 /// #[derive(Clone, Data)]
 /// struct Row {
 ///     row: usize,
-///     width: usize
 /// };
-/// 
+///
 /// impl RowData for Row {
 ///     type Id = usize;
 ///     type Column = usize;
-/// 
+///
 ///     fn id(&self) -> Self::Id {
 ///         self.row
 ///     }
-/// 
+///
 ///     fn cell(&self, column: &Self::Column) -> Box<dyn Widget<Self>> {
 ///         let column = *column;
 ///         Label::dynamic(move |data: &Row, _| format!("Row {} / Column {}", data.row, column)).boxed()
 ///     }
 /// }
-/// 
+///
 /// #[derive(Clone, Data)]
 /// struct Table {
-///     children: Vector<Row>
+///     children: Vector<Row>,
+///     width: usize,
 /// }
-/// 
+///
 /// impl Index<usize> for Table {
 ///     type Output = Row;
-/// 
+///
 ///     fn index(&self, row: usize) -> &Self::Output {
 ///         &self.children[row]
 ///     }
 /// }
-/// 
+///
 /// impl IndexMut<usize> for Table {
 ///     fn index_mut(&mut self, row: usize) -> &mut Self::Output {
 ///         &mut self.children[row]
 ///     }
 /// }
-/// 
+///
 /// impl TableData for Table {
 ///     type Row = Row;
 ///     type Column = usize;
@@ -96,11 +96,11 @@ pub(crate) struct TableBorderStyle {
 ///         if self.children.is_empty() {
 ///             0..0
 ///         } else {
-///             0..self.children[0].width
+///             0..self.width
 ///         }
 ///     }
 /// }
-/// 
+///
 /// # fn test() -> impl Widget<Table> {
 /// FlexTable::new()
 ///     .inner_border(druid::theme::BORDER_LIGHT, 1.)
@@ -108,13 +108,12 @@ pub(crate) struct TableBorderStyle {
 ///         children: vector!(
 ///             Row {
 ///                 row: 1,
-///                 width: 2,
 ///             },
 ///             Row {
 ///                 row: 2,
-///                 width: 2,
 ///             }
-///         )
+///         ),
+///         width: 2,
 ///     }))
 /// # }
 /// ```
