@@ -14,6 +14,12 @@ pub struct FixedFlexTable<T: Data> {
     table: FlexTable<FixedTable<T>>,
 }
 
+impl<T: Data> Default for FixedFlexTable<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T: Data> FixedFlexTable<T> {
     pub fn new() -> Self {
         Self {
@@ -33,7 +39,7 @@ impl<T: Data> FixedFlexTable<T> {
 
     /// Add a table row
     pub fn add_row(&mut self, row: TableRow<T>) {
-        self.table.insert_row(row.into_internal(&self))
+        self.table.insert_row(row.into_internal(self))
     }
 
     /// Builder-style method to set the table background brush
@@ -286,6 +292,12 @@ pub struct TableRow<T> {
     children: Vec<Box<dyn Widget<T>>>,
     min_height: Option<f64>,
     vertical_alignment: Option<TableCellVerticalAlignment>,
+}
+
+impl<T: Data> Default for TableRow<T> {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl<T: Data> TableRow<T> {
