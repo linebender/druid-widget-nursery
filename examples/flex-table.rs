@@ -20,7 +20,7 @@ use druid::widget::{
 use druid::{theme, AppLauncher, Color, Data, Env, Lens, UnitPoint, Widget, WindowDesc};
 
 use druid_widget_nursery::table::{
-    FlexTable, TableCellVerticalAlignment, TableColumnWidth, TableRow,
+    FixedFlexTable, TableCellVerticalAlignment, TableColumnWidth, TableRow,
 };
 
 #[derive(Clone, Data, Default, Lens)]
@@ -33,7 +33,7 @@ struct DemoState {
 fn make_imput_form_example() -> impl Widget<DemoState> {
     use TableColumnWidth::*;
 
-    FlexTable::new()
+    FixedFlexTable::new()
         .inner_border(theme::BORDER_LIGHT, 1.)
         .with_column_width(Intrinsic)
         .with_column_width((Flex(1.), 100.))
@@ -61,7 +61,7 @@ fn make_imput_form_example() -> impl Widget<DemoState> {
 }
 
 fn make_row_alignment_example() -> impl Widget<DemoState> {
-    let mut table = FlexTable::new()
+    let mut table = FixedFlexTable::new()
         .inner_border(theme::BORDER_LIGHT, 1.)
         .default_column_width(TableColumnWidth::Intrinsic);
 
@@ -154,7 +154,7 @@ fn make_cell_alignment_example() -> impl Widget<DemoState> {
         );
     }
 
-    FlexTable::new()
+    FixedFlexTable::new()
         .inner_border(theme::BORDER_LIGHT, 1.)
         .with_row(row)
         .border(Color::WHITE, 1.)

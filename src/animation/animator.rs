@@ -83,7 +83,7 @@ impl Animator {
     ) {
         self.pending_starts
             .entry(event)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(id);
         self.pending_count += 1;
     }

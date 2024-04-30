@@ -84,7 +84,7 @@ impl From<f64> for TableColumnWidth {
 /// Examples:
 /// ```
 /// use druid_widget_nursery::table::{FlexTable, TableColumnWidth::*};
-/// # fn test () -> FlexTable<()> {
+/// # fn test () -> FlexTable<[(); 0]> {
 /// FlexTable::new()
 ///    .with_column_width(64.0)
 ///    .with_column_width(Intrinsic)
