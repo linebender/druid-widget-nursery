@@ -1,3 +1,6 @@
+// Copyright 2021 the Druid Authors
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 use super::*;
 
 /// An animator. This keeps track of multiple running animations, and the dependencies between
@@ -81,10 +84,7 @@ impl Animator {
         event: AnimationEvent,
         id: AnimationId,
     ) {
-        self.pending_starts
-            .entry(event)
-            .or_insert_with(Vec::new)
-            .push(id);
+        self.pending_starts.entry(event).or_default().push(id);
         self.pending_count += 1;
     }
 

@@ -1,3 +1,6 @@
+// Copyright 2021 the Druid Authors
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 /// Generates `Selector`s based on module, line and column
 /// ```
 /// # use druid_widget_nursery::selectors;

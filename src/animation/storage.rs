@@ -1,3 +1,6 @@
+// Copyright 2021 the Druid Authors
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 use std::num::NonZeroU32;
 
 #[allow(clippy::upper_case_acronyms)]

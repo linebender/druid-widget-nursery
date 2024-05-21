@@ -1,3 +1,6 @@
+// Copyright 2022 the Druid Authors
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
 pub use druid_material_icons::{normal, IconPaths};
 
 use druid::{
