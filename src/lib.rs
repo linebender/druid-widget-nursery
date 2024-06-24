@@ -6,6 +6,7 @@
 #![allow(clippy::new_ret_no_self)]
 
 pub mod animation;
+mod animated_padding;
 mod autofocus;
 mod canvas;
 mod computed;
@@ -53,6 +54,7 @@ pub mod hot_reload;
 mod list_filter;
 
 pub use advanced_slider::AdvancedSlider;
+pub use animated_padding::AnimatedPadding;
 pub use autofocus::AutoFocus;
 pub use canvas::{Canvas, CanvasLayout, CanvasWrap};
 pub use computed::ComputedWidget;
